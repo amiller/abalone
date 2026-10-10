@@ -1,0 +1,18 @@
+pi/node_modules
+secrets/
+local-data/
+*.log
+aci/node_modules
+aci/*/dist-test
+runner-home/
+contracts/lib/
+node_modules/
+
+# Canonical private development
+__pycache__/
+*.pyc
+.worktrees/
+design/**/*.zip
+design/*.zip
+pi/packages/*/dist/
+aci/*/dist/

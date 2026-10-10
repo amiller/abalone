@@ -1,0 +1,17 @@
+
+# Preserve binary design artifacts without text conversion.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.mp4 binary
+
+# Imported source captures retain original whitespace; hashes are in planning/imports/.
+design/nacre-art/build.py whitespace=-blank-at-eol,-blank-at-eof
+design/nacre-art/converter-study/aic-ascii.ansi whitespace=-blank-at-eol,-blank-at-eof
+design/nacre-art/converter-study/chafa-mono.ansi whitespace=-blank-at-eol,-blank-at-eof
+design/nacre-art/converter-study/chafa-mono.html-fragment whitespace=-blank-at-eol,-blank-at-eof
+design/nacre-art/converter-study/compare.html whitespace=-blank-at-eol,-blank-at-eof
+design/nacre-art/converter-study/index.html whitespace=-blank-at-eol,-blank-at-eof
+design/nacre-art/converter-study/nacre-48.txt whitespace=-blank-at-eol,-blank-at-eof
+design/references/agent-tools-review.md whitespace=-blank-at-eol,-blank-at-eof
+design/references/local-models/ollama-faq.md whitespace=-blank-at-eol,-blank-at-eof

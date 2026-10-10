@@ -1,0 +1,26 @@
+[33mREVIEW DISCLOSURE d-0123abcd: NOT SENT                                         [0m | [1mDetails (from config and logs, not the[0m
+  to     runner:claude, outside abalone: one run of your own Claude             | [1m  model)[0m
+         subscription, in a sandbox that sees only this text                    | [2menvelope: abalone puts one fixed line[0m
+  why    | Whether a fixed-term tenancy rolls over if the tenant does nothing   | [2m  before it: "The file pour.md holds a[0m
+         | before the renewal deadline.                                         | [2m  question from another agent. Answer[0m
+  gate   free_text, 252 of 600 bytes: within your standing policy               | [2m  it."[0m
+----- BEGIN EXACT OUTBOUND TEXT (252 bytes, sha256 5e1f00c0ffee) -----          | [2m"| " starts a line of the exact text;[0m
+| Under a typical residential tenancy in England, if a renewal offer raises the | [2m  "+ " continues a wrapped line[0m
++  monthly rent by about 5% and the tenant does nothing before the deadline, do | [2mresidual: topic, numbers, dates and[0m
++ es the tenancy roll over to a periodic tenancy, and on what terms?            | [2m  places it keeps can still point to[0m
+| Answer in two short paragraphs.                                               | [2m  you or to your material[0m
+----- END EXACT OUTBOUND TEXT -----                                             | [2mearlier pours from this conversation:[0m
+Not anonymous, even with names removed:                                         | [2m  0 sent, 1 not sent[0m
+  note   | The jurisdiction, that the user is a tenant facing a renewal with a  | [2mrunner sandbox: reads /work, which[0m
+         | rent rise of about 5%, and that a deadline is near.                  | [2m  holds only this text; no tools, no[0m
+  - It goes out under your own Claude login: the vendor can tie it, its size    | [2m  MCP servers, no browser[0m
+    and its timing to your account.                                             | [2mrunner login: present at /repo/[0m
+Only this text leaves: not tenancy-renewal.pdf, the notebook or tools.          | [2m  runner-home/claude[0m
+[33mContinue privately is selected first, and Esc always sends nothing. Sending    [0m | [2mnetwork: api.anthropic.com,[0m
+[33monce creates no standing policy.                                               [0m | [2m  console.anthropic.com,[0m
+                                                                                | [2m  platform.claude.com, through[0m
+                                                                                | [2m  abalone's egress only[0m
+                                                                                | [2mgate: 12 canary strings checked;[0m
+                                                                                | [2m  session budget 6000 bytes[0m
+                                                                                | [2mlog: /home/user/.abalone/[0m
+                                                                                | [2m  disclosures.jsonl[0m

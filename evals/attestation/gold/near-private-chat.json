@@ -1,0 +1,56 @@
+{
+  "case": "near-private-chat",
+  "stage": "0",
+  "stage_cite": "README.md:45 | [near-private-chat](case-studies/near-private-chat/) | 0 | Backend routing unverified, 56 compose hashes authorized |",
+  "gaps": [
+    {
+      "tag": "op:unforced-serving",
+      "id": null,
+      "text": "cloud-api never cryptographically verifies vLLM backend attestation; any server returning parseable JSON is accepted.",
+      "cite": "case-studies/near-private-chat/DEVPROOF-REPORT.md:359"
+    },
+    {
+      "tag": "hw:not-bound",
+      "id": null,
+      "text": "Backend signing_public_key taken trust-on-first-use from unverified JSON.",
+      "cite": "case-studies/near-private-chat/DEVPROOF-REPORT.md:382"
+    },
+    {
+      "tag": "op:config-url",
+      "id": null,
+      "text": "MODEL_DISCOVERY_SERVER_URL still in allowed_envs; inference_url set in DB by operator.",
+      "cite": "case-studies/near-private-chat/DEVPROOF-REPORT.md:388"
+    },
+    {
+      "tag": "op:logs",
+      "id": null,
+      "text": "Backend validation errors leak full user conversations in plaintext error responses (PR #501).",
+      "cite": "case-studies/near-private-chat/DEVPROOF-REPORT.md:409"
+    },
+    {
+      "tag": "op:no-notice",
+      "id": null,
+      "text": "AppAuth contracts not source-verified; who can authorize new compose hashes is unconfirmed.",
+      "cite": "case-studies/near-private-chat/DEVPROOF-REPORT.md:412"
+    },
+    {
+      "tag": "assurance:none",
+      "id": null,
+      "text": "55 other authorized compose hashes remain bootable and were not reviewed.",
+      "cite": "case-studies/near-private-chat/DEVPROOF-REPORT.md:424"
+    },
+    {
+      "tag": "op:logs",
+      "id": null,
+      "text": "Datadog agent in TEE has access to the environment for telemetry.",
+      "cite": "case-studies/near-private-chat/DEVPROOF-REPORT.md:427"
+    }
+  ],
+  "report": "case-studies/near-private-chat/DEVPROOF-REPORT.md",
+  "forced_tags": [
+    "PR #501 op:logs: leak is via error responses, not logs",
+    "AppAuth op:no-notice: governance/ownership of the upgrade contract, no exact tag",
+    "55 hashes assurance:none: an audit-scope note the README row treats as a key issue"
+  ],
+  "note": "Report states no stage; stage from guide README row."
+}

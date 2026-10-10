@@ -1,0 +1,57 @@
+{
+  "case": "phala-private-ai-verifier",
+  "stage": "0",
+  "stage_cite": "case-studies/phala-private-ai-verifier/DEVPROOF-REPORT.md:189 **As a user-facing verifier product:** Stage 0.",
+  "gaps": [
+    {
+      "tag": "client:verifier-gap",
+      "id": null,
+      "text": "Uses server-supplied TLS fingerprint; never opens a live TLS connection to verify.",
+      "cite": "case-studies/phala-private-ai-verifier/DEVPROOF-REPORT.md:18"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": null,
+      "text": "NEAR AI compose-hash check compares two server-supplied values, not the quote's mr_config.",
+      "cite": "case-studies/phala-private-ai-verifier/DEVPROOF-REPORT.md:19"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": null,
+      "text": "signing_public_key never read; no key-to-address binding.",
+      "cite": "case-studies/phala-private-ai-verifier/DEVPROOF-REPORT.md:20"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": null,
+      "text": "No E2EE transport; no path from 'verified' to sending a private prompt.",
+      "cite": "case-studies/phala-private-ai-verifier/DEVPROOF-REPORT.md:21"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": null,
+      "text": "Debug-mode td_attributes check absent on NEAR AI and Redpill-Phala paths.",
+      "cite": "case-studies/phala-private-ai-verifier/DEVPROOF-REPORT.md:22"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": null,
+      "text": "Venice not implemented.",
+      "cite": "case-studies/phala-private-ai-verifier/DEVPROOF-REPORT.md:24"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": null,
+      "text": "GPU verdict checks overall boolean only; ignores NRAS 'FAIL' string shape.",
+      "cite": "case-studies/phala-private-ai-verifier/DEVPROOF-REPORT.md:83"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": null,
+      "text": "RTMR/MRTD pinning not done on the NEAR AI path.",
+      "cite": "case-studies/phala-private-ai-verifier/DEVPROOF-REPORT.md:84"
+    }
+  ],
+  "report": "case-studies/phala-private-ai-verifier/DEVPROOF-REPORT.md",
+  "note": "Subject is a verifier tool, so the vocab would suggest n/a; the report and README both assign Stage 0, kept here."
+}

@@ -1,0 +1,19 @@
+{
+  "case": "venice-private-inference",
+  "subject": "Venice AI E2EE private inference (api.venice.ai) and the veniceai/skills agent guidance",
+  "inputs": {
+    "urls": [
+      "https://api.venice.ai"
+    ],
+    "repos": [
+      "veniceai/skills"
+    ],
+    "app_ids": [],
+    "audit_date": "2026-04-24"
+  },
+  "given_files": [],
+  "withheld_files": [
+    "DEVPROOF-REPORT.md",
+    "../../README.md#L52"
+  ]
+}

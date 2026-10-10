@@ -1,0 +1,98 @@
+{
+ "v": "abalone-task/1",
+ "type": "completion",
+ "task_id": "f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7",
+ "auth_hash": "5d457459143a884f635b6ac7956e3c8b3706ba49e60ecf6cb9c88471054b081f",
+ "offer_id": "bb3f16fa4ae7d2b01b920d182c6ca6bdc0e4b47d4c506b9b1704cd94593aa750",
+ "inputs_root": "2a04355a989a60597041d44237870fcd5e7b5ff3923f858bb13598ceb8bc8d41",
+ "worker": {
+  "peer": "12D3KooWBfc1GHpQBuj8eEpPmzg7qVzQ5EPwzy36UZ3nWYATJcNj",
+  "operator": "independent"
+ },
+ "peer_evidence": {
+  "type": "dev"
+ },
+ "guest": {
+  "image": "docker.io/abalone/task@sha256:830b9921a7d0e176be4e0a54fc0ce644e0d039206604b1112c312f03d1f4ed7e",
+  "compose_hash": "ef61d0ab778067dc79adb3cff583d4e5d8ff5976e403c4655a01bd45913d7b08",
+  "receipts": {
+   "count": 4,
+   "head": "340e5dc298ddc80a6dae24ba994c28c229cffdd9598feb5c537275d2551c6fb6"
+  }
+ },
+ "status": "cancelled",
+ "reason": "stopped by the client",
+ "events": {
+  "count": 10,
+  "head": "a9c367d32115de49668262d2b46b5d6bb0695bc10e7a2c347b72e06500405b74"
+ },
+ "outputs": [
+  {
+   "path": "files/add.mjs",
+   "sha256": "4a381860447226426a116b024081641b32f9b6c4f7c2c5d3cb86987e85c8ae33",
+   "bytes": 36
+  },
+  {
+   "path": "finish.json",
+   "sha256": "5a404d6cfb46e549ef170cc159b70ef50b87661560c60f795982e8b9492491e0",
+   "bytes": 34
+  },
+  {
+   "path": "patch.diff",
+   "sha256": "52d180dc12a82b88c9b6139f9703f970586f3290ec2c036888d434b358edcdf6",
+   "bytes": 145
+  }
+ ],
+ "usage": {
+  "tariff_version": "t1",
+  "cap": 500000,
+  "reserved": 500000,
+  "sponsored": false,
+  "execution": {
+   "seconds": 61,
+   "per_second": 167,
+   "charge": 10187
+  },
+  "inference": {
+   "calls": 1,
+   "prompt_tokens": 900,
+   "completion_tokens": 412,
+   "charge": 1312
+  },
+  "storage": {
+   "charge": 0
+  },
+  "charged": 11499,
+  "released": 488501,
+  "settled": true,
+  "ledger": [
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:infer:1",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:1",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:2",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:3",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:4",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:final",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:settle"
+  ]
+ },
+ "settlement": {
+  "ledger": "peer 12D3KooWBfc1GHpQBuj8eEpPmzg7qVzQ5EPwzy36UZ3nWYATJcNj slice FIXTURE",
+  "entry": "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:settle",
+  "entry_sha256": "efc9cd7cabdfdaa7918478ea370e4b4113ff7801aa1dc44a80d911ac2bf451d0",
+  "reserved": 500000,
+  "charged": 11499,
+  "released": 488501,
+  "debits": [
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:infer:1",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:1",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:2",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:3",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:4",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:final"
+  ]
+ },
+ "retention": {
+  "until": 1791686400000,
+  "delete": "automatic at until"
+ }
+}

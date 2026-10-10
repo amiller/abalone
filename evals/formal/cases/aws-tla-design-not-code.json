@@ -1,0 +1,41 @@
+{
+ "slug": "aws-tla-design-not-code",
+ "artifact": "TLA+ specifications of AWS services (S3, DynamoDB, EBS, etc.) checked with TLC, as described in Newcombe et al., 'Use of Formal Methods at Amazon Web Services' (2014), https://lamport.azurewebsites.net/tla/formal-methods-amazon.pdf",
+ "tool": "TLA+ / TLC model checker",
+ "property": "Safety invariants (and some liveness) of distributed-system designs, e.g. replication and fault-tolerance algorithms.",
+ "model": "A hand-written TLA+ design specification, model checked on bounded instances (finite numbers of nodes/messages).",
+ "trusted_base": [
+  "correspondence between the TLA+ spec and the production code (unchecked)",
+  "the chosen finite model sizes",
+  "TLC"
+ ],
+ "assumptions": [
+  "the executable code implements the specified design",
+  "bounded instances are large enough to expose the bugs that matter"
+ ],
+ "deployed": "Production Java/C++ service code written by engineers from the design, not generated from or checked against the spec.",
+ "gap": "The proof object is the design, not the code: AWS states it has no way to check that executable code implements the verified design, and TLC checks only bounded instances, so a bug introduced in implementation is outside the guarantee.",
+ "gap_keywords": [
+  "design",
+  "code",
+  "implementation",
+  "model check",
+  "bounded"
+ ],
+ "sources": [
+  {
+   "url": "https://lamport.azurewebsites.net/tla/formal-methods-amazon.pdf",
+   "title": "Use of Formal Methods at Amazon Web Services",
+   "quote": "“How do we know that the executable code correctly implements the verified design?” The answer is that we don’t."
+  },
+  {
+   "url": "https://lamport.azurewebsites.net/tla/formal-methods-amazon.pdf",
+   "title": "Use of Formal Methods at Amazon Web Services",
+   "quote": "While we would like to verify that the executable code correctly implements the high-level specification, or even generate the code from the specification, we are not aware of any such tools that can handle distributed systems as large and complex as those we are building."
+  }
+ ],
+ "input_for_reader": [
+  "Paper describing the TLA+ specs and TLC runs: https://lamport.azurewebsites.net/tla/formal-methods-amazon.pdf (sections on S3/DynamoDB)",
+  "Deployment description: the corresponding production AWS service implementation"
+ ]
+}

@@ -1,0 +1,85 @@
+{
+ "note": "Everything abalone may load. A file hashes as its bytes; a directory as its sorted per-file hashes. Regenerate with tools/rehash-manifest.mjs only after reviewing the change.",
+ "entries": [
+  {
+   "kind": "provider",
+   "path": "curated/coupon-provider.ts",
+   "sha256": "c73876d9807b70cbb156aa93ecd2924e26cc1eb44c709492deea100483f13367"
+  },
+  {
+   "kind": "extension",
+   "path": "curated/abalone.ts",
+   "sha256": "58f29f487641f7155c0fe158a84481fbc0e93cbf057097c7d2821095e00d52f8"
+  },
+  {
+   "kind": "extension",
+   "path": "curated/local-provider.ts",
+   "sha256": "755e6001bc976a2713ae5187aabeed558b6b1aef0dbaa64e30e5a77cbc7821fd"
+  },
+  {
+   "kind": "extension",
+   "path": "curated/peer-provider.ts",
+   "sha256": "d806abfade63ba4fd206f53cf9f6fa55bf890939a3e77c3b632dc9e2745fd492"
+  },
+  {
+   "kind": "preload",
+   "path": "curated/egress-preload.mjs",
+   "sha256": "eb9ba8ca68ce3a6715a89b3a71ec18e8601e50725fb841af2af30bca878ddbb9"
+  },
+  {
+   "kind": "tree",
+   "path": "lib",
+   "sha256": "528e001d0edfb2f048a571743ad7f8a9ca05a2c83156d7f890c6ed328fce30b5"
+  },
+  {
+   "kind": "skill",
+   "path": "skills/pour-planning",
+   "sha256": "5a7aecc31ef01754e95970b44208bbf7e23443d5a5a70fef755fdabde55308b6"
+  },
+  {
+   "kind": "skill",
+   "path": "skills/attestation-analyst",
+   "sha256": "033b42e483375a8be3fe02d98bbb8d938243fd89cf2509415c991f7f92a1d53b"
+  },
+  {
+   "kind": "skill",
+   "path": "skills/formal-methods-reader",
+   "sha256": "d90645589afebbae3561b56a9b826123d66f389334abee850200e47055ac6fec"
+  },
+  {
+   "kind": "provider",
+   "path": "aci/pi-provider-redpill/dist",
+   "sha256": "d3b823bf7287d8a70dcc166e87d55ef26062b553f36ec3bef24ed1a619f54427"
+  },
+  {
+   "kind": "provider",
+   "path": "aci/pi-provider-phala-cloud/dist",
+   "sha256": "084421a156d6aba074571e152c071a73a7abe3ce1d210664c800e5d15ad68d24"
+  },
+  {
+   "kind": "tree",
+   "path": "aci/pi-provider-aci/dist",
+   "sha256": "bcc3b99f9309ec3f24aa322f81f91ddc4da725741387bafef1490c9646f459be"
+  },
+  {
+   "kind": "tree",
+   "path": "aci/provider/dist",
+   "sha256": "bd6fdc069fb206e143b88a54b51919ade6a43ab0ac1f693640498c2fb4c77297"
+  },
+  {
+   "kind": "tree",
+   "path": "aci/verifier-ts/dist",
+   "sha256": "813e867cb111111a21a7e24fde2e50183d6f64c492e819e860ce7c1924b52530"
+  },
+  {
+   "kind": "provider",
+   "path": "curated/near-provider.ts",
+   "sha256": "4e9d026c94a7778bc2ed095ade3878ce2c5228993e2320f7879438aa4802a6e0"
+  },
+  {
+   "kind": "tree",
+   "path": "anchors",
+   "sha256": "93e813639079ea814bf7d154ffd0a4f47824aaee1a218ba7eb1be4b0f049d654"
+  }
+ ]
+}

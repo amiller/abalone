@@ -1,0 +1,103 @@
+{
+ "v": "abalone-task/1",
+ "type": "completion",
+ "task_id": "f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7",
+ "auth_hash": "73c61aa88af1ecfce97f854ebd065dd03a1a6f5d202974c6f3c825a016252c7a",
+ "offer_id": "d7be027994b40fafea7a5b4426fec341ec09ae38098a91109a1bb92d9896b240",
+ "inputs_root": "2a04355a989a60597041d44237870fcd5e7b5ff3923f858bb13598ceb8bc8d41",
+ "worker": {
+  "peer": "12D3KooWDLMfLzo5VJuobuQ5isTboJUpKQBQESDuS2qkBG5vfbMg",
+  "operator": "independent"
+ },
+ "peer_evidence": {
+  "type": "dev"
+ },
+ "guest": {
+  "image": "docker.io/abalone/task@sha256:830b9921a7d0e176be4e0a54fc0ce644e0d039206604b1112c312f03d1f4ed7e",
+  "compose_hash": "e02bc80d4e9e643a48f40f435630625dc6ae38d1858135f9108f17d62b4a0ee0",
+  "receipts": {
+   "count": 4,
+   "head": "74f638767ce9f5a09e34ef663768136b2d3a9dc6e773ea0464ff94880217f08f"
+  }
+ },
+ "status": "completed",
+ "reason": "agent settled",
+ "events": {
+  "count": 10,
+  "head": "635b7cf915cbdfa2d830003e0e45cca3cfe7ee130a6b72f4be2eea96a1c5a121"
+ },
+ "outputs": [
+  {
+   "path": "files/add.mjs",
+   "sha256": "4a381860447226426a116b024081641b32f9b6c4f7c2c5d3cb86987e85c8ae33",
+   "bytes": 36
+  },
+  {
+   "path": "finish.json",
+   "sha256": "734dd37eef9c87c7a7754cdab0873078797da1da167b9c7a5805103e890e17cb",
+   "bytes": 26
+  },
+  {
+   "path": "patch.diff",
+   "sha256": "52d180dc12a82b88c9b6139f9703f970586f3290ec2c036888d434b358edcdf6",
+   "bytes": 145
+  },
+  {
+   "path": "test.log",
+   "sha256": "37eb77cadffb49db859afe8a3cdc079810cb69b8b999f1a8505c56cde6d2a013",
+   "bytes": 250
+  }
+ ],
+ "usage": {
+  "tariff_version": "t1",
+  "cap": 500000,
+  "reserved": 500000,
+  "sponsored": false,
+  "execution": {
+   "seconds": 61,
+   "per_second": 167,
+   "charge": 10187
+  },
+  "inference": {
+   "calls": 1,
+   "prompt_tokens": 900,
+   "completion_tokens": 412,
+   "charge": 1312
+  },
+  "storage": {
+   "charge": 0
+  },
+  "charged": 11499,
+  "released": 488501,
+  "settled": true,
+  "ledger": [
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:infer:1",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:1",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:2",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:3",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:4",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:final",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:settle"
+  ]
+ },
+ "settlement": {
+  "ledger": "peer 12D3KooWDLMfLzo5VJuobuQ5isTboJUpKQBQESDuS2qkBG5vfbMg slice FIXTURE",
+  "entry": "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:settle",
+  "entry_sha256": "efc9cd7cabdfdaa7918478ea370e4b4113ff7801aa1dc44a80d911ac2bf451d0",
+  "reserved": 500000,
+  "charged": 11499,
+  "released": 488501,
+  "debits": [
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:infer:1",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:1",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:2",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:3",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:4",
+   "task:f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7:exec:final"
+  ]
+ },
+ "retention": {
+  "until": 1791686400000,
+  "delete": "automatic at until"
+ }
+}

@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "profile": "debug-staging-incognito-synthetic-prompts",
+  "platform": "linux-node24-bubblewrap",
+  "issuer": {
+    "peer": null,
+    "privateRoute": null,
+    "pin": "issuer-pin.json",
+    "approval": "staging-approval.json",
+    "approvalRoot": null
+  },
+  "provider": {
+    "baseUrl": "https://cloud-api.near.ai/v1",
+    "model": null,
+    "policy": {
+      "gatewayTcb": "UpToDate",
+      "modelTcb": "UpToDate",
+      "gpuSignature": "required",
+      "composeRegistry": {
+        "rpc": "https://mainnet.base.org",
+        "chainId": 8453
+      }
+    },
+    "maxTokens": 512
+  },
+  "source": {
+    "profile": "reviewed-development-source-v1",
+    "files": {}
+  },
+  "vpn": null
+}

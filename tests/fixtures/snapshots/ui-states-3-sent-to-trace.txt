@@ -1,0 +1,1 @@
+sent to: NEAR TEE (z-ai/glm-5.3-flash), encrypted to the enclave abalone checked · files read into it: none beyond the folder's file names and sizes · trace a9ae774a57953b5f (decrypted on this computer, sent to the NEAR TEE)

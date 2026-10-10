@@ -1,0 +1,55 @@
+{
+  "case": "tinfoil-confidential-containers",
+  "stage": "~1",
+  "stage_cite": "case-studies/tinfoil-confidential-containers/STAGE-733-ANALYSIS.md:128 **Stage 1 conditional, with two real failures and two conditional passes:**",
+  "gaps": [
+    {
+      "tag": "op:secret-access",
+      "id": null,
+      "text": "Stock hello-world template ships an unattested secrets: [API_KEY] slot.",
+      "cite": "case-studies/tinfoil-confidential-containers/DEVPROOF-REPORT.md:263"
+    },
+    {
+      "tag": "op:secret-access",
+      "id": null,
+      "text": "Secrets pass through the host in plaintext, per Tinfoil docs.",
+      "cite": "case-studies/tinfoil-confidential-containers/DEVPROOF-REPORT.md:274"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": null,
+      "text": "CLI --variable help says 'Override' but cannot override declared values; undeclared keys silently dropped.",
+      "cite": "case-studies/tinfoil-confidential-containers/DEVPROOF-REPORT.md:282"
+    },
+    {
+      "tag": "op:config-url",
+      "id": null,
+      "text": "A stored --variable value activates later if the slot is declared afterward.",
+      "cite": "case-studies/tinfoil-confidential-containers/DEVPROOF-REPORT.md:295"
+    },
+    {
+      "tag": "op:no-upgrade-log",
+      "id": null,
+      "text": "No on-chain attestation; Sigstore is equivalent transparency only on a liberal reading.",
+      "cite": "case-studies/tinfoil-confidential-containers/STAGE-733-ANALYSIS.md:132"
+    },
+    {
+      "tag": "op:no-notice",
+      "id": null,
+      "text": "Upgrades operator-controlled, not timelock-enforced.",
+      "cite": "case-studies/tinfoil-confidential-containers/STAGE-733-ANALYSIS.md:136"
+    },
+    {
+      "tag": "op:central-dep",
+      "id": null,
+      "text": "Controlplane and hardware fleet are Tinfoil-controlled.",
+      "cite": "case-studies/tinfoil-confidential-containers/STAGE-733-ANALYSIS.md:137"
+    }
+  ],
+  "report": "case-studies/tinfoil-confidential-containers/DEVPROOF-REPORT.md",
+  "forced_tags": [
+    "CLI naming client:verifier-gap: operator-facing CLI, not a verifier",
+    "--variable storage op:config-url: env slot, not a URL"
+  ],
+  "note": "STAGE-733-ANALYSIS.md supersedes the DEVPROOF-REPORT.md stage section. Verdict is 'Stage 1 conditional, with two real failures'; typical deployment is Stage 0. Gold uses ~1. Platform product, not one deployment. Not in guide README table."
+}

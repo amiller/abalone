@@ -1,0 +1,10 @@
+<!doctype html><title>Order form</title>
+<h1>Order a pizza</h1>
+<form method="post" action="/echo">
+<label>Customer name: <input name="custname"></label>
+<label>Size <select name="size"><option>small</option><option>large</option></select></label>
+<label><input type="checkbox" name="topping" value="onion"> Onion</label>
+<label>Delivery time <input type="time" name="delivery"></label>
+<label>Delivery day <input type="date" name="day"></label>
+<button>Submit order</button>
+</form>

@@ -1,0 +1,76 @@
+{
+ "v": "abalone-task/1",
+ "type": "completion",
+ "task_id": "b246c4158cfe12946bbf3654a7e8f6c9",
+ "auth_hash": "1ebd5ce24c67101dc34c4bb4cb140e0262cbc2fdddd2f6715169a371bc2592f4",
+ "offer_id": "85cb7aef1ba54e29edcb7b8b4d953ca143d87b54d261db358a54574ffa0ee738",
+ "inputs_root": "e79e0dbecdc8542ccf4b90c343e6e32004f030e4c13052ed8dda90967f471b84",
+ "worker": {
+  "peer": "12D3KooWRrgukqxkL2inR4Si4RovJEBXjwWoy4HCdYemKwwLJUZ5",
+  "operator": "independent"
+ },
+ "peer_evidence": {
+  "type": "appattest"
+ },
+ "guest": {
+  "image": "local:abalone@sha256:a56b3d1ec5f2eae794f9a89f0996661b13f901093848c9d4afd1a3f192989973",
+  "compose_hash": null,
+  "receipts": {
+   "count": 0,
+   "head": null
+  }
+ },
+ "status": "cancelled",
+ "reason": "stopped by the client",
+ "events": {
+  "count": 18,
+  "head": "7936fc5e8d73085dfe4417c5a883896f874302a86858e210f79c18548076f51b"
+ },
+ "outputs": [
+  {
+   "path": "finish.json",
+   "sha256": "5a404d6cfb46e549ef170cc159b70ef50b87661560c60f795982e8b9492491e0",
+   "bytes": 34
+  },
+  {
+   "path": "patch.diff",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "bytes": 0
+  }
+ ],
+ "usage": {
+  "tariff_version": "t1",
+  "cap": 50000,
+  "reserved": 50000,
+  "sponsored": false,
+  "execution": {
+   "seconds": 46,
+   "per_second": 200,
+   "charge": 9285
+  },
+  "inference": {
+   "calls": 1,
+   "prompt_tokens": 1429,
+   "completion_tokens": 503,
+   "charge": 466
+  },
+  "storage": {
+   "charge": 0
+  },
+  "charged": 9751,
+  "released": 40249,
+  "settled": true,
+  "ledger": [
+   "task:b246c4158cfe12946bbf3654a7e8f6c9:exec:1",
+   "task:b246c4158cfe12946bbf3654a7e8f6c9:exec:2",
+   "task:b246c4158cfe12946bbf3654a7e8f6c9:infer:1",
+   "task:b246c4158cfe12946bbf3654a7e8f6c9:exec:3",
+   "task:b246c4158cfe12946bbf3654a7e8f6c9:exec:final",
+   "task:b246c4158cfe12946bbf3654a7e8f6c9:settle"
+  ]
+ },
+ "retention": {
+  "until": 1791606043738,
+  "delete": "automatic at until"
+ }
+}

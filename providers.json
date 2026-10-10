@@ -1,0 +1,135 @@
+{
+  "admitted": [
+    {
+      "id": "redpill",
+      "extension": "aci/pi-provider-redpill/dist/index.js",
+      "baseUrl": "https://tee.redpill.ai/v1",
+      "hosts": [
+        "tee.redpill.ai"
+      ],
+      "keyEnv": "REDPILL_AI_API_KEY",
+      "transport": "aci/1",
+      "axes": {
+        "hw": "gated: \u00a79.1 + TCB UpToDate + production OS",
+        "code": "measurement verified, not pinned",
+        "operator": "S0",
+        "custody": "unchecked"
+      },
+      "upstreams": {
+        "via": "RedPill",
+        "admit": {
+          "phala": "Phala TEE",
+          "near-ai": "NEAR TEE"
+        }
+      },
+      "allowlistEnv": "REDPILL_MODEL_ALLOWLIST"
+    },
+    {
+      "id": "phala",
+      "extension": "aci/pi-provider-phala-cloud/dist/index.js",
+      "baseUrl": "https://inference.phala.com/v1",
+      "hosts": [
+        "inference.phala.com"
+      ],
+      "keyEnv": "PHALA_AI_API_KEY",
+      "transport": "aci/1",
+      "axes": {
+        "hw": "gated: \u00a79.1 + TCB UpToDate + production OS",
+        "code": "measurement verified, not pinned",
+        "operator": "S0",
+        "custody": "unchecked"
+      },
+      "upstreams": {
+        "via": "Phala",
+        "admit": {
+          "phala": "Phala TEE",
+          "near-ai": "NEAR TEE"
+        }
+      },
+      "allowlistEnv": "PHALA_MODEL_ALLOWLIST"
+    },
+    {
+      "id": "nearai",
+      "extension": "curated/near-provider.ts",
+      "baseUrl": "https://cloud-api.near.ai/v1",
+      "hosts": [
+        "cloud-api.near.ai",
+        "nras.attestation.nvidia.com",
+        "mainnet.base.org"
+      ],
+      "keyEnv": "NEARAI_API_KEY",
+      "tools": "in-content",
+      "transport": "near-e2ee (per model)",
+      "axes": {
+        "hw": "per model: gateway+model TDX, report_data binding, SPKI pin, GPU NRAS; gateway and model TCB reported (tcb:out-of-date shown in red)",
+        "code": "compose measured into RTMR3 and allowed by NEAR's DstackApp on Base (NEAR's governance; owner is an EOA, no notice period)",
+        "operator": "S0",
+        "custody": "unchecked"
+      },
+      "policy": {
+        "gatewayTcb": "reported",
+        "modelTcb": "reported",
+        "composeRegistry": {
+          "note": "NEAR's DstackApp contracts (the app id in each CVM's event log) on Base admit its composes; abalone checks allowedComposeHashes there at one block and refuses if unreachable.",
+          "rpc": "https://mainnet.base.org",
+          "chainId": 8453
+        }
+      }
+    }
+  ],
+  "default": "nearai/z-ai/glm-5.3-flash",
+  "verifierHosts": [
+    "api.trustedservices.intel.com",
+    "certificates.trustedservices.intel.com"
+  ],
+  "runners": {
+    "claude": {
+      "hosts": [
+        "api.anthropic.com",
+        "console.anthropic.com",
+        "platform.claude.com"
+      ],
+      "home": "runner-home/claude"
+    }
+  },
+  "local": [
+    {
+      "id": "llama.cpp",
+      "builtin": "llama.cpp",
+      "baseUrl": "http://127.0.0.1:8080"
+    },
+    {
+      "id": "ollama",
+      "baseUrl": "http://127.0.0.1:11434/v1"
+    }
+  ],
+  "peers": {
+    "note": "Gift peers a client admits in /abalone/attest/1, one evidence type per measurement. macrunner: Runner.app CDHash + peer compose hash, verified by lib/vendor/macrunner.mjs. appattest: the probe app (does not cover the peer process; remove once the runner passes). dev: unattested development peers (tests only).",
+    "admit": {
+      "appattest": {
+        "appId": "DC9JH5DRMY.dev.dsmack.provider",
+        "cdhashes": [
+          "67dfc08f0eca771ae2787870ab3bffc7dfb39a7fac4db6b0c087e58c2f488d70"
+        ],
+        "category": 3
+      },
+      "dev": false,
+   "task": {
+    "note": "Task image digests a client accepts in a runner worker's offer (notes/contracts/runner-task-needs.md), compared by digest only: the repository name in the offer never matters. An offer with a local: image is a development process and is shown as one. appId and category: the runner build whose App Attest assertion binds a task VM boot (abalone verify; its CDHashes are macrunner.cdhashes).",
+    "appId": "DC9JH5DRMY.dev.dsmack.provider",
+    "category": 3,
+    "images": [
+     "sha256:cad4c53d2c3e62db1d9dcb5dee7a600e19f30f10a5345301d21ff3ce3ece4a29"
+    ]
+   },
+      "macrunner": {
+        "cdhashes": [
+          "003a7d4e0a8a8b6d99c721244ff982eccac470149090b5b0a25ef2ef762eb3f1"
+        ],
+        "composeHashes": [
+          "49e702b3f79ed171f5c27c2dd4ea629591211d01ace36f3444b468add17423ac"
+        ]
+      }
+    }
+  }
+}

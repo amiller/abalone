@@ -1,0 +1,60 @@
+{
+  "case": "hermes",
+  "stage": "0",
+  "stage_cite": "README.md:44 | [hermes](case-studies/hermes/) | 0 | Pha KMS (no public upgrade log), mutable image tags |",
+  "gaps": [
+    {
+      "tag": "op:no-upgrade-log",
+      "id": "1",
+      "text": "Pha KMS publishes no upgrade events; users cannot verify deployment history.",
+      "cite": "case-studies/hermes/DEVPROOF-REPORT.md:146"
+    },
+    {
+      "tag": "code:image-unpinned",
+      "id": "2",
+      "text": "Compose references image by git tag, not digest.",
+      "cite": "case-studies/hermes/DEVPROOF-REPORT.md:171"
+    },
+    {
+      "tag": "code:not-reproducible",
+      "id": "3",
+      "text": "Non-reproducible builds: unpinned base images, npm ci.",
+      "cite": "case-studies/hermes/DEVPROOF-REPORT.md:192"
+    },
+    {
+      "tag": "code:not-reproducible",
+      "id": "4",
+      "text": "No documented link from git commit to image digest to compose hash.",
+      "cite": "case-studies/hermes/DEVPROOF-REPORT.md:216"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": "6",
+      "text": "No public document explaining how to verify the deployment.",
+      "cite": "case-studies/hermes/DEVPROOF-REPORT.md:261"
+    },
+    {
+      "tag": "op:no-upgrade-log",
+      "id": "8",
+      "text": "/evidences/ serves current state only; old quote and cert overwritten on redeploy.",
+      "cite": "case-studies/hermes/DEVPROOF-REPORT.md:290"
+    },
+    {
+      "tag": "op:secret-access",
+      "id": null,
+      "text": "Hardcoded JWT secret fallback in http.ts.",
+      "cite": "case-studies/hermes/DEVPROOF-REPORT.md:329"
+    },
+    {
+      "tag": "op:debug-path",
+      "id": null,
+      "text": "Debug DNS endpoints unprotected.",
+      "cite": "case-studies/hermes/DEVPROOF-REPORT.md:332"
+    }
+  ],
+  "report": "case-studies/hermes/DEVPROOF-REPORT.md",
+  "forced_tags": [
+    "6 client:verifier-gap: missing verification doc, no client exists to be wrong"
+  ],
+  "note": "Report states no stage; stage from guide README row. HTTP-layer table items mapped only where a tag fits (rate limits, CORS, root user omitted)."
+}

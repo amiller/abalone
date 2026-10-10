@@ -1,0 +1,54 @@
+{
+ "slug": "eth2-deposit-solidity-kevm",
+ "artifact": "Runtime Verification, 'End-to-End Formal Verification of Ethereum 2.0 Deposit Smart Contract (Solidity Reimplementation)', https://github.com/runtimeverification/deposit-contract-verification (report deposit-contract-verification.pdf; bytecode spec bytecode-verification/deposit-spec.ini)",
+ "tool": "K framework / KEVM",
+ "property": "The compiled bytecode of the deposit contract refines the incremental Merkle tree algorithm, which is proved equivalent to the full-tree construction; deposit/get_deposit_root behave per the bytecode spec.",
+ "model": "Source commit 2ac62c4 compiled by solc v0.6.8 with --optimize-runs 5000000; KEVM semantics; a single transaction, assuming well-formed calldata.",
+ "trusted_base": [
+  "KEVM semantics of the EVM",
+  "the eDSL bytecode specification",
+  "K prover and Z3",
+  "non-mechanized parts of the algorithm-correctness proof"
+ ],
+ "assumptions": [
+  "calldata is well-formed with no garbage bytes",
+  "single-transaction scope: no transaction-level or off-chain behavior",
+  "the deployed bytecode is the verified bytecode"
+ ],
+ "deployed": "Mainnet DepositContract at 0x00000000219ab540356cBB839Cbe05303d7705Fa, Sourcify exact match: solc 0.6.11+commit.5ef660b1, optimizer runs 5000000, evmVersion istanbul. Measured 2026-10-08: deployed runtime code (via eth_getCode) equals RV's verified runtime bytecode byte-for-byte except the trailing 53-byte CBOR metadata (IPFS hash and solc version 0.6.8 vs 0.6.11).",
+ "gap": "The report's guarantee is conditioned on solc v0.6.8 output, but mainnet runs a solc 0.6.11 build; the gap closes only by comparing bytes, which shows identical executable code with differing metadata. The proof also covers one transaction with well-formed calldata and excludes off-chain processing of deposits by the beacon chain.",
+ "gap_keywords": [
+  "0.6.8",
+  "0.6.11",
+  "bytecode",
+  "metadata",
+  "single transaction",
+  "calldata"
+ ],
+ "sources": [
+  {
+   "url": "https://github.com/runtimeverification/deposit-contract-verification/blob/master/deposit-contract-verification.pdf",
+   "title": "End-to-End Formal Verification of Ethereum 2.0 Deposit Smart Contract (Solidity Reimplementation)",
+   "quote": "The scope of verification is to ensure the correctness of the contract bytecode within a single transaction, without considering transaction-level or off-chain behaviors."
+  },
+  {
+   "url": "https://github.com/runtimeverification/deposit-contract-verification/blob/master/deposit-contract-verification.pdf",
+   "title": "End-to-End Formal Verification of Ethereum 2.0 Deposit Smart Contract (Solidity Reimplementation)",
+   "quote": "We assume that the calldata is well-formed, and does not include any garbage bytes."
+  },
+  {
+   "url": "https://github.com/runtimeverification/deposit-contract-verification/blob/master/bytecode-verification/README.md",
+   "title": "Bytecode Verification of Deposit Contract (README)",
+   "quote": "The specification has been formally verified against the following compiled bytecode by the Solidity compiler [v0.6.8] with the optimization enabled (`--optimize-runs 5000000`):"
+  },
+  {
+   "url": "https://sourcify.dev/server/v2/contract/1/0x00000000219ab540356cBB839Cbe05303d7705Fa?fields=compilation",
+   "title": "Sourcify verified compilation record for mainnet DepositContract",
+   "quote": "\"compilerVersion\":\"0.6.11+commit.5ef660b1\""
+  }
+ ],
+ "input_for_reader": [
+  "Proof artifact: https://github.com/runtimeverification/deposit-contract-verification (report PDF + bytecode-verification/)",
+  "Deployment: Ethereum mainnet address 0x00000000219ab540356cBB839Cbe05303d7705Fa (Etherscan/Sourcify verified source and compiler settings; eth_getCode)"
+ ]
+}

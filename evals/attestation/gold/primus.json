@@ -1,0 +1,27 @@
+{
+  "case": "primus",
+  "stage": "0",
+  "stage_cite": "README.md:47 | [primus](case-studies/primus/) | 0 | Closed-source core (`libpado.so`), binary blobs |",
+  "gaps": [
+    {
+      "tag": "code:closed",
+      "id": "1",
+      "text": "libpado.so core ZK proof library is a binary blob with no published source.",
+      "cite": "case-studies/primus/DEVPROOF-REPORT.md:62"
+    },
+    {
+      "tag": "code:closed",
+      "id": "2",
+      "text": "87MB Java bytecode impractical to audit; attestor-node source not on GitHub.",
+      "cite": "case-studies/primus/DEVPROOF-REPORT.md:64"
+    },
+    {
+      "tag": "code:not-reproducible",
+      "id": null,
+      "text": "Reproducing the deployed artifact from source is not available.",
+      "cite": "case-studies/primus/DEVPROOF-REPORT.md:75"
+    }
+  ],
+  "report": "case-studies/primus/DEVPROOF-REPORT.md",
+  "note": "Report states no stage and no date; stage from guide README row."
+}

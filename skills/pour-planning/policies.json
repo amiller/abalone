@@ -1,0 +1,18 @@
+{
+  "note": "Policy catalog. The gate enforces max_bytes and, for metadata_only, the JSON format; allows/forbids are instructions to the private model that no code checks. Ordered narrowest first; 'width' is the order used for the injection rule (a pour after ○ content may not use a wider policy than the session's previous pour without approval). max_bytes is checked by the gate on the UTF-8 payload.",
+  "policies": [
+    {"id": "metadata_only", "width": 1, "max_bytes": 2000,
+     "allows": "file paths and column names (no digits), types, units, number of categorical levels, year ranges, row count rounded to the nearest 10",
+     "forbids": "any value copied from a row, min/max, exact counts below 10, names, IDs, dates, amounts",
+     "format": "JSON only, checked by the gate: {\"files\":[{\"path\":\"data/visits.csv\",\"rows_about\":60,\"columns\":[{\"name\":\"arm\",\"type\":\"categorical\",\"levels\":3},{\"name\":\"visit_date\",\"type\":\"date\",\"years\":[2019,2023]},{\"name\":\"cost\",\"type\":\"number\",\"unit\":\"currency\"}]}]}. path: letters, _ . / - only, at most 48; name: letters and _ only, at most 32; type: string|integer|number|boolean|date|categorical; unit: count|currency|percent|ratio|years|months|days|hours|minutes|seconds|kg|g|m|cm|celsius; levels 0-1000; years [from,to] within 1900-2100; rows_about a multiple of 10; no other fields"},
+    {"id": "code_without_data", "width": 2, "max_bytes": 3000,
+     "allows": "a metadata_only description plus the analysis question; asks the answerer for code to run sealed",
+     "forbids": "the same as metadata_only"},
+    {"id": "aggregate_k", "width": 3, "max_bytes": 1500, "k": 5,
+     "allows": "counts, means, SDs, model coefficients, test statistics, each computed over at least k rows",
+     "forbids": "any statistic over fewer than k rows; min/max/outliers; two aggregates whose difference isolates fewer than k rows"},
+    {"id": "free_text", "width": 4, "max_bytes": 600,
+     "allows": "an abstracted question in prose: hypothetical or structural form, generalized quantities (ratios, ranges)",
+     "forbids": "names, IDs, emails, codenames, award numbers, exact dates, exact dollar amounts, quoted text from private documents"}
+  ]
+}

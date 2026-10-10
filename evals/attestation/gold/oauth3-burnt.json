@@ -1,0 +1,60 @@
+{
+  "case": "oauth3-burnt",
+  "stage": "0",
+  "stage_cite": "case-studies/oauth3-burnt/DEVPROOF-REPORT.md:24 **Overall: Stage 0** — Operator can rug users in multiple independent ways.",
+  "gaps": [
+    {
+      "tag": "code:image-unpinned",
+      "id": "Gap 1",
+      "text": "Compose uses image: ${DOCKER_IMAGE}; operator chooses which binary runs.",
+      "cite": "case-studies/oauth3-burnt/DEVPROOF-REPORT.md:93"
+    },
+    {
+      "tag": "op:secret-access",
+      "id": "Gap 2",
+      "text": "COOKIE_KEY_BASE64 and all secrets are operator-supplied env vars; DeriveKey never called.",
+      "cite": "case-studies/oauth3-burnt/DEVPROOF-REPORT.md:101"
+    },
+    {
+      "tag": "op:config-url",
+      "id": "Gap 3",
+      "text": "PROVIDER_GOOGLE_ISSUER in allowed_envs; operator can point OIDC at a fake provider.",
+      "cite": "case-studies/oauth3-burnt/DEVPROOF-REPORT.md:111"
+    },
+    {
+      "tag": "op:config-url",
+      "id": "Gap 4",
+      "text": "PROVIDER_GOOGLE_API_BASE_URL operator-configurable; proxied access tokens interceptable.",
+      "cite": "case-studies/oauth3-burnt/DEVPROOF-REPORT.md:124"
+    },
+    {
+      "tag": "op:debug-path",
+      "id": "Gap 5",
+      "text": "Placeholder auth mode creates users without identity verification.",
+      "cite": "case-studies/oauth3-burnt/DEVPROOF-REPORT.md:132"
+    },
+    {
+      "tag": "op:no-upgrade-log",
+      "id": "Gap 6",
+      "text": "Pha KMS, no public upgrade log, no timelock, no DEPLOYMENTS.md.",
+      "cite": "case-studies/oauth3-burnt/DEVPROOF-REPORT.md:145"
+    },
+    {
+      "tag": "op:secret-access",
+      "id": "Gap 7",
+      "text": "Missing COOKIE_KEY_BASE64 silently falls back to a random key.",
+      "cite": "case-studies/oauth3-burnt/DEVPROOF-REPORT.md:153"
+    },
+    {
+      "tag": "code:not-reproducible",
+      "id": null,
+      "text": "Source provenance FAIL: cannot trace compose_hash to image digest to source commit.",
+      "cite": "case-studies/oauth3-burnt/DEVPROOF-REPORT.md:20"
+    }
+  ],
+  "report": "case-studies/oauth3-burnt/DEVPROOF-REPORT.md",
+  "forced_tags": [
+    "Gap 5 op:debug-path: auth-bypass mode, closest to a debug path"
+  ],
+  "note": "Not in guide README table."
+}

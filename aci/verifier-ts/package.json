@@ -1,0 +1,71 @@
+{
+  "name": "@phala/aci-verifier",
+  "version": "0.7.3",
+  "description": "TypeScript ACI verifier and verified fetch client for browsers, Node.js, and Bun.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dstack-TEE/private-ai-gateway.git",
+    "directory": "clients/verifier-ts"
+  },
+  "homepage": "https://github.com/Dstack-TEE/private-ai-gateway/tree/main/clients/verifier-ts",
+  "bugs": "https://github.com/Dstack-TEE/private-ai-gateway/issues",
+  "keywords": [
+    "aci",
+    "attestation",
+    "confidential-ai",
+    "confidential-computing",
+    "dstack",
+    "tdx",
+    "tee",
+    "verifier"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "browser": "./dist/aci-verifier.min.js",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./browser": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/aci-verifier.min.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js",
+      "default": "./dist/node/index.js"
+    },
+    "./bun": {
+      "types": "./dist/bun/index.d.ts",
+      "import": "./dist/bun/index.js",
+      "default": "./dist/bun/index.js"
+    },
+    "./runtime": {
+      "types": "./dist/node/index.d.ts",
+      "bun": "./dist/bun/index.js",
+      "node": "./dist/node/index.js",
+      "default": "./dist/node/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20.18.1",
+    "bun": ">=1.4.0"
+  },
+  "sideEffects": false,
+  "dependencies": {
+    "@phala/dcap-qvl": "^0.6.2",
+    "undici": "7.29.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  }
+}

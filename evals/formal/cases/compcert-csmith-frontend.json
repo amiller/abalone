@@ -1,0 +1,47 @@
+{
+ "slug": "compcert-csmith-frontend",
+ "artifact": "CompCert verified C compiler (Coq proof of semantic preservation for the compilation passes); tested version CompCert 1.6 for PowerPC. Paper: Yang, Chen, Eide, Regehr, 'Finding and Understanding Bugs in C Compilers', PLDI 2011, https://users.cs.utah.edu/~regehr/papers/pldi11-preprint.pdf",
+ "tool": "Coq",
+ "property": "Semantic preservation: generated assembly behaves as the CompCert C source semantics prescribe (for the verified passes).",
+ "model": "CompCert's formal semantics of its C subset and of the target assembly (PowerPC); proof covers the pass chain between those formal languages.",
+ "trusted_base": [
+  "unverified front-end (parsing, elaboration of C into CompCert's input language)",
+  "formal semantics of C subset and of PowerPC assembly",
+  "external assembler and linker",
+  "Coq kernel and OCaml extraction"
+ ],
+ "assumptions": [
+  "the input program is translated correctly into the verified source language",
+  "the PPC assembly semantics matches what the real assembler accepts (e.g. immediate width limits)"
+ ],
+ "deployed": "CompCert 1.6 binary run on Csmith-generated programs, emitting PowerPC code.",
+ "gap": "Csmith found silent wrong-code bugs in CompCert 1.6, all in parts outside the proof: the unverified front-end (integer promotion/implicit casts) and a PPC semantics that omitted the 16-bit displacement constraint, deferring to the assembler; no wrong-code bugs were found in the verified middle-end.",
+ "gap_keywords": [
+  "front-end",
+  "unverified",
+  "assembler",
+  "semantics",
+  "middle-end"
+ ],
+ "sources": [
+  {
+   "url": "https://users.cs.utah.edu/~regehr/papers/pldi11-preprint.pdf",
+   "title": "Finding and Understanding Bugs in C Compilers (PLDI 2011)",
+   "quote": "This bug and five others like it were in CompCert’s unverified front-end code."
+  },
+  {
+   "url": "https://users.cs.utah.edu/~regehr/papers/pldi11-preprint.pdf",
+   "title": "Finding and Understanding Bugs in C Compilers (PLDI 2011)",
+   "quote": "CompCert’s PPC semantics failed to specify a constraint on the width of this immediate value, on the assumption that the assembler would catch out-of-range values."
+  },
+  {
+   "url": "https://users.cs.utah.edu/~regehr/papers/pldi11-preprint.pdf",
+   "title": "Finding and Understanding Bugs in C Compilers (PLDI 2011)",
+   "quote": "Verification, on the other hand, typically focuses on a narrow slice of a stack of tools, and the parts outside the slice remain in the trusted computing base."
+  }
+ ],
+ "input_for_reader": [
+  "CompCert project and proof description: https://compcert.org/ (version 1.6, PowerPC target)",
+  "Deployment/measurement description: Csmith testing of CompCert 1.6 for PowerPC as reported in Yang et al. PLDI 2011, Section 3.1 (https://users.cs.utah.edu/~regehr/papers/pldi11-preprint.pdf)"
+ ]
+}

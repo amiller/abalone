@@ -1,0 +1,27 @@
+{
+  "case": "confer",
+  "stage": null,
+  "stage_cite": "case-studies/confer/DEVPROOF-REPORT.md:9 Confer is a private-AI assistant that runs inference inside a confidential VM. This document walks the architecture precisely, states what genuinely holds, and lists the three things the attestation does not cover. It is not scored; it is a map of where trust actually sits.",
+  "gaps": [
+    {
+      "tag": "code:model-unbound",
+      "id": "1",
+      "text": "Served model and config are unmeasured operator inputs on external disks; nothing extends an RTMR.",
+      "cite": "case-studies/confer/DEVPROOF-REPORT.md:80"
+    },
+    {
+      "tag": "code:not-reproducible",
+      "id": "2",
+      "text": "Signed measurement bound to source by convention only; no build provenance, manifests carry no commit.",
+      "cite": "case-studies/confer/DEVPROOF-REPORT.md:85"
+    },
+    {
+      "tag": "op:central-dep",
+      "id": "3",
+      "text": "Closed browser client served fresh by confer.to each visit, pinned by nothing.",
+      "cite": "case-studies/confer/DEVPROOF-REPORT.md:89"
+    }
+  ],
+  "report": "case-studies/confer/DEVPROOF-REPORT.md",
+  "note": "Report explicitly unscored; README row says 0 with 'Analysis in progress'. Stage null. Gaps limited to the 'three things' in the bottom line; egress and Notes items not included."
+}

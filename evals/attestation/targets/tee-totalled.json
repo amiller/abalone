@@ -1,0 +1,17 @@
+{
+  "case": "tee-totalled",
+  "subject": "TEE-Totalled Telegram trust-game bot scoring messages with an LLM inside a dstack TEE",
+  "inputs": {
+    "urls": [],
+    "repos": [
+      "sangaline/tee-totalled"
+    ],
+    "app_ids": [],
+    "audit_date": "2026-02-05"
+  },
+  "given_files": [],
+  "withheld_files": [
+    "DEVPROOF-REPORT.md",
+    "../../README.md#L49"
+  ]
+}

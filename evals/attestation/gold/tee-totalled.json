@@ -1,0 +1,55 @@
+{
+  "case": "tee-totalled",
+  "stage": "0",
+  "stage_cite": "README.md:49 | [tee-totalled](case-studies/tee-totalled/) | 0 | `LLM_BASE_URL` operator-configurable (exfiltration) |",
+  "gaps": [
+    {
+      "tag": "op:config-url",
+      "id": "1",
+      "text": "LLM_BASE_URL operator-configurable, enabling token exfiltration.",
+      "cite": "case-studies/tee-totalled/DEVPROOF-REPORT.md:24"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": "2",
+      "text": "Signature hash mismatch accepted as a known issue.",
+      "cite": "case-studies/tee-totalled/DEVPROOF-REPORT.md:59"
+    },
+    {
+      "tag": "hw:not-bound",
+      "id": "3",
+      "text": "No cryptographic binding between TDX quote and signing key.",
+      "cite": "case-studies/tee-totalled/DEVPROOF-REPORT.md:84"
+    },
+    {
+      "tag": "code:not-reproducible",
+      "id": "4",
+      "text": "Docker image not reproducible: missing timestamps, snapshot pins.",
+      "cite": "case-studies/tee-totalled/DEVPROOF-REPORT.md:107"
+    },
+    {
+      "tag": "op:secret-access",
+      "id": "5",
+      "text": "Development fallbacks (mock quote) exist in production code paths.",
+      "cite": "case-studies/tee-totalled/DEVPROOF-REPORT.md:142"
+    },
+    {
+      "tag": "op:config-url",
+      "id": "6",
+      "text": "REDPILL_API_KEY operator-provided; operator controls the upstream API account.",
+      "cite": "case-studies/tee-totalled/DEVPROOF-REPORT.md:162"
+    },
+    {
+      "tag": "op:secret-access",
+      "id": "7",
+      "text": "Full messages held in memory until game ends; exposed to core dumps or memory forensics.",
+      "cite": "case-studies/tee-totalled/DEVPROOF-REPORT.md:170"
+    }
+  ],
+  "report": "case-studies/tee-totalled/DEVPROOF-REPORT.md",
+  "forced_tags": [
+    "5 op:secret-access: DEV_MODE-style fallback returns a mock quote, not a key",
+    "7 op:secret-access: in-memory plaintext retention, no tag for data-at-rest exposure"
+  ],
+  "note": "Report states no stage; stage from guide README row."
+}

@@ -1,0 +1,61 @@
+{
+  "case": "venice-private-inference",
+  "stage": "0",
+  "stage_cite": "case-studies/venice-private-inference/DEVPROOF-REPORT.md:236 **Venice E2EE client story (what `veniceai/skills` gives users):** Stage 0.",
+  "gaps": [
+    {
+      "tag": "hw:no-quote",
+      "id": null,
+      "text": "/tee/attestation flaky; some E2EE models repeatedly timed out.",
+      "cite": "case-studies/venice-private-inference/DEVPROOF-REPORT.md:14"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": null,
+      "text": "signing_public_key binding to TDX quote is client-dependent; skills never mention it.",
+      "cite": "case-studies/venice-private-inference/DEVPROOF-REPORT.md:17"
+    },
+    {
+      "tag": "op:central-dep",
+      "id": null,
+      "text": "tee_provider varies per model (near-ai vs phala): same E2EE facade, different CVM operators.",
+      "cite": "case-studies/venice-private-inference/DEVPROOF-REPORT.md:20"
+    },
+    {
+      "tag": "op:unforced-serving",
+      "id": null,
+      "text": "supportsE2EE flag doesn't imply usable ECIES path; one model attests but returns no signing key.",
+      "cite": "case-studies/venice-private-inference/DEVPROOF-REPORT.md:21"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": null,
+      "text": "veniceai/skills teaches zero of six standard verification steps.",
+      "cite": "case-studies/venice-private-inference/DEVPROOF-REPORT.md:22"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": null,
+      "text": "Skills misname the protocol as HPKE/Noise; cited doc URL returns 404.",
+      "cite": "case-studies/venice-private-inference/DEVPROOF-REPORT.md:23"
+    },
+    {
+      "tag": "op:unforced-serving",
+      "id": null,
+      "text": "OHTTP/HPKE key config published but no /ohttp endpoint responds.",
+      "cite": "case-studies/venice-private-inference/DEVPROOF-REPORT.md:24"
+    },
+    {
+      "tag": "code:unmeasured-workload",
+      "id": null,
+      "text": "NEAR-backed models: inner compose not measured in RTMR3.",
+      "cite": "case-studies/venice-private-inference/DEVPROOF-REPORT.md:199"
+    }
+  ],
+  "report": "case-studies/venice-private-inference/DEVPROOF-REPORT.md",
+  "forced_tags": [
+    "Multi-backend op:central-dep: per-model operator heterogeneity",
+    "OHTTP op:unforced-serving: advertised confidential path that does not exist"
+  ],
+  "note": "Report gives infrastructure 'Stage 0–1' and client story 'Stage 0'; README row says 0."
+}

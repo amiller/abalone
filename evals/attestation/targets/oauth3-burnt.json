@@ -1,0 +1,20 @@
+{
+  "case": "oauth3-burnt",
+  "subject": "OAuth3 (Burnt Labs) token custodian, OAuth server and Gmail oracle on Phala dstack",
+  "inputs": {
+    "urls": [
+      "https://07f8fd641d50842c1388444af32a545416413885-8080.dstack-pha-prod5.phala.network"
+    ],
+    "repos": [
+      "burnt-labs/oauth3"
+    ],
+    "app_ids": [
+      "b7de194832e39104e31cbb56b0efadd9fd3466b4"
+    ],
+    "audit_date": "2026-03-03"
+  },
+  "given_files": [],
+  "withheld_files": [
+    "DEVPROOF-REPORT.md"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+ "v": "abalone-task-bundle/1",
+ "task_id": "b246c4158cfe12946bbf3654a7e8f6c9",
+ "files": {
+  "authorization.json": "95934643daf28e062b83a11a47e0746be9dd9f130ea337506fb17a56091d012f",
+  "completion.json": "a526828ad95238c5ba4ac3dee067b9ae5e46c5e030da6305bfe756b48255b837",
+  "completion.sig": "bd79ab895b023fc20c6b5bea6063917a5362a64b984edec840158677734477c3",
+  "events.jsonl": "981f595f28aadc7de3aba7a0522ac6aae15f3eeec22853e76c04b9e6a12a9b54",
+  "offer.json": "206595f2818658057728c1ee5f8e545ed76d4552d3bba196eb5bf449ac57546b",
+  "outputs/finish.json": "5a404d6cfb46e549ef170cc159b70ef50b87661560c60f795982e8b9492491e0",
+  "outputs/patch.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ }
+}

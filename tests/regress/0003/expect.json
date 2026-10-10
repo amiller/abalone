@@ -1,0 +1,8 @@
+{
+ "issue": "0003",
+ "checks": [
+  { "shown_matches": "(^|\\n)not executed: " },
+  { "trace_has": "abalone-note" },
+  { "next_sees": "not executed: abalone couldn't read this tool request" }
+ ]
+}

@@ -1,0 +1,33 @@
+{
+  "case": "chutes-confidential-inference",
+  "subject": "Chutes (Bittensor SN64) confidential -TEE inference on llm.chutes.ai, end-user viewpoint",
+  "inputs": {
+    "urls": [
+      "https://llm.chutes.ai",
+      "https://api.chutes.ai"
+    ],
+    "repos": [
+      "chutesai/chutes@08d79872",
+      "chutesai/chutes-api@77b6f355",
+      "chutesai/chutes-miner@7afea4b1",
+      "chutesai/sek8s@255596da"
+    ],
+    "app_ids": [],
+    "audit_date": "2026-05-25"
+  },
+  "given_files": [
+    ".gitignore",
+    "refs/"
+  ],
+  "withheld_files": [
+    "ISSUE-B-serve-py-measured.md",
+    "ISSUES-DRAFT.md",
+    "OPERATOR-EXFIL-POC.md",
+    "PLATFORM.md",
+    "PR-A-e2ee-proxy.md",
+    "README.md",
+    "REPORT-inference.md",
+    "REPORT-reseller.md",
+    "verify/"
+  ]
+}

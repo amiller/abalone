@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>abalone gift</title>
+<!-- Static landing page. tools/release.sh fills @REV@ and @SHA256@ and puts this next to install.sh and the tarball.
+     A gift link is https://<this site>/#peer=<multiaddr>&t=<code>.<grant>. Everything after # stays in the browser:
+     this page reads it in JavaScript and never sends it anywhere (no requests, no analytics, no referrer). -->
+<style>
+  :root { --bg: #fbfaf7; --fg: #1d1c1a; --muted: #6b675f; --box: #f0ede6; --line: #d9d4c9; --accent: #2f5d50; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #151413; --fg: #ecebe7; --muted: #a39f96; --box: #23211f; --line: #3a3733; --accent: #8cc2b0; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 42rem; margin: 0 auto; padding: 2.5rem 1rem 3rem; }
+  h1 { font-size: 1.6rem; margin: 0 0 1rem; }
+  p { margin: 0 0 1rem; }
+  .muted { color: var(--muted); font-size: .9rem; }
+  pre { background: var(--box); border: 1px solid var(--line); border-radius: 6px; padding: .8rem; margin: 0 0 .6rem;
+        white-space: pre-wrap; word-break: break-all; font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  button { font: inherit; padding: .4rem .9rem; border: 1px solid var(--accent); border-radius: 6px; background: transparent; color: var(--accent); cursor: pointer; }
+  #gift[hidden], #none[hidden] { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title">abalone</h1>
+  <p>abalone is a research assistant for your terminal that keeps your files and questions private.</p>
+  <p>It talks only to AI models running in verified secure hardware, and shows you exactly what leaves your computer before it does.</p>
+  <p>Your messages are encrypted for the model's secure hardware before they leave your computer.</p>
+
+  <section id="gift" hidden>
+    <p>Paste this into a terminal on macOS or Linux, in the folder you want to work in:</p>
+    <pre id="cmd"></pre>
+    <button id="copy" type="button">Copy</button>
+    <p class="muted" id="terms"></p>
+    <p class="muted" id="onion" hidden>This gift also lists a Tor onion address, used only if the first address does not answer. It needs Tor installed (Tor Browser, or <code>tor</code>), with <code>ABALONE_TOR_SOCKS</code> set to its SOCKS port. You do not need it otherwise.</p>
+  </section>
+  <section id="none" hidden>
+    <p>This page needs the full link you were sent. Chat apps sometimes cut long links; open the original message and copy all of it.</p>
+  </section>
+
+  <p class="muted">Release @REV@ · tarball sha256 <code>@SHA256@</code> · the installer refuses any other bytes.<br>
+  Needs node 24, bubblewrap (Linux), curl and tar.</p>
+</main>
+<script>
+  // Read the gift from the fragment only. Display text comes from the issuer-signed grant inside the code; the
+  // installer and the server check the signature, this page only shows it.
+  const h = new URLSearchParams(location.hash.slice(1));
+  const peer = h.get("peer"), t = h.get("t");
+  history.replaceState(null, "", location.pathname); // keep the code out of the address bar and history
+  if (peer && t && /^g1[0-9A-Z]{31}\.[A-Za-z0-9_-]+$/.test(t)) {
+    const q = (s) => "'" + s.replace(/'/g, "'\\''") + "'";
+    const cmd = `curl -fsSL ${location.origin}/install.sh | sh -s -- --peer ${q(peer)} ${t}`;
+    document.getElementById("cmd").textContent = cmd;
+    document.getElementById("copy").onclick = () => navigator.clipboard.writeText(cmd).then(() => (document.getElementById("copy").textContent = "Copied"));
+    try {
+      const g = JSON.parse(JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).msg);
+      document.getElementById("title").textContent = `${g.from} sent you $${(g.amount / 1e6).toFixed(2)} of private AI`;
+      document.getElementById("terms").textContent = `Good until ${new Date(g.expiry).toDateString()}.` + (g.terms?.noPromotion ? " No promotional offers come with it." : "");
+    } catch { document.getElementById("title").textContent = "You were sent a gift of private AI"; }
+    document.getElementById("onion").hidden = !peer.split(",").some((a) => a.startsWith("/onion3/"));
+    document.getElementById("gift").hidden = false;
+  } else document.getElementById("none").hidden = false;
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+{
+ "authorization": {
+  "v": "abalone-task/1",
+  "type": "authorization",
+  "task_id": "b246c4158cfe12946bbf3654a7e8f6c9",
+  "account": "a29a7d65b76507697cbf758c2819308bd37bd7f535536a66ca24aff0ed53535b",
+  "device": "5a279e3a583281b3afdd23b16188b111accf616ddf560ac9ec072df072a43436",
+  "worker": "12D3KooWRrgukqxkL2inR4Si4RovJEBXjwWoy4HCdYemKwwLJUZ5",
+  "offer_id": "85cb7aef1ba54e29edcb7b8b4d953ca143d87b54d261db358a54574ffa0ee738",
+  "tariff_version": "t1",
+  "task": {
+   "prompt": "Run the shell command sleep 120 and then reply with the output of node --version .",
+   "resource": "small"
+  },
+  "inputs": [
+   {
+    "path": "task-repo/keep.mjs",
+    "sha256": "53a8191050f85cf1b5f8cc5cdb1c71a87ad0c2a45988376fedadc6332853bed4",
+    "bytes": 141,
+    "label": "open"
+   },
+   {
+    "path": "task-repo/test.mjs",
+    "sha256": "68aa0d61e9e84219ee7de02747f2773db1e67edd083ece584d8c71bd9fc49d9a",
+    "bytes": 247,
+    "label": "open"
+   }
+  ],
+  "inputs_root": "e79e0dbecdc8542ccf4b90c343e6e32004f030e4c13052ed8dda90967f471b84",
+  "model": "z-ai/glm-5.3-flash",
+  "capabilities": {
+   "tools": [
+    "read",
+    "bash",
+    "edit",
+    "write"
+   ],
+   "egress": []
+  },
+  "cap": 50000,
+  "expires": 1791523197279,
+  "ts": 1791519597279
+ },
+ "request": {
+  "ts": "1791519597280",
+  "idem": "b246c4158cfe12946bbf3654a7e8f6c9",
+  "sig": "fe38c9d87bf825ab1535ad4b7e392c7b0e34ff146772afef168d3511166cd98d5fc6d51da2f298d7405785601550d9453872ffcb8dd4ec78fc84c39431dde406",
+  "body_hash": "868cbe2df000372b60c2d56dd6c0ad58a8302830834b63930f78796bebb51b2c"
+ }
+}

@@ -1,0 +1,7 @@
+{
+ "issue": "0004",
+ "checks": [
+  { "screen_not_matches": "The user wants a summary of the grant draft|Keep it tight" },
+  { "screen_matches": "Here's the shape of it" }
+ ]
+}

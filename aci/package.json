@@ -1,0 +1,23 @@
+{
+  "name": "sealed-aci",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "verifier-ts",
+    "provider",
+    "pi-provider-aci",
+    "pi-provider-redpill",
+    "pi-provider-phala-cloud"
+  ],
+  "scripts": {
+    "build": "npm run build -w @phala/aci-verifier -w @phala/aci-provider -w @phala/pi-provider-aci -w pi-provider-redpill -w pi-provider-phala-cloud"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@types/node": "24.10.1",
+    "@types/bun": "1.3.3",
+    "@earendil-works/pi-ai": "file:../pi/packages/ai",
+    "@earendil-works/pi-coding-agent": "file:../pi/packages/coding-agent",
+    "@earendil-works/pi-tui": "file:../pi/packages/tui"
+  }
+}

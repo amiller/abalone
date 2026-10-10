@@ -1,0 +1,37 @@
+{
+  "case": "confer",
+  "subject": "Confer.to private AI assistant: confer-proxy and vLLM in a GPU CVM, browser client",
+  "inputs": {
+    "urls": [
+      "https://confer.to",
+      "wss://inference.confer.to/websocket",
+      "https://api.confer.to"
+    ],
+    "repos": [
+      "conferlabs/confer-proxy@486303d9",
+      "confer-image",
+      "confer-worker-image"
+    ],
+    "app_ids": [],
+    "audit_date": "2026-09-03"
+  },
+  "given_files": [
+    "bundle.json",
+    "cert.pem",
+    "hash.bin",
+    "hashedrekord.json",
+    "pubkey.pem",
+    "rekor_entry.json",
+    "signature.bin"
+  ],
+  "withheld_files": [
+    "ARCHITECTURE-AND-COMPARISON.md",
+    "DEVPROOF-REPORT.md",
+    "confer-architecture.html",
+    "confer-client-implementation-plan.md",
+    "demo/",
+    "private-inference-article.md",
+    "verify-client/",
+    "../../README.md#L51"
+  ]
+}

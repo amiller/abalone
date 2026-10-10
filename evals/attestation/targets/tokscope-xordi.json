@@ -1,0 +1,25 @@
+{
+  "case": "tokscope-xordi",
+  "subject": "TokScope Xordi (teleport-tokscope) multi-instance dstack app with Base KMS",
+  "inputs": {
+    "urls": [
+      "https://prod2-release.xordi.io"
+    ],
+    "repos": [
+      "Account-Link/teleport-tokscope@deployed-v1.1.3F"
+    ],
+    "app_ids": [
+      "bc81bb624b69729a3fb6e51e08426e8b726be0c7"
+    ],
+    "audit_date": "2026-03-03"
+  },
+  "given_files": [
+    "deployed-app-compose.json"
+  ],
+  "withheld_files": [
+    "DEVPROOF-REPORT-v1.1.2.md",
+    "DEVPROOF-REPORT-v1.1.3F.md",
+    "SESSION-NOTES.md",
+    "../../README.md#L50"
+  ]
+}

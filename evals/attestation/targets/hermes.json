@@ -1,0 +1,19 @@
+{
+  "case": "hermes",
+  "subject": "Hermes app on Phala Cloud dstack (Intel TDX) at hermes.teleport.computer",
+  "inputs": {
+    "urls": [
+      "https://hermes.teleport.computer"
+    ],
+    "repos": [],
+    "app_ids": [
+      "db82f581256a3c9244c4d7129a67336990d08cdf"
+    ],
+    "audit_date": "2026-02-20"
+  },
+  "given_files": [],
+  "withheld_files": [
+    "DEVPROOF-REPORT.md",
+    "../../README.md#L44"
+  ]
+}

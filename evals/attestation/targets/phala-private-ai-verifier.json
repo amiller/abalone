@@ -1,0 +1,17 @@
+{
+  "case": "phala-private-ai-verifier",
+  "subject": "Phala-Network/private-ai-verifier SDK (confidential-verifier v0.1.0), a client attestation verifier",
+  "inputs": {
+    "urls": [],
+    "repos": [
+      "Phala-Network/private-ai-verifier@2d2f5cf"
+    ],
+    "app_ids": [],
+    "audit_date": "2026-04-24"
+  },
+  "given_files": [],
+  "withheld_files": [
+    "DEVPROOF-REPORT.md",
+    "../../README.md#L53"
+  ]
+}

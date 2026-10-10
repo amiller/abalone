@@ -1,0 +1,53 @@
+{
+ "slug": "sel4-verified-configurations",
+ "artifact": "seL4 microkernel Isabelle/HOL proofs (https://github.com/seL4/l4v) for the configurations listed as *_verified.cmake in seL4's configs/ folder; see https://docs.sel4.systems/projects/sel4/verified-configurations.html",
+ "tool": "Isabelle/HOL",
+ "property": "Functional correctness of the kernel C code against its abstract specification; integrity and confidentiality; on AArch32 (ARM) also binary correctness of the compiled kernel.",
+ "model": "The preprocessed kernel C source (kernel_all_pp.c) for one fixed verified configuration, over a hardware model in which the MMU fully controls memory; machine interface and boot code are assumptions.",
+ "trusted_base": [
+  "in-kernel assembly",
+  "boot code / kernel startup",
+  "in-kernel hardware management (TLB, caches)",
+  "hardware behaving per model",
+  "C compiler on configurations without binary-correctness proof (e.g. AARCH64, X64)",
+  "Isabelle/HOL"
+ ],
+ "assumptions": [
+  "DMA is off or performed only by trusted devices/drivers",
+  "the system is configured per the security-proof conditions",
+  "no covert timing channels claimed absent (confidentiality excludes timing)",
+  "single-core: multicore verification is in progress"
+ ],
+ "deployed": "An seL4 build in a configuration outside the verified set, e.g. with SMMU/IOMMU (VT-d) support, multicore SMP, debug/printing interfaces, or DMA-capable untrusted drivers; or an AArch64 build relying on the compiler.",
+ "gap": "The proof applies only to the exact verified configurations and assumes DMA off or trusted, correct boot code and assembly; IOMMU/SMMU support, debug interfaces, multicore, and kernel startup are explicitly unverified, and on AArch64 only C-level (not binary) correctness is proved, so any deployment using those features or that compiler path runs outside the proof.",
+ "gap_keywords": [
+  "dma",
+  "boot code",
+  "configuration",
+  "iommu",
+  "multicore",
+  "binary"
+ ],
+ "sources": [
+  {
+   "url": "https://sel4.systems/About/FAQ.html",
+   "title": "seL4 Frequently Asked Questions",
+   "quote": "The hardware model assumes DMA to be off or to be trusted."
+  },
+  {
+   "url": "https://sel4.systems/About/FAQ.html",
+   "title": "seL4 Frequently Asked Questions",
+   "quote": "There are unverified seL4 configurations with SystemMMU support on Arm and VT-d extension support for x86."
+  },
+  {
+   "url": "https://docs.sel4.systems/projects/sel4/verified-configurations.html",
+   "title": "Verified Configurations | seL4 docs",
+   "quote": "At present, none of our verified configurations take into account address translation for devices (System MMU or IOMMU), debug/profiling/printing interfaces, or the kernel startup at boot."
+  }
+ ],
+ "input_for_reader": [
+  "Proof repo: https://github.com/seL4/l4v",
+  "Verified configuration list: https://docs.sel4.systems/projects/sel4/verified-configurations.html",
+  "Deployment description: an seL4 system on an AArch64 board using SMMU-protected DMA drivers and SMP (supply the target system's kernel config)"
+ ]
+}

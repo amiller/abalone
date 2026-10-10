@@ -1,0 +1,23 @@
+{
+ "source": "sibling service experiments/coupon_redemption/test_live_fixture.py (published test root; not the measured image root and not a staging authority)",
+ "test_root_public_key_hex": "332ebe8d27cb7323b3a401c1c13b5dd64bccc0e10ecda1c2b5d11a03779a85e5",
+ "valid": {
+  "approval": "/home/amiller/projects/abalone-glm-20261010/client/tests/fixtures/coupon/staging/valid/approval.json",
+  "approval_sha256": "7f9460ad6b6e9a93cd2cb9d6c2c7af28387b011325a650f1cb68a50d5da56ba1",
+  "config": "/home/amiller/projects/abalone-glm-20261010/client/tests/fixtures/coupon/staging/valid/config.json"
+ },
+ "variants": [
+  {
+   "approval_sha256": "e6a12c57ebaa01f2458042d24b1a00aa6a84a1210c7e06ff8a08b8dd1740e560",
+   "name": "expired"
+  },
+  {
+   "approval_sha256": "0ea6303377f839b22023d00e89944fdb1a9d638d50e23a783a3655a975f9f8ca",
+   "name": "powers-dropped"
+  },
+  {
+   "approval_sha256": "b139fcdcb33687c830240840f6ced09705878244c00cb661c49d735caf397a70",
+   "name": "profile-production"
+  }
+ ]
+}

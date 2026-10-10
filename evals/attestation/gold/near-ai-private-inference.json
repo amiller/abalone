@@ -1,0 +1,69 @@
+{
+  "case": "near-ai-private-inference",
+  "stage": "0",
+  "stage_cite": "case-studies/near-ai-private-inference/DEVPROOF-REPORT.md:300 **Privacy (from operator):** Stage 0",
+  "gaps": [
+    {
+      "tag": "code:unmeasured-workload",
+      "id": null,
+      "text": "Inner compose (vllm + proxy) deployed post-boot, not in RTMR3.",
+      "cite": "case-studies/near-ai-private-inference/DEVPROOF-REPORT.md:17"
+    },
+    {
+      "tag": "hw:gpu-unbound",
+      "id": null,
+      "text": "NVIDIA GPU attestation failing live: NRAS returning persistent FAIL verdicts.",
+      "cite": "case-studies/near-ai-private-inference/DEVPROOF-REPORT.md:20"
+    },
+    {
+      "tag": "hw:not-bound",
+      "id": null,
+      "text": "cloud-api routing: backend signing keys TOFU from unverified JSON.",
+      "cite": "case-studies/near-ai-private-inference/DEVPROOF-REPORT.md:21"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": null,
+      "text": "nearai-cloud-verifier fetches signing_public_key without verifying the model TDX quote.",
+      "cite": "case-studies/near-ai-private-inference/DEVPROOF-REPORT.md:22"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": null,
+      "text": "private-ai-verifier has full TDX chain but no E2EE implementation.",
+      "cite": "case-studies/near-ai-private-inference/DEVPROOF-REPORT.md:23"
+    },
+    {
+      "tag": "code:weights-unpinned",
+      "id": null,
+      "text": "vLLM downloads weights from HuggingFace by name, no checksum.",
+      "cite": "case-studies/near-ai-private-inference/DEVPROOF-REPORT.md:24"
+    },
+    {
+      "tag": "op:logs",
+      "id": null,
+      "text": "compose-manager /compose/logs returns raw container output to operator.",
+      "cite": "case-studies/near-ai-private-inference/DEVPROOF-REPORT.md:25"
+    },
+    {
+      "tag": "code:model-unbound",
+      "id": null,
+      "text": "Operator can call /compose/up with a different model YAML without changing RTMR3.",
+      "cite": "case-studies/near-ai-private-inference/DEVPROOF-REPORT.md:26"
+    },
+    {
+      "tag": "hw:debug-or-stale",
+      "id": null,
+      "text": "~80% of requests hit OutOfDate TCB.",
+      "cite": "case-studies/near-ai-private-inference/DEVPROOF-REPORT.md:27"
+    },
+    {
+      "tag": "op:secret-access",
+      "id": null,
+      "text": "Operator holds BEARER_TOKEN and can read .decrypted-env plaintext secrets on host-shared folder.",
+      "cite": "case-studies/near-ai-private-inference/DEVPROOF-REPORT.md:266"
+    }
+  ],
+  "report": "case-studies/near-ai-private-inference/DEVPROOF-REPORT.md",
+  "note": "DEVPROOF-REPORT-revisit-2026-05-02.md is later but states no stage and re-runs the gateway checks; gold uses DEVPROOF-REPORT.md, which has the stage assessment and matches the README row."
+}

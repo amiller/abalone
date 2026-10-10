@@ -1,0 +1,24 @@
+{
+  "case": "tinfoil-confidential-inference",
+  "subject": "Tinfoil managed confidential inference: confidential-model-router plus per-model SEV-SNP enclaves",
+  "inputs": {
+    "urls": [
+      "https://inference.tinfoil.sh",
+      "https://atc.tinfoil.sh",
+      "https://api.tinfoil.sh"
+    ],
+    "repos": [
+      "tinfoilsh/tinfoil-go@4652fd1",
+      "tinfoilsh/cvmimage@54e49c6",
+      "tinfoilsh/confidential-model-router@928034f",
+      "tinfoilsh/measure-image-action@5a50c52"
+    ],
+    "app_ids": [],
+    "audit_date": "2026-04-26"
+  },
+  "given_files": [],
+  "withheld_files": [
+    "DEVPROOF-REPORT.md",
+    "../../README.md#L54"
+  ]
+}

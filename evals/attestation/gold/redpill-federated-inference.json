@@ -1,0 +1,67 @@
+{
+  "case": "redpill-federated-inference",
+  "stage": null,
+  "stage_cite": "case-studies/redpill-federated-inference/DEVPROOF-REPORT.md:551 **Privacy posture: this is a development-grade deployment serving",
+  "gaps": [
+    {
+      "tag": "op:debug-path",
+      "id": "1",
+      "text": "Dev OS image with sshd plus DSTACK_AUTHORIZED_KEYS host injection gives operator root SSH.",
+      "cite": "case-studies/redpill-federated-inference/DEVPROOF-REPORT.md:125"
+    },
+    {
+      "tag": "code:image-unpinned",
+      "id": "2",
+      "text": "Mutable image tags, no @sha256 digest pinning.",
+      "cite": "case-studies/redpill-federated-inference/DEVPROOF-REPORT.md:206"
+    },
+    {
+      "tag": "code:model-unbound",
+      "id": "3",
+      "text": "Model-name routing without attestation binding; advertised model not in served-model-name.",
+      "cite": "case-studies/redpill-federated-inference/DEVPROOF-REPORT.md:232"
+    },
+    {
+      "tag": "code:weights-unpinned",
+      "id": "4",
+      "text": "Weights pulled from HuggingFace at boot, no content digest.",
+      "cite": "case-studies/redpill-federated-inference/DEVPROOF-REPORT.md:252"
+    },
+    {
+      "tag": "op:debug-path",
+      "id": "5",
+      "text": "Privileged containers with /var/run/dstack.sock mounted.",
+      "cite": "case-studies/redpill-federated-inference/DEVPROOF-REPORT.md:284"
+    },
+    {
+      "tag": "hw:debug-or-stale",
+      "id": "6",
+      "text": "secure_time: false on every compose.",
+      "cite": "case-studies/redpill-federated-inference/DEVPROOF-REPORT.md:297"
+    },
+    {
+      "tag": "op:logs",
+      "id": "7",
+      "text": "vLLM prompt logging on by default; public_logs: true.",
+      "cite": "case-studies/redpill-federated-inference/DEVPROOF-REPORT.md:308"
+    },
+    {
+      "tag": "hw:debug-or-stale",
+      "id": "10",
+      "text": "Two models share an unpatched host that fails TDX verification.",
+      "cite": "case-studies/redpill-federated-inference/DEVPROOF-REPORT.md:457"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": null,
+      "text": "Verifier validates the attestation but not the compose policy.",
+      "cite": "case-studies/redpill-federated-inference/DEVPROOF-REPORT.md:573"
+    }
+  ],
+  "report": "case-studies/redpill-federated-inference/DEVPROOF-REPORT.md",
+  "forced_tags": [
+    "5 op:debug-path: privileged container",
+    "6 hw:debug-or-stale: secure_time off, no exact tag"
+  ],
+  "note": "Report gives no numeric stage; stage null. Subject no longer exists (502 since 2026-08-18). Not in guide README table."
+}

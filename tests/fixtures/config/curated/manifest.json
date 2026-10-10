@@ -1,0 +1,68 @@
+{
+ "note": "Test config: the real curated set plus the stub provider and the probe extension. tests/lib/env.sh rehashes a copy.",
+ "entries": [
+  {
+   "kind": "extension",
+   "path": "curated/abalone.ts"
+  },
+  {
+   "kind": "extension",
+   "path": "curated/local-provider.ts"
+  },
+  {
+   "kind": "preload",
+   "path": "curated/egress-preload.mjs"
+  },
+  {
+   "kind": "tree",
+   "path": "lib"
+  },
+  {
+   "kind": "skill",
+   "path": "skills/pour-planning"
+  },
+  {
+   "kind": "skill",
+   "path": "skills/attestation-analyst"
+  },
+  {
+   "kind": "skill",
+   "path": "skills/formal-methods-reader"
+  },
+  {
+   "kind": "tree",
+   "path": "aci/pi-provider-aci/dist"
+  },
+  {
+   "kind": "tree",
+   "path": "aci/provider/dist"
+  },
+  {
+   "kind": "tree",
+   "path": "aci/verifier-ts/dist"
+  },
+  {
+   "kind": "provider",
+   "path": "tests/fixtures/stub-provider.ts"
+  },
+  {
+   "kind": "provider",
+   "path": "tests/fixtures/stub-e2ee.ts"
+  },
+  {
+   "kind": "extension",
+   "path": "tests/fixtures/probe.ts",
+   "tools": [
+    "probe"
+   ]
+  },
+  {
+   "kind": "tree",
+   "path": "tests/fixtures/scripts"
+  },
+  {
+   "kind": "tree",
+   "path": "tests/fixtures/rogue-provider.ts"
+  }
+ ]
+}

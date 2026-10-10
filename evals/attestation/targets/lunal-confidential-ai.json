@@ -1,0 +1,31 @@
+{
+  "case": "lunal-confidential-ai",
+  "subject": "Confidential AI / Lunal PrivateClaw: SEV-SNP confidential OpenClaw agent and private-inference API",
+  "inputs": {
+    "urls": [
+      "https://confidential.ai",
+      "https://privateclaw.dev"
+    ],
+    "repos": [
+      "lunal-dev/attestation-rs@c1aebc2",
+      "lunal-dev/kettle@6a78002",
+      "lunal-dev/privateclaw-cli@403408f",
+      "lunal-dev/confidential-cvm-cli@f77595c",
+      "lunal-dev/attestation-go@ae2c7e4",
+      "lunal-dev/home@d4f6498"
+    ],
+    "app_ids": [],
+    "audit_date": "2026-05-25"
+  },
+  "given_files": [
+    ".gitignore",
+    "refs/"
+  ],
+  "withheld_files": [
+    "DEVPROOF-REPORT.md",
+    "README.md",
+    "RECON.md",
+    "TODO.md",
+    "verify/"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "case": "redpill-federated-inference",
+  "subject": "Redpill federated TEE inference phala/* catalog at api.red-pill.ai (historical, endpoint now dead)",
+  "inputs": {
+    "urls": [
+      "https://api.red-pill.ai"
+    ],
+    "repos": [],
+    "app_ids": [],
+    "audit_date": "2026-04-28"
+  },
+  "given_files": [
+    "composes/"
+  ],
+  "withheld_files": [
+    "DEVPROOF-REPORT.md",
+    "fleet-inventory.md",
+    "refresh-fleet-status.sh"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+ "issue": "0006",
+ "checks": [
+  { "max_model_calls": 2 },
+  { "stop": "stop" },
+  { "shown_matches": "(^|\\n)not executed: abalone couldn't read this tool request.*Type /report" },
+  { "trace_has": "protocol-error" }
+ ]
+}

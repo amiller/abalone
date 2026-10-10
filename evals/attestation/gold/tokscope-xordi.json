@@ -1,0 +1,37 @@
+{
+  "case": "tokscope-xordi",
+  "stage": "1",
+  "stage_cite": "case-studies/tokscope-xordi/DEVPROOF-REPORT-v1.1.3F.md:30 **Stage Assessment: 1 (Verifiable)** — both previous blocking issues resolved",
+  "gaps": [
+    {
+      "tag": "op:config-url",
+      "id": "Finding 3",
+      "text": "XORDI_API_URL still in allowed_envs (low; encrypted blobs only).",
+      "cite": "case-studies/tokscope-xordi/DEVPROOF-REPORT-v1.1.3F.md:120"
+    },
+    {
+      "tag": "op:debug-path",
+      "id": "Finding 5",
+      "text": "Browser manager runs privileged: true with SYS_ADMIN.",
+      "cite": "case-studies/tokscope-xordi/DEVPROOF-REPORT-v1.1.3F.md:128"
+    },
+    {
+      "tag": "code:not-reproducible",
+      "id": "Finding 6",
+      "text": "Image tags are build hashes, not git commits; source tracing requires the branch.",
+      "cite": "case-studies/tokscope-xordi/DEVPROOF-REPORT-v1.1.3F.md:136"
+    },
+    {
+      "tag": "op:no-notice",
+      "id": "Finding 9",
+      "text": "14 compose-hash authorizations, 0 removed; old versions remain bootable.",
+      "cite": "case-studies/tokscope-xordi/DEVPROOF-REPORT-v1.1.3F.md:162"
+    }
+  ],
+  "report": "case-studies/tokscope-xordi/DEVPROOF-REPORT-v1.1.3F.md",
+  "forced_tags": [
+    "Finding 5 op:debug-path: privileged container, no exact tag",
+    "Finding 9 op:no-notice: stale authorized hashes allow rollback, no exact tag"
+  ],
+  "note": "v1.1.3F supersedes v1.1.2 (Stage 0). README row (Stage 0) describes v1.1.2 and is stale."
+}

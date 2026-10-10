@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+"""Eval model command: one sealed abalone session on a NEAR TEE model (prompt on stdin, reply on stdout).
+Each call appends {model, cost, attestation} to $EVAL_LEDGER. A call is refused once the ledger total reaches $EVAL_CAP_USD,
+and killed (an error) once its own list-price cost passes $EVAL_CALL_CAP_USD.
+Usage: near MODEL [--tools read,ls,find,grep] [--cwd DIR]"""
+import argparse, json, os, subprocess, sys, tempfile, time, uuid
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+p = argparse.ArgumentParser()
+p.add_argument("model")
+p.add_argument("--tools")
+p.add_argument("--cwd", default=os.getcwd())
+a = p.parse_args()
+ledger, cap, call_cap = Path(os.environ["EVAL_LEDGER"]), float(os.environ["EVAL_CAP_USD"]), float(os.environ["EVAL_CALL_CAP_USD"])
+spent = sum(json.loads(l)["cost"] for l in ledger.read_text().splitlines()) if ledger.exists() else 0.0
+if spent >= cap:
+    sys.exit(f"budget: ledger {ledger} at ${spent:.4f} >= cap ${cap}")
+session = Path(os.environ.get("ABALONE_DIR", Path.home() / ".abalone")) / "evals" / f"{uuid.uuid4()}.jsonl"
+session.parent.mkdir(parents=True, exist_ok=True)
+entries = lambda: [json.loads(l) for l in session.read_text().splitlines() if l.endswith("}")] if session.exists() else []
+usage = lambda: [e["message"] for e in entries() if e.get("type") == "message" and e["message"].get("usage")]
+tools = ["--tools", a.tools] if a.tools else ["--no-tools"]
+out, err = tempfile.TemporaryFile("w+"), tempfile.TemporaryFile("w+")
+child = subprocess.Popen([str(ROOT / "bin/abalone"), "-p", "--session", str(session), "--model", f"nearai/{a.model}", *tools],
+                         stdin=subprocess.PIPE, stdout=out, stderr=err, text=True, cwd=a.cwd)
+child.stdin.write(sys.stdin.read()); child.stdin.close()
+killed = None
+while child.poll() is None:
+    time.sleep(2)
+    c = sum(m["usage"]["cost"]["total"] for m in usage())
+    if c > call_cap:
+        child.terminate(); child.wait(); killed = f"per-call cap: ${c:.4f} > ${call_cap}"
+msgs, att = usage(), [e["data"] for e in entries() if e.get("customType") == "near-attestation"]
+rec = {"model": a.model, "session": str(session), "turns": len(msgs), "cost": sum(m["usage"]["cost"]["total"] for m in msgs),
+       "tokens_in": sum(m["usage"]["input"] for m in msgs), "tokens_out": sum(m["usage"]["output"] for m in msgs),
+       "attestation": att[-1] if att else None, "exit": child.returncode, "killed": killed}
+with ledger.open("a") as f:
+    f.write(json.dumps(rec) + "\n")
+out.seek(0); err.seek(0)
+sys.stderr.write(err.read())
+if killed or child.returncode:
+    sys.exit(killed or f"abalone exit {child.returncode}")
+if not att:
+    sys.exit(f"no near-attestation entry in {session}")
+if msgs[-1].get("stopReason") == "error":
+    sys.exit(f"model error: {msgs[-1].get('errorMessage')}")
+sys.stdout.write(out.read())

@@ -1,0 +1,51 @@
+{
+  "case": "darkbloom-d-inference",
+  "subject": "Darkbloom (Layr-Labs/d-inference): TDX coordinator on EigenCloud plus Apple-Silicon Mac inference providers",
+  "inputs": {
+    "urls": [
+      "https://api.darkbloom.dev"
+    ],
+    "repos": [
+      "Layr-Labs/d-inference@069a6c3"
+    ],
+    "app_ids": [
+      "0x2ea79ae13e30c0c127d684c3e145a974abce1ce3"
+    ],
+    "audit_date": "2026-06-07"
+  },
+  "given_files": [
+    ".gitignore",
+    "repo/"
+  ],
+  "withheld_files": [
+    "APNS-CODE-IDENTITY-REPORT.md",
+    "APPATTEST-MACOS27-FINDINGS-2026-09-16.md",
+    "ATTACK-POC-2026-09-06.md",
+    "ATTACK-VECTOR-2026-06-24.md",
+    "CHAIN-OF-TRUST.md",
+    "DARKBLOOM-SECURITY-DESIGN.md",
+    "DEMO-PLAN-2026-08-22.md",
+    "DEMO-PLAYBOOK-2026-06-24.md",
+    "DEVPROOF-REPORT-2026-05-10.md",
+    "DEVPROOF-REPORT-2026-08-22.md",
+    "DEVPROOF-REPORT.md",
+    "FOLLOWUP-REPORT.md",
+    "ISSUE-APNS-HARDENING.md",
+    "ISSUES-DRAFT.md",
+    "NOTE-FOR-MICHIO-2026-08-26.md",
+    "README.md",
+    "RECON.md",
+    "UPDATE-2026-09-03.md",
+    "appattest-measured-code/",
+    "architecture.html",
+    "attack-poc.html",
+    "attestation-fix-sequence.html",
+    "demo/",
+    "note-from-rmb/",
+    "note-from-rmb-2/",
+    "note-from-rmb-2.zip",
+    "note-from-rmb.zip",
+    "prep/",
+    "verify/"
+  ]
+}

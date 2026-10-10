@@ -1,0 +1,25 @@
+{
+  "name": "abalone",
+  "private": true,
+  "type": "module",
+  "description": "Gift peer and client transport (js-libp2p). Pi and the ACI stack keep their own package trees.",
+  "dependencies": {
+    "@chainsafe/libp2p-noise": "17.0.0",
+    "@chainsafe/libp2p-yamux": "8.0.1",
+    "@libp2p/autonat": "3.0.28",
+    "@libp2p/circuit-relay-v2": "4.2.13",
+    "@libp2p/crypto": "5.1.23",
+    "@libp2p/dcutr": "3.0.28",
+    "@libp2p/identify": "4.1.14",
+    "@libp2p/ping": "3.1.13",
+    "@libp2p/tcp": "11.0.28",
+    "@libp2p/utils": "7.4.1",
+    "@libp2p/websockets": "^10.1.21",
+    "@multiformats/multiaddr": "13.0.3",
+    "@noble/curves": "2.4.0",
+    "age-encryption": "0.3.1",
+    "libp2p": "3.3.11",
+    "libsodium-wrappers": "0.8.4",
+    "tor-js": "0.4.1"
+  }
+}

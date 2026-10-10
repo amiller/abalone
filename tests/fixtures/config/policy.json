@@ -1,0 +1,15 @@
+{
+  "note": "The user's disclosure policy. answerers are the outside parties a pour may go to; any other is refused. Every pour to them needs the user's approval of the exact payload, unless the user made a standing policy for it with `abalone approvals --standing` (stored in <ABALONE_DIR>/approvals/standing.json; abalone ships none). mediator is the private model that reads first when an outside model is selected. Canaries always block: folder canaries come from `abalone canary init <folder>`; canaries and canary_files here are extra ones.",
+  "catalog": "skills/pour-planning/policies.json",
+  "session_budget_bytes": 6000,
+  "answerers": [
+    "claude",
+    "nearai-outside",
+    "mcp-caller"
+  ],
+  "mediator": "stub/script",
+  "canaries": [],
+  "canary_files": [
+    "local-data/demo-corpus/canaries.json"
+  ]
+}

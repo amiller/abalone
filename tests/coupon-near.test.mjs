@@ -1,0 +1,229 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import http from "node:http";
+import os from "node:os";
+import path from "node:path";
+import { openCouponNearAdapter, openCouponNearAdapterForTesting, couponNearCredentialBroker, validateCouponNearProfile } from "../lib/coupon-near.mjs";
+import { encrypt, decrypt } from "../lib/near.mjs";
+import { couponSocketFetch } from "../lib/coupon-socket.mjs";
+import { NEAR_COUPON_PI_COMPAT } from "../lib/coupon-attested-session.mjs";
+
+const options = () => ({ baseUrl: "https://cloud-api.near.ai/v1", model: "selected/model", maxTokens: 128,
+  credential: "unit-provider-secret-canary", policy: { gatewayTcb: "UpToDate", modelTcb: "UpToDate", gpuSignature: "required", composeRegistry: { rpc: "https://mainnet.base.org", chainId: 8453 } } });
+const request = (body) => ({ method: "POST", headers: { authorization: "Bearer coupon-session" }, body: JSON.stringify(body) });
+const body = () => ({ model: "selected/model", messages: [{ role: "user", content: "synthetic qualification content" }], stream: true, max_tokens: 128 });
+
+test("selected NEAR profile is immutable and wrong model/auth/endpoint/pre-abort refuse before upstream", async () => {
+  const originalFetch = globalThis.fetch; let calls = 0;
+  globalThis.fetch = () => { calls++; throw new Error("unexpected upstream"); };
+  let adapter;
+  try {
+    const supplied = options(); adapter = openCouponNearAdapter(supplied);
+    supplied.policy.gatewayTcb = "reported";
+    assert.ok(Object.isFrozen(adapter.profile.policy)); assert.equal(adapter.profile.policy.gatewayTcb, "UpToDate");
+    for (const change of [{ baseUrl: "https://example.invalid/v1" }, { credential: "synthetic-only-not-a-real-provider" }, { policy: { ...options().policy, gatewayTcb: "reported" } }, { policy: { ...options().policy, gpuSignature: "optional" } }]) assert.throws(() => openCouponNearAdapter({ ...options(), ...change }), /provider_admission_refused/);
+    assert.throws(() => validateCouponNearProfile({ ...options(), maxTokens: 0 }));
+    await assert.rejects(adapter.fetch("https://example.invalid/v1/chat/completions", request(body())), /request_refused/);
+    await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, { ...request(body()), headers: { authorization: "Bearer ambient-key-must-not-be-used" } }), /request_refused/);
+    for (const changed of [{ ...body(), model: "other/model" }, { ...body(), api_key: "wire-key" }, { ...body(), messages: [{ role: "tool", content: "tool arguments" }] }, { ...body(), max_tokens: 129 }])
+      await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request(changed)), /request_refused/);
+    await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, { ...request(body()), signal: AbortSignal.abort() }), /request_refused/);
+    assert.equal(calls, 0);
+    await adapter.close(); await assert.rejects(adapter.admit(), /provider_closed/); assert.equal(calls, 0);
+    adapter = openCouponNearAdapter({ ...options(), sessionLifetimeMs: 5 });
+    await new Promise((resolve) => setTimeout(resolve, 15));
+    await assert.rejects(adapter.admit(), /provider_admission_expired/);
+    await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request(body())), /provider_admission_expired/);
+    assert.equal(calls, 0, "expired session cannot use any cached admission or issue a new request");
+    // Expiry during a live verification keeps its own code for a direct admit() caller.
+    globalThis.fetch = (_url, init = {}) => new Promise((_resolve, reject) => {
+      if (init.signal?.aborted) { reject(new Error("stalled")); return; }
+      init.signal?.addEventListener("abort", () => reject(new Error("stalled")), { once: true });
+    });
+    adapter = openCouponNearAdapter({ ...options(), sessionLifetimeMs: 20 });
+    const stalling = assert.rejects(adapter.admit(), { code: "provider_admission_expired" });
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    await stalling;
+    await assert.rejects(adapter.admit(), { code: "provider_admission_expired" });
+  } finally { await adapter?.close(); globalThis.fetch = originalFetch; }
+});
+
+test("direct report auth never redirects, failures are sanitized, close aborts admission before inference", async () => {
+  const originalFetch = globalThis.fetch; let mode = "redirect", calls = 0, inference = 0, aborted = false, seen;
+  const entered = new Promise((resolve) => { seen = resolve; });
+  globalThis.fetch = async (url, init) => {
+    calls++;
+    if (new URL(url).pathname === "/v1/chat/completions") inference++;
+    assert.equal(new URL(url).origin, "https://cloud-api.near.ai");
+    assert.equal(new URL(url).pathname, "/v1/attestation/report");
+    assert.ok(new Headers(init.headers).get("authorization") === `Bearer ${options().credential}`);
+    assert.equal(init.redirect, "manual");
+    if (mode === "redirect") return new Response(null, { status: 302, headers: { location: "https://example.invalid/steal" } });
+    if (mode === "error") return new Response(options().credential, { status: 401 });
+    seen(); return new Promise((_resolve, reject) => init.signal.addEventListener("abort", () => { aborted = true; reject(new Error(options().credential)); }, { once: true }));
+  };
+  let adapter;
+  try {
+    adapter = openCouponNearAdapter(options());
+    await assert.rejects(adapter.admit(), { message: "coupon provider: provider_admission_refused" }); assert.equal(calls, 1);
+    mode = "error";
+    await assert.rejects(adapter.admit(), { message: "coupon provider: provider_admission_refused" }); assert.equal(calls, 2);
+    mode = "stall";
+    const pending = assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request(body())), { code: "provider_closed" });
+    await entered; await adapter.close(); await pending;
+    assert.ok(aborted); assert.equal(inference, 0); assert.equal(calls, 3);
+  } finally { await adapter?.close(); globalThis.fetch = originalFetch; }
+});
+
+// A model key standing in for the attested signing key, and a pinned-transport stand-in that
+// speaks the real wire protocol (decrypt prompts with the model key, answer encrypted to the
+// client's key). Only the admission verdict is synthetic; the adapter runtime is the real one.
+const modelKey = crypto.createECDH("secp256k1"); modelKey.generateKeys();
+const verdict = (state) => ({
+  signingPublicKey: modelKey.getPublicKey("hex"),
+  profile: { gateway_tcb: "synthetic-only-not-hardware", model_tcb: ["synthetic-only-not-hardware"], gpu: "GPU: NVIDIA verdict (synthetic-only-not-hardware)" },
+  transport: {
+    close: async () => { state.closed = true; },
+    fetch: async (input, init) => {
+      state.chats++;
+      const mode = state.mode ?? "ok";
+      const url = new URL(String(input));
+      assert.equal(url.origin, "https://cloud-api.near.ai"); assert.equal(url.pathname, "/v1/chat/completions");
+      assert.equal(init.method, "POST"); assert.equal(init.redirect, "manual");
+      assert.equal(new Headers(init.headers).get("authorization"), `Bearer ${options().credential}`);
+      const body = JSON.parse(init.body);
+      assert.deepEqual(Object.keys(body).sort(), ["max_tokens", "messages", "model", "stream"]);
+      assert.equal(body.model, "selected/model"); assert.equal(body.stream, true);
+      assert.deepEqual(body.messages.map((m) => ({ role: m.role, content: decrypt(m.content, modelKey) })), [{ role: "user", content: "synthetic qualification content" }]);
+      const clientPub = new Headers(init.headers).get("x-client-pub-key");
+      assert.match(clientPub, /^[0-9a-f]{128}$/);
+      assert.equal(new Headers(init.headers).get("x-model-pub-key"), modelKey.getPublicKey("hex"));
+      if (mode === "stall") return new Promise((_resolve, reject) => init.signal.addEventListener("abort", () => reject(new Error(`upstream aborted ${options().credential}`)), { once: true }));
+      if (mode === "revoked") return new Response(options().credential, { status: 401 });
+      if (mode === "exhausted") return new Response("payment required", { status: 402 });
+      if (mode === "pinmismatch") return new Response(JSON.stringify({ error: { message: "✗ refused: SPKI pin mismatch (observed …)" } }), { status: 403, headers: { "content-type": "application/json" } });
+      if (mode === "unavailable") return new Response("retry later", { status: 503 });
+      if (mode === "json") return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
+      if (mode === "tampered") return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: "00".repeat(96) } }] })}\n\ndata: [DONE]\n`, { status: 200, headers: { "content-type": "text/event-stream" } });
+      if (mode === "cleartext") return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: `not ciphertext ${options().credential}` } }] })}\n\ndata: [DONE]\n`, { status: 200, headers: { "content-type": "text/event-stream" } });
+      return new Response(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: encrypt(`useful synthetic answer ${options().credential}`, clientPub) }, finish_reason: null }] })}\n\ndata: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] })}\n\ndata: [DONE]\n`, { status: 200, headers: { "content-type": "text/event-stream" } });
+    },
+  },
+});
+
+test("actual Pi OpenAI request grammar reaches the strict NEAR encrypted adapter", async () => {
+  const { streamSimple } = await import("../pi/packages/ai/dist/api/openai-completions.js");
+  const state = { chats: 0, closed: false, mode: "ok" };
+  const adapter = openCouponNearAdapterForTesting({ ...options(), verifiedForTesting: verdict(state) });
+  const model = { id: "selected/model", name: "SYNTHETIC near trial", provider: "nearai", api: "openai-completions", baseUrl: "http://127.0.0.1:0/v1",
+    reasoning: false, input: ["text"], contextWindow: 32768, maxTokens: 128, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, compat: NEAR_COUPON_PI_COMPAT };
+  try {
+    const response = await streamSimple(model, { messages: [{ role: "user", content: "synthetic qualification content", timestamp: Date.now() }] },
+      { apiKey: "coupon-session", maxTokens: 128, fetch: (_url, init) => adapter.fetch(`${options().baseUrl}/chat/completions`, { ...init, body: typeof init.body === "string" ? init.body : String(init.body) }) }).result();
+    assert.equal(state.chats, 1, "Pi's actual payload passed the strict parser and reached the encrypted synthetic transport");
+    assert.notEqual(response.stopReason, "error", response.errorMessage);
+    assert.ok(response.content.some((part) => part.type === "text" && part.text.includes("useful synthetic answer")));
+  } finally { await adapter.close(); }
+});
+
+test("admitted runtime encrypts prompts to the attested model key, decrypts and sanitizes answers", { timeout: 10_000 }, async () => {
+  const first = { chats: 0, closed: false, mode: "ok" };
+  assert.throws(() => openCouponNearAdapterForTesting(), /provider_admission_refused/);
+  // The testing factory accepts only explicitly synthetic verdicts; a genuine-shaped one is refused.
+  assert.throws(() => openCouponNearAdapterForTesting({ ...options(), verifiedForTesting: { ...verdict(first), profile: { gateway_tcb: "UpToDate", model_tcb: ["UpToDate"], gpu: "GPU: NVIDIA verdict (signature checked)" } } }), /provider_admission_refused/);
+  assert.throws(() => openCouponNearAdapterForTesting({ ...options(), credential: "synthetic-only-not-a-real-provider", verifiedForTesting: verdict(first) }), /provider_admission_refused/);
+  const adapter = openCouponNearAdapterForTesting({ ...options(), verifiedForTesting: verdict(first) });
+  try {
+    const response = await adapter.fetch(`${options().baseUrl}/chat/completions`, request(body()));
+    assert.equal(response.headers.get("content-type"), "text/event-stream");
+    const text = await response.text();
+    assert.ok(text.includes("useful synthetic answer") && text.endsWith("data: [DONE]\n"));
+    assert.ok(!text.includes(options().credential));
+    for (const [name, code] of [["revoked", "access_revoked_or_expired"], ["exhausted", "credit_exhausted"], ["unavailable", "provider_unavailable"],
+      ["pinmismatch", "transport_refused"], ["json", "provider_response_refused"], ["tampered", "provider_response_refused"], ["cleartext", "provider_response_refused"]]) {
+      first.mode = name;
+      await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request(body())), (error) => error.code === code && !error.message.includes(options().credential));
+    }
+    first.mode = "stall";
+    const controller = new AbortController();
+    const pending = adapter.fetch(`${options().baseUrl}/chat/completions`, { ...request(body()), signal: controller.signal });
+    setTimeout(() => controller.abort(), 10);
+    await assert.rejects(pending, (error) => error.code === "provider_unavailable" && !error.message.includes(options().credential));
+    assert.equal(first.chats, 9);
+  } finally { await adapter.close(); }
+  assert.equal(first.closed, true, "close reaches the pinned transport");
+});
+
+test("expiry drops admission and the credential; the same delivered credential is reused only through fresh admission", async () => {
+  const first = { chats: 0, closed: false };
+  const adapter = openCouponNearAdapterForTesting({ ...options(), sessionLifetimeMs: 60, verifiedForTesting: verdict(first) });
+  try {
+    assert.ok((await (await adapter.fetch(`${options().baseUrl}/chat/completions`, request(body()))).text()).includes("useful synthetic answer"));
+    await new Promise((resolve) => setTimeout(resolve, 90));
+    await assert.rejects(adapter.admit(), { code: "provider_admission_expired" });
+    await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request(body())), { code: "provider_admission_expired" });
+    assert.equal(first.chats, 1, "an expired session never reuses its provider admission");
+  } finally { await adapter.close(); }
+  assert.equal(first.closed, true);
+  const fresh = { chats: 0, closed: false };
+  const readmitted = openCouponNearAdapterForTesting({ ...options(), verifiedForTesting: verdict(fresh) }); // same credential string
+  try {
+    assert.ok((await (await readmitted.fetch(`${options().baseUrl}/chat/completions`, request(body()))).text()).includes("useful synthetic answer"));
+    assert.equal(fresh.chats, 1, "a fresh adapter admits the same delivered credential again without any new coupon or key");
+  } finally { await readmitted.close(); }
+});
+
+const socketRequest = (socketPath, payload, { auth = "coupon-session", route = "/v1/chat/completions", method = "POST" } = {}) => new Promise((resolve, reject) => {
+  const r = http.request({ socketPath, path: route, method, agent: false, headers: { authorization: `Bearer ${auth}`, "content-type": "application/json" } }, (s) => {
+    const chunks = []; s.on("data", (c) => chunks.push(c)); s.on("end", () => resolve({ status: s.statusCode, text: Buffer.concat(chunks).toString() })); s.on("error", reject);
+  }); r.on("error", reject); r.end(typeof payload === "string" ? payload : JSON.stringify(payload));
+});
+
+test("credential broker hands the sandbox a placeholder-auth socket, explains admission expiry and cleans up", { timeout: 15_000 }, async () => {
+  const states = [];
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "coupon-near-broker-")), busy = path.join(directory, "busy"), loose = path.join(directory, "loose");
+  fs.mkdirSync(busy); fs.mkdirSync(loose); fs.chmodSync(loose, 0o755); fs.writeFileSync(path.join(busy, "occupied.sock"), "");
+  const adapter = openCouponNearAdapterForTesting({ ...options(), sessionLifetimeMs: 900, verifiedForTesting: verdict({ chats: 0, closed: false }) });
+  let broker;
+  try {
+    for (const bad of [{ socketPath: path.join(busy, "occupied.sock") }, { socketPath: path.join(loose, "b.sock") }, { socketPath: path.join(directory, "n.sock"), adapter: { fetch: adapter.fetch } }])
+      await assert.rejects(couponNearCredentialBroker({ ...bad, adapter: bad.adapter ?? adapter }), { code: "broker_configuration" });
+    broker = await couponNearCredentialBroker({ socketPath: path.join(directory, "broker.sock"), adapter, timeoutMs: 2000, maxBytes: 2048, onState: (s) => states.push(s) });
+    const socketPath = broker.socketPath;
+    assert.equal(fs.statSync(socketPath).mode & 0o777, 0o600);
+    for (const change of [{ auth: "ambient-key" }, { route: "/v1/models" }, { method: "GET" }]) assert.equal((await socketRequest(socketPath, body(), change)).status, 403);
+    assert.equal((await socketRequest(socketPath, "x".repeat(3000))).status, 413, "a request beyond the broker bound is refused before the provider");
+    assert.equal((await socketRequest(socketPath, "malformed json")).status, 403);
+    assert.equal((await socketRequest(socketPath, { ...body(), model: "other/model" })).status, 403, "the adapter pins the model");
+    const send = couponSocketFetch(socketPath);
+    const response = await send("ignored", { body: JSON.stringify(body()) });
+    assert.equal(response.status, 200); assert.equal(response.headers.get("content-type"), "text/event-stream");
+    const text = await response.text();
+    assert.ok(text.includes("useful synthetic answer") && !text.includes(options().credential));
+    assert.ok(states.includes("installed"));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const expired = await send("ignored", { body: JSON.stringify(body()) });
+    assert.equal(expired.status, 503);
+    const expiredText = await expired.text();
+    assert.ok(expiredText.includes("fresh adapter admission") && expiredText.includes("do not create another coupon or recipient key"));
+    assert.ok(!expiredText.includes(options().credential));
+    assert.ok(states.includes("provider_admission_expired"));
+    await broker.close();
+    assert.equal(fs.existsSync(socketPath), false);
+    await assert.rejects(send("ignored", { body: JSON.stringify(body()) }), /broker is unavailable/);
+  } finally { await broker?.close(); await adapter.close(); fs.rmSync(directory, { recursive: true, force: true }); }
+
+  // The same already-delivered credential serves again through a fresh adapter and a fresh broker.
+  const fresh = { chats: 0, closed: false }, directory2 = fs.mkdtempSync(path.join(os.tmpdir(), "coupon-near-broker2-"));
+  const readmitted = openCouponNearAdapterForTesting({ ...options(), verifiedForTesting: verdict(fresh) });
+  let broker2;
+  try {
+    broker2 = await couponNearCredentialBroker({ socketPath: path.join(directory2, "broker.sock"), adapter: readmitted, timeoutMs: 2000 });
+    const response = await couponSocketFetch(broker2.socketPath)("ignored", { body: JSON.stringify(body()) });
+    assert.ok((await response.text()).includes("useful synthetic answer"));
+    assert.equal(fresh.chats, 1);
+  } finally { await broker2?.close(); await readmitted.close(); fs.rmSync(directory2, { recursive: true, force: true }); }
+  assert.equal(fresh.closed, true, "broker close reaches the adapter and its pinned transport");
+});

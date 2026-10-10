@@ -1,0 +1,47 @@
+{
+ "slug": "libcrux-mldsa-aarch64-fallback",
+ "artifact": "libcrux ML-DSA (Rust, core modules verified with hax/F*), crate libcrux-ml-dsa v0.0.3; scope described in Bhargavan, 'The strengths and limits of formal verification' (Cryspen, 2026-02-12), https://cryspen.com/post/strengths-and-limitations/",
+ "tool": "hax / F*",
+ "property": "Runtime safety and functional correctness of verified ML-DSA core modules against their specification.",
+ "model": "The verified Rust modules, with platform SIMD intrinsics modeled through verification-friendly wrappers; unverified system libraries and fallback paths outside the proof.",
+ "trusted_base": [
+  "Rust compiler and core::arch SIMD intrinsics",
+  "hand-written intrinsic wrappers and fallback implementations",
+  "unverified Rust API wrappers",
+  "hax toolchain and F*"
+ ],
+ "assumptions": [
+  "platform intrinsics (and their fallbacks) behave as modeled",
+  "build target features match those tested in CI"
+ ],
+ "deployed": "libcrux-ml-dsa v0.0.3 built for aarch64-unknown-linux-musl on Alpine Linux (Ampere Altra), a target without the SHA3 target feature, producing keys/signatures different from the macOS M2 build.",
+ "gap": "The verified ML-DSA code was not at fault: per the libcrux maintainers the bug was in an unverified fallback for an aarch64 intrinsic, which produced incorrect ML-DSA output on Alpine/musl aarch64 (a target that, per the issue thread, lacks the SHA3 target feature), a platform path the CI did not exercise.",
+ "gap_keywords": [
+  "intrinsic",
+  "fallback",
+  "unverified",
+  "platform",
+  "aarch64"
+ ],
+ "sources": [
+  {
+   "url": "https://cryspen.com/post/strengths-and-limitations/",
+   "title": "The strengths and limits of formal verification (Cryspen)",
+   "quote": "One was in a fallback implementation for a platform-specific intrinsic"
+  },
+  {
+   "url": "https://cryspen.com/post/strengths-and-limitations/",
+   "title": "The strengths and limits of formal verification (Cryspen)",
+   "quote": "Like with HACL*, the verification guarantees for libcrux code only extends to the verified modules."
+  },
+  {
+   "url": "https://github.com/celabshq/libcrux/issues/1220",
+   "title": "Incorrect ML-DSA output on Alpine Linux and Ampere Altra (libcrux issue #1220)",
+   "quote": "We've identified an issue with one of the aarch64 intrinsics"
+  }
+ ],
+ "input_for_reader": [
+  "Proof artifact: libcrux repository, libcrux-ml-dsa crate v0.0.3 and its documented verification status (https://github.com/cryspen/libcrux)",
+  "Deployment description: libcrux-ml-dsa v0.0.3 compiled for aarch64-unknown-linux-musl, run on Alpine Linux / Ampere Altra"
+ ]
+}

@@ -1,0 +1,209 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "profile": {
+      "enum": [
+        "debug-staging-incognito-synthetic-prompts",
+        "debug-staging-synthetic-prompts"
+      ]
+    },
+    "platform": {
+      "const": "linux-node24-bubblewrap"
+    },
+    "issuer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "peer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "privateRoute": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pin": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approval": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approvalRoot": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "peer",
+        "privateRoute",
+        "pin",
+        "approval",
+        "approvalRoot"
+      ]
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "baseUrl": {
+          "const": "https://cloud-api.near.ai/v1"
+        },
+        "model": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_./-]{1,160}$"
+        },
+        "maxTokens": {
+          "const": 512
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "gatewayTcb": {
+              "const": "UpToDate"
+            },
+            "modelTcb": {
+              "const": "UpToDate"
+            },
+            "gpuSignature": {
+              "const": "required"
+            },
+            "composeRegistry": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "rpc": {
+                  "enum": [
+                    "https://mainnet.base.org",
+                    "https://mainnet.base.org/"
+                  ]
+                },
+                "chainId": {
+                  "const": 8453
+                }
+              },
+              "required": [
+                "rpc",
+                "chainId"
+              ]
+            }
+          },
+          "required": [
+            "gatewayTcb",
+            "modelTcb",
+            "gpuSignature",
+            "composeRegistry"
+          ]
+        }
+      },
+      "required": [
+        "baseUrl",
+        "model",
+        "maxTokens",
+        "policy"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "const": "reviewed-development-source-v1"
+        },
+        "files": {
+          "type": "object",
+          "minProperties": 12,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "required": [
+            "tools/coupon-first-use.mjs",
+            "bin/abalone.mjs",
+            "lib/coupon-attested.mjs",
+            "lib/coupon-attested-session.mjs",
+            "lib/coupon-near.mjs",
+            "lib/coupon-staging.mjs",
+            "curated/coupon-provider.ts",
+            "curated/manifest.json",
+            "package-lock.json",
+            "pi/package-lock.json",
+            "aci/package-lock.json",
+            "pi/packages/coding-agent/dist/cli.js"
+          ]
+        }
+      },
+      "required": [
+        "profile",
+        "files"
+      ]
+    },
+    "vpn": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "profile": {
+              "type": "string",
+              "minLength": 1
+            },
+            "interface": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.-]{1,15}$"
+            },
+            "route4": {
+              "type": "string",
+              "format": "ipv4"
+            },
+            "route6": {
+              "type": "string",
+              "format": "ipv6"
+            },
+            "rulesetSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "qualification": {
+              "type": "string",
+              "minLength": 1
+            },
+            "qualificationSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "profile",
+            "interface",
+            "route4",
+            "route6",
+            "rulesetSha256",
+            "qualification",
+            "qualificationSha256"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "version",
+    "profile",
+    "platform",
+    "issuer",
+    "provider",
+    "source",
+    "vpn"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Abalone development coupon first-use public manifest v1"
+}

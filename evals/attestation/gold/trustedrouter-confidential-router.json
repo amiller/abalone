@@ -1,0 +1,20 @@
+{
+  "case": "trustedrouter-confidential-router",
+  "stage": "~1",
+  "stage_cite": "case-studies/trustedrouter-confidential-router/DEVPROOF-REPORT.md:8 **Verdict: ~Stage 1.** The chain is clean and the operator surface is small — routing is hardcoded, nothing is stored, the control plane is metadata-only. One residual (**G6**) lets the operator defeat the confidentiality claim in a way per-session verification cannot catch.",
+  "gaps": [
+    {
+      "tag": "op:secret-access",
+      "id": "G6",
+      "text": "Shared ACME TLS private key cached in operator-readable GCS under non-image-bound CMEK; enables MITM.",
+      "cite": "case-studies/trustedrouter-confidential-router/DEVPROOF-REPORT.md:30"
+    },
+    {
+      "tag": "op:config-url",
+      "id": "G5",
+      "text": "Unattested control plane can inject a content webhook endpoint receiving prompt and completion.",
+      "cite": "case-studies/trustedrouter-confidential-router/DEVPROOF-REPORT.md:39"
+    }
+  ],
+  "report": "case-studies/trustedrouter-confidential-router/DEVPROOF-REPORT.md"
+}

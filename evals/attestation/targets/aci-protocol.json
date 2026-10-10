@@ -1,0 +1,23 @@
+{
+  "case": "aci-protocol",
+  "subject": "Attested Confidential Inference (ACI) protocol, spec/aci.md in Dstack-TEE/private-ai-gateway",
+  "inputs": {
+    "urls": [
+      "https://tee.redpill.ai"
+    ],
+    "repos": [
+      "Dstack-TEE/private-ai-gateway@HEAD (2026-08-14)"
+    ],
+    "app_ids": [],
+    "audit_date": "2026-08-18"
+  },
+  "given_files": [
+    "refs/"
+  ],
+  "withheld_files": [
+    "DEVPROOF-REPORT.md",
+    "SUMMARY.md",
+    "verify/",
+    "../../README.md#L56"
+  ]
+}

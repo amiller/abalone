@@ -1,0 +1,64 @@
+{
+ "v": "abalone-task/1",
+ "type": "offer",
+ "worker": {
+  "peer": "12D3KooWBfc1GHpQBuj8eEpPmzg7qVzQ5EPwzy36UZ3nWYATJcNj",
+  "operator": "independent",
+  "label": "FIXTURE worker"
+ },
+ "evidence": {
+  "type": "dev"
+ },
+ "runtime": {
+  "image": "docker.io/abalone/task@sha256:830b9921a7d0e176be4e0a54fc0ce644e0d039206604b1112c312f03d1f4ed7e",
+  "agent": "pi",
+  "tools": [
+   "read",
+   "bash",
+   "edit",
+   "write"
+  ]
+ },
+ "resources": [
+  {
+   "id": "small",
+   "cpus": 2,
+   "mem_mb": 2048,
+   "max_seconds": 1800,
+   "max_input_bytes": 20971520
+  }
+ ],
+ "network": {
+  "egress": []
+ },
+ "inference": {
+  "route": "peer → runner proxy → NEAR",
+  "models": [
+   "z-ai/glm-5.3-flash"
+  ],
+  "sees_plaintext": [
+   "task guest",
+   "peer",
+   "runner proxy"
+  ]
+ },
+ "accepts": [
+  "released",
+  "open"
+ ],
+ "persistence": {
+  "continuation": "runs to terminal while the client is away",
+  "retention_ms": 86400000,
+  "after": "outputs and events deleted"
+ },
+ "tariff": {
+  "version": "t1",
+  "execution_per_second": 167,
+  "interval_seconds": 15,
+  "inference": "NEAR list price × usage",
+  "storage": 0,
+  "sponsored": false
+ },
+ "expiry": 1791603600000,
+ "offer_id": "bb3f16fa4ae7d2b01b920d182c6ca6bdc0e4b47d4c506b9b1704cd94593aa750"
+}

@@ -1,0 +1,42 @@
+{
+  "case": "talos",
+  "stage": "~1",
+  "stage_cite": "README.md:48 | [talos](case-studies/talos/) | ~1 | Reproducible builds, but enclave ID verification gap |",
+  "gaps": [
+    {
+      "tag": "code:not-reproducible",
+      "id": null,
+      "text": "No CI artifact linking tag to enclave ID to on-chain deployment.",
+      "cite": "case-studies/talos/DEVPROOF-REPORT.md:186"
+    },
+    {
+      "tag": "op:no-upgrade-log",
+      "id": null,
+      "text": "Enclave IDs updated multiple times since last tag.",
+      "cite": "case-studies/talos/DEVPROOF-REPORT.md:187"
+    },
+    {
+      "tag": "op:central-dep",
+      "id": null,
+      "text": "No easy way to query the on-chain enclave whitelist without an Oasis node.",
+      "cite": "case-studies/talos/DEVPROOF-REPORT.md:188"
+    },
+    {
+      "tag": "code:not-reproducible",
+      "id": null,
+      "text": "Main branch is 9 commits ahead of latest tag.",
+      "cite": "case-studies/talos/DEVPROOF-REPORT.md:189"
+    },
+    {
+      "tag": "code:not-reproducible",
+      "id": null,
+      "text": "Image matches repo, but enclave ID and on-chain policy not verified (rofl build --verify not run).",
+      "cite": "case-studies/talos/DEVPROOF-REPORT.md:246"
+    }
+  ],
+  "report": "case-studies/talos/DEVPROOF-REPORT.md",
+  "forced_tags": [
+    "op:central-dep: whitelist query needs an Oasis node; tooling friction, not a trust-path dependency"
+  ],
+  "note": "Report is investigation notes with no stage; ~1 from guide README row ('enclave ID verification gap'). Audit date 2025-01-04 as written in report."
+}

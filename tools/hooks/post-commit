@@ -1,0 +1,4 @@
+#!/bin/sh
+# After `git commit <paths>`, git commits a temporary index, so the manifest staged by pre-commit is in HEAD but not in
+# the real index. Point the real index at HEAD's manifest (the working copy already holds it).
+git diff --cached --quiet HEAD -- curated/manifest.json || git reset -q -- curated/manifest.json

@@ -1,0 +1,1 @@
+{"type":"peer-ed25519","peer":"12D3KooWRrgukqxkL2inR4Si4RovJEBXjwWoy4HCdYemKwwLJUZ5","data":"abalone-task-completion/1|708b6b4311e61907508058107e2923b94575b97077991ec8da12d00cf0c23057","sig":"a874d94fc163cdae3908f6937dfd494ec4dd8657e472efddeef0c8e41b34e145a4053a602cff50d7737df4da1654229a47ea33df8fc298f09dfeb88891022108"}

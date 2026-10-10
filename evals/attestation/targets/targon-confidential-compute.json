@@ -1,0 +1,25 @@
+{
+  "case": "targon-confidential-compute",
+  "subject": "Targon (Bittensor SN4, Manifold Labs) confidential GPU-rental marketplace on TDX + NVIDIA CC",
+  "inputs": {
+    "urls": [
+      "https://tower.targon.com",
+      "https://tvm.targon.com",
+      "https://stats.targon.com"
+    ],
+    "repos": [
+      "manifold-inc/targon@46c5e47"
+    ],
+    "app_ids": [],
+    "audit_date": "2026-05-25"
+  },
+  "given_files": [
+    ".gitignore",
+    "refs/"
+  ],
+  "withheld_files": [
+    "DEVPROOF-REPORT.md",
+    "README.md",
+    "RECON.md"
+  ]
+}

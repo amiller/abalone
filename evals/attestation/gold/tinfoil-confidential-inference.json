@@ -1,0 +1,21 @@
+{
+  "case": "tinfoil-confidential-inference",
+  "stage": "~1",
+  "stage_cite": "README.md:54 | [tinfoil-confidential-inference](case-studies/tinfoil-confidential-inference/) | ~1 | Closes the Phala/NEAR compose-hash gap (config sha256 in launch-measured cmdline). Model weights are dm-verity-anchored with HF commit pinned in the attested config — runtime tampering produces EIO, no HF-by-name",
+  "gaps": [
+    {
+      "tag": "op:secret-access",
+      "id": null,
+      "text": "Attested config declares secrets: slots filled from unattested external disk (router USAGE_REPORTER_SECRET).",
+      "cite": "case-studies/tinfoil-confidential-inference/DEVPROOF-REPORT.md:400"
+    },
+    {
+      "tag": "op:debug-path",
+      "id": null,
+      "text": "Externally-sourced env-var schema lets operator change runtime behavior without release or measurement change.",
+      "cite": "case-studies/tinfoil-confidential-inference/DEVPROOF-REPORT.md:403"
+    }
+  ],
+  "report": "case-studies/tinfoil-confidential-inference/DEVPROOF-REPORT.md",
+  "note": "Report line 393 says 'Stage 1' while failing two checklist items ('one rename away'); README row says ~1. Gold uses ~1."
+}

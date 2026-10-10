@@ -1,0 +1,25 @@
+{
+  "case": "trustedrouter-confidential-router",
+  "subject": "TrustedRouter (Quill Cloud) confidential LLM router on GCP Confidential Space",
+  "inputs": {
+    "urls": [
+      "https://api.trustedrouter.com/attestation",
+      "https://trust.trustedrouter.com"
+    ],
+    "repos": [
+      "Lore-Hex/quill-cloud-proxy@648ea31"
+    ],
+    "app_ids": [],
+    "audit_date": "2026-07-03"
+  },
+  "given_files": [
+    ".gitignore",
+    "refs/"
+  ],
+  "withheld_files": [
+    "DEVPROOF-REPORT.md",
+    "SUMMARY.md",
+    "verify/",
+    "../../README.md#L58"
+  ]
+}

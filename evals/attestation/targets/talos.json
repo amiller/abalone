@@ -1,0 +1,22 @@
+{
+  "case": "talos",
+  "subject": "Talos autonomous agent on Oasis ROFL (Intel TDX), Sapphire mainnet",
+  "inputs": {
+    "urls": [],
+    "repos": [
+      "talos-agent/talos"
+    ],
+    "app_ids": [
+      "rofl1qpykfkl6ea78cyy67d35f7fmpk3pg36vashka4v9"
+    ],
+    "audit_date": "2025-01-04",
+    "images": [
+      "ghcr.io/talos-agent/talos:latest-agent@sha256:ed66b3a4e2e71eb9c97e2fe0c14b0d2aa8c778de09c67a5642a500a138ed6871"
+    ]
+  },
+  "given_files": [],
+  "withheld_files": [
+    "DEVPROOF-REPORT.md",
+    "../../README.md#L48"
+  ]
+}

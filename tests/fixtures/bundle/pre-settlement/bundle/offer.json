@@ -1,0 +1,66 @@
+{
+ "v": "abalone-task/1",
+ "type": "offer",
+ "worker": {
+  "peer": "12D3KooWRrgukqxkL2inR4Si4RovJEBXjwWoy4HCdYemKwwLJUZ5",
+  "operator": "independent",
+  "label": "Andrew's Mac mini (dev peer outside the runner)"
+ },
+ "evidence": {
+  "type": "appattest"
+ },
+ "runtime": {
+  "image": "local:abalone@sha256:a56b3d1ec5f2eae794f9a89f0996661b13f901093848c9d4afd1a3f192989973",
+  "agent": "pi",
+  "tools": [
+   "read",
+   "bash",
+   "edit",
+   "write"
+  ]
+ },
+ "resources": [
+  {
+   "id": "small",
+   "cpus": 2,
+   "mem_mb": 2048,
+   "max_seconds": 1800,
+   "max_input_bytes": 20971520,
+   "enforced_by": "none: a development process on this host (sandbox-exec, no network)"
+  }
+ ],
+ "network": {
+  "egress": [],
+  "enforced_by": "none: a development process on this host (sandbox-exec, no network)"
+ },
+ "inference": {
+  "route": "task process → peer → NEAR (TLS pinned by the peer)",
+  "models": [
+   "z-ai/glm-5.3-flash"
+  ],
+  "max_output_tokens": 4096,
+  "sees_plaintext": [
+   "task guest",
+   "peer"
+  ]
+ },
+ "accepts": [
+  "released",
+  "open"
+ ],
+ "persistence": {
+  "continuation": "runs to terminal while the client is away",
+  "retention_ms": 86400000,
+  "after": "outputs and events deleted"
+ },
+ "tariff": {
+  "version": "t1",
+  "execution_per_second": 200,
+  "interval_seconds": 15,
+  "inference": "NEAR list price × usage",
+  "storage": 0,
+  "sponsored": false
+ },
+ "expiry": 1791604861386,
+ "offer_id": "85cb7aef1ba54e29edcb7b8b4d953ca143d87b54d261db358a54574ffa0ee738"
+}

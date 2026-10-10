@@ -1,0 +1,30 @@
+{
+ "case": "redpill-phala-aci-gateway",
+ "subject": "RedPill/Phala shared ACI gateway (Dstack-TEE/private-ai-gateway) on dstack TDX",
+ "inputs": {
+  "urls": [
+   "https://tee.redpill.ai",
+   "https://inference.phala.com",
+   "https://api.redpill.ai"
+  ],
+  "repos": [
+   "Dstack-TEE/private-ai-gateway@30296dd"
+  ],
+  "app_ids": [],
+  "audit_date": "2026-08-18"
+ },
+ "given_files": [
+  "evidence/",
+  "refs/"
+ ],
+ "withheld_files": [
+  "../../README.md#L57",
+  "DEVPROOF-REPORT.md",
+  "SUMMARY.md",
+  "evidence/README.md",
+  "verify/"
+ ],
+ "masked_files": [
+  "evidence/README.md"
+ ]
+}

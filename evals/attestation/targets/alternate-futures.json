@@ -1,0 +1,31 @@
+{
+ "case": "alternate-futures",
+ "subject": "Alternate Futures (alternatefutures.ai) DePIN PaaS brokering Phala TDX 'Confidential' CVMs",
+ "inputs": {
+  "urls": [
+   "https://alternatefutures.ai"
+  ],
+  "repos": [
+   "alternatefutures/service-cloud-api@abf9921",
+   "alternatefutures/package-cloud-sdk@f1f531c",
+   "alternatefutures/web-docs.alternatefutures.ai@548d7ae",
+   "alternatefutures/reports@45e2269",
+   "alternatefutures/web-alternatefutures.ai@e7299a1",
+   "alternatefutures/service-builder@3a0864c",
+   "alternatefutures/swarm-runtime@fdc4b4b",
+   "alternatefutures/infrastructure-proxy@8f607f7"
+  ],
+  "app_ids": [],
+  "audit_date": "2026-05-25"
+ },
+ "given_files": [
+  "sources/"
+ ],
+ "withheld_files": [
+  "SESSION-NOTES.md",
+  "sources/reports"
+ ],
+ "masked_files": [
+  "sources/reports"
+ ]
+}

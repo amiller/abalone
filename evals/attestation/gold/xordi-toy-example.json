@@ -1,0 +1,39 @@
+{
+  "case": "xordi-toy-example",
+  "stage": "1",
+  "stage_cite": "README.md:55 | [xordi-toy-example](case-studies/xordi-toy-example/) | **1** | Reference implementation with Base KMS |",
+  "gaps": [
+    {
+      "tag": "op:config-url",
+      "id": "Finding 1",
+      "text": "Operator controls MOCK_API_URL and can exfiltrate the API token.",
+      "cite": "case-studies/xordi-toy-example/DEVPROOF-REPORT.md:59"
+    },
+    {
+      "tag": "code:not-reproducible",
+      "id": "Finding 2",
+      "text": "Compose hash not reproducible from git; CI transforms the file.",
+      "cite": "case-studies/xordi-toy-example/DEVPROOF-REPORT.md:84"
+    },
+    {
+      "tag": "code:not-reproducible",
+      "id": "Finding 4",
+      "text": "Builds not reproducible: BUILD_TIME, no SOURCE_DATE_EPOCH.",
+      "cite": "case-studies/xordi-toy-example/DEVPROOF-REPORT.md:156"
+    },
+    {
+      "tag": "op:secret-access",
+      "id": "Finding 5",
+      "text": "SIGNING_KEY is operator-provided via allowed_envs, not TEE-derived.",
+      "cite": "case-studies/xordi-toy-example/DEVPROOF-REPORT.md:175"
+    },
+    {
+      "tag": "op:no-upgrade-log",
+      "id": "Finding 6",
+      "text": "Live compose hash not recorded in DEPLOYMENTS.md; unrecorded deployment occurred.",
+      "cite": "case-studies/xordi-toy-example/DEVPROOF-REPORT.md:191"
+    }
+  ],
+  "report": "case-studies/xordi-toy-example/DEVPROOF-REPORT.md",
+  "note": "CONFLICT: README row says Stage 1 ('reference implementation'), but the report marks the core claim BROKEN (Finding 1); by the ERC-733 rule it would be 0. Report states no stage."
+}

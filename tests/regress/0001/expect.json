@@ -1,0 +1,10 @@
+{
+ "issue": "0001",
+ "checks": [
+  { "max_model_calls": 1 },
+  { "stop": "stop" },
+  { "shown_matches": "not executed: abalone has no \"browser\" tool.*page, goto, click and type on a browser tab the user grants with /browser" },
+  { "shown_not_matches": "422|\\{\"message\"|replay exhausted" },
+  { "trace_has": "protocol-error" }
+ ]
+}

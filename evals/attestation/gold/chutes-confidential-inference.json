@@ -1,0 +1,33 @@
+{
+  "case": "chutes-confidential-inference",
+  "stage": "0",
+  "stage_cite": "case-studies/chutes-confidential-inference/REPORT-inference.md:138 slot **on the prompt path** → fails Stage 1 §4 (no operator access to secrets) and §7 (no backdoor paths).",
+  "gaps": [
+    {
+      "tag": "hw:no-quote",
+      "id": "I1",
+      "text": "Default llm.chutes.ai path is plaintext at the unattested control plane.",
+      "cite": "case-studies/chutes-confidential-inference/REPORT-inference.md:88"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": "I2",
+      "text": "Verify-then-encrypt optional; discovery hands out keys with no quote; no shipped verifier.",
+      "cite": "case-studies/chutes-confidential-inference/REPORT-inference.md:109"
+    },
+    {
+      "tag": "code:unmeasured-workload",
+      "id": "I3",
+      "text": "Operator serve.py sees plaintext and runs unmeasured in the enclave; exfiltration demonstrated.",
+      "cite": "case-studies/chutes-confidential-inference/REPORT-inference.md:37"
+    },
+    {
+      "tag": "code:model-unbound",
+      "id": "I3",
+      "text": "Model identity in no measured register.",
+      "cite": "case-studies/chutes-confidential-inference/REPORT-inference.md:28"
+    }
+  ],
+  "report": "case-studies/chutes-confidential-inference/REPORT-inference.md",
+  "note": "Two reports; gold uses REPORT-inference.md (end user vs Chutes). REPORT-reseller.md (R1-R4) is a separate question. Stage 0 inferred from 'fails Stage 1 §4 and §7'; no numeric stage stated. Not in guide README table."
+}

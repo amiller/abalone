@@ -1,0 +1,30 @@
+{
+  "case": "near-private-chat",
+  "subject": "NEAR AI Private Chat (private.near.ai): ingress, chat-api and cloud-api on dstack",
+  "inputs": {
+    "urls": [
+      "https://private.near.ai"
+    ],
+    "repos": [
+      "nearai/cloud-api@2cb48d2c54da",
+      "nearai/chat-api"
+    ],
+    "app_ids": [
+      "000b2d32de3ed13d7e15b735997e7580ed6dea69",
+      "f723e96ab11772f0166e5e4749e49a2113f63b0c",
+      "f550fdfb4eb8ad787c1bcd423f091cbb4a4431ae"
+    ],
+    "audit_date": "2026-04-03"
+  },
+  "given_files": [],
+  "withheld_files": [
+    "ATTESTATION-GAP-ANALYSIS.html",
+    "ATTESTATION-GAP-ANALYSIS.md",
+    "DEVPROOF-REPORT.md",
+    "NEAR-PRIVATE-CHAT-REPRODUCTION.md",
+    "cloud-api-pr-index.md",
+    "nearai-llm-endpoint-code.py",
+    "query-compose-hashes.py",
+    "../../README.md#L45"
+  ]
+}

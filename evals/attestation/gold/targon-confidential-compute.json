@@ -1,0 +1,54 @@
+{
+  "case": "targon-confidential-compute",
+  "stage": null,
+  "stage_cite": "case-studies/targon-confidential-compute/DEVPROOF-REPORT.md:144 - **Integrity / \"right code & hardware\":** does **not** reach the cohort's posture. The hardware verdict is a Tower boolean (F1), the image/agent/golden-values are closed and non-reproducible (F4), and no workload identity is measured (F3). A relying party gets *no* independently checkable artifact ",
+  "gaps": [
+    {
+      "tag": "hw:delegated-verdict",
+      "id": "F1",
+      "text": "Attestation verdict is a {valid: bool} from Manifold's closed tower.targon.com; no local quote crypto.",
+      "cite": "case-studies/targon-confidential-compute/DEVPROOF-REPORT.md:78"
+    },
+    {
+      "tag": "hw:no-quote",
+      "id": "F2",
+      "text": "Renter never receives a quote; no end-to-end encryption.",
+      "cite": "case-studies/targon-confidential-compute/DEVPROOF-REPORT.md:90"
+    },
+    {
+      "tag": "code:unmeasured-workload",
+      "id": "F3",
+      "text": "user_data binds no workload or model identity; quote covers base boot chain only.",
+      "cite": "case-studies/targon-confidential-compute/DEVPROOF-REPORT.md:98"
+    },
+    {
+      "tag": "code:closed",
+      "id": "F4",
+      "text": "CVM image encrypted, in-CVM agent closed, non-reproducible; no golden measurements published.",
+      "cite": "case-studies/targon-confidential-compute/DEVPROOF-REPORT.md:106"
+    },
+    {
+      "tag": "hw:no-quote",
+      "id": "F5",
+      "text": "Provisioning gated on a self-reported host-posture report, not a hardware quote.",
+      "cite": "case-studies/targon-confidential-compute/DEVPROOF-REPORT.md:114"
+    },
+    {
+      "tag": "hw:not-bound",
+      "id": "F6",
+      "text": "Quote freshness delegated to Tower; local nonce check is a JSON string compare.",
+      "cite": "case-studies/targon-confidential-compute/DEVPROOF-REPORT.md:120"
+    },
+    {
+      "tag": "op:central-dep",
+      "id": "F7",
+      "text": "Emission, price and burn policy dictated by Tower.",
+      "cite": "case-studies/targon-confidential-compute/DEVPROOF-REPORT.md:126"
+    }
+  ],
+  "report": "case-studies/targon-confidential-compute/DEVPROOF-REPORT.md",
+  "forced_tags": [
+    "F5 hw:no-quote: admission gate is self-report rather than a quote"
+  ],
+  "note": "Report gives no numeric stage; stage left null. Not in guide README table."
+}

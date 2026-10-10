@@ -1,0 +1,21 @@
+REVIEW DISCLOSURE d-0123abcd: NOT SENT
+  to     runner:claude, outside abalone: one run of your own Claude
+         subscription, in a sandbox that sees only this text
+  why    | Whether a fixed-term tenancy rolls over if the tenant does nothing
+         | before the renewal deadline.
+  gate   free_text, 252 of 600 bytes: within your standing policy
+----- BEGIN EXACT OUTBOUND TEXT (252 bytes, sha256 5e1f00c0ffee) -----
+| Under a typical residential tenancy in England, if a renewal offer raises the
++ monthly rent by about 5% and the tenant does nothing before the deadline, does
++  the tenancy roll over to a periodic tenancy, and on what terms?
+| Answer in two short paragraphs.
+----- END EXACT OUTBOUND TEXT -----
+Not anonymous, even with names removed:
+  note   | The jurisdiction, that the user is a tenant facing a renewal with a
+         | rent rise of about 5%, and that a deadline is near.
+  - It goes out under your own Claude login: the vendor can tie it, its size and
+    its timing to your account.
+Only this text leaves: not tenancy-renewal.pdf, the notebook or tools.
+Continue privately is selected first, and Esc always sends nothing. Sending once
+creates no standing policy.
+Details: choose "details"

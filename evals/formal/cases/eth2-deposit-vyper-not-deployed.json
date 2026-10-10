@@ -1,0 +1,52 @@
+{
+ "slug": "eth2-deposit-vyper-not-deployed",
+ "artifact": "Runtime Verification, End-to-End Formal Verification of the Ethereum 2.0 Deposit Contract (Vyper implementation, v0.10.0), https://github.com/runtimeverification/verified-smart-contracts/tree/master/deposit (deposit-formal-verification.pdf); directory now marked DEPRECATED",
+ "tool": "K framework / KEVM",
+ "property": "The Vyper-compiled bytecode of deposit contract v0.10.0 satisfies the formal bytecode specification (incremental Merkle tree correctness, ABI behavior).",
+ "model": "Bytecode produced by the custom Vyper compiler build 1761-HOTFIX-v0.1.0-beta.13, under KEVM semantics.",
+ "trusted_base": [
+  "KEVM semantics",
+  "bytecode specification",
+  "K prover"
+ ],
+ "assumptions": [
+  "the verified bytecode is what gets deployed",
+  "the exact hotfix compiler build is used to regenerate it"
+ ],
+ "deployed": "Not deployed: the contract was reimplemented in Solidity over concerns about the Vyper compiler and re-verified; mainnet runs the Solidity version (Sourcify: solc 0.6.11).",
+ "gap": "The proof holds only for bytecode from one custom Vyper hotfix build; verifying bytecode rather than source is what exposed Vyper compiler bugs (e.g. a non-ABI-conforming bytes[8] return) that source-level reasoning would have missed, and the verified Vyper artifact is not what was deployed at all.",
+ "gap_keywords": [
+  "vyper",
+  "compiler",
+  "bytecode",
+  "hotfix",
+  "not deployed",
+  "solidity"
+ ],
+ "sources": [
+  {
+   "url": "https://github.com/runtimeverification/verified-smart-contracts/blob/master/deposit/deposit-formal-verification.pdf",
+   "title": "End-to-End Formal Verification of Ethereum 2.0 Deposit Contract (Vyper implementation)",
+   "quote": "We note that this bug could not have been detected if we did not take the bytecode as the verification target."
+  },
+  {
+   "url": "https://github.com/runtimeverification/verified-smart-contracts/blob/master/deposit/deposit-formal-verification.pdf",
+   "title": "End-to-End Formal Verification of Ethereum 2.0 Deposit Contract (Vyper implementation)",
+   "quote": "In other words, remaining Vyper compiler bugs, if any, have not been triggered when generating the specific bytecode we formally verified."
+  },
+  {
+   "url": "https://github.com/runtimeverification/verified-smart-contracts/tree/master/deposit",
+   "title": "verified-smart-contracts/deposit README",
+   "quote": "The deposit contract has been reimplemented in Solidity and reverified."
+  },
+  {
+   "url": "https://github.com/runtimeverification/deposit-contract-verification/blob/master/deposit-contract-verification.pdf",
+   "title": "End-to-End Formal Verification of Ethereum 2.0 Deposit Smart Contract (Solidity Reimplementation)",
+   "quote": "However, the community concerns [4,2] about the current Vyper compiler motivated the deposit contract developers to reimplement the contract in Solidity with re-verifying the new Solidity-compiled bytecode."
+  }
+ ],
+ "input_for_reader": [
+  "Proof artifact: https://github.com/runtimeverification/verified-smart-contracts/tree/master/deposit",
+  "Deployment: Ethereum mainnet deposit contract 0x00000000219ab540356cBB839Cbe05303d7705Fa"
+ ]
+}

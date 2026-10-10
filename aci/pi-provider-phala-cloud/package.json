@@ -1,0 +1,56 @@
+{
+  "name": "pi-provider-phala-cloud",
+  "version": "0.7.3",
+  "description": "Phala Cloud Confidential AI for Pi with verified ACI transport and signed receipt auditing",
+  "keywords": [
+    "ai-provider",
+    "attestation",
+    "confidential-ai",
+    "phala",
+    "phala-cloud",
+    "pi",
+    "pi-package",
+    "pi-provider",
+    "tee",
+    "verifiable"
+  ],
+  "homepage": "https://github.com/Dstack-TEE/private-ai-gateway/tree/main/clients/pi-provider/packages/pi-provider-phala-cloud",
+  "bugs": "https://github.com/Dstack-TEE/private-ai-gateway/issues",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dstack-TEE/private-ai-gateway.git",
+    "directory": "clients/pi-provider/packages/pi-provider-phala-cloud"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@phala/aci-provider": "^0.7.3",
+    "@phala/pi-provider-aci": "^0.7.3"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "pi": {
+    "extensions": [
+      "./dist/index.js"
+    ]
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "admitted": [
+    {
+      "id": "stub",
+      "extension": "tests/fixtures/stub-provider.ts",
+      "baseUrl": "https://stub.invalid/v1",
+      "hosts": [
+        "stub.invalid"
+      ],
+      "keyEnv": "STUB_API_KEY",
+      "transport": "test",
+      "axes": {
+        "hw": "none (test stub)",
+        "code": "-",
+        "operator": "-",
+        "custody": "-"
+      }
+    },
+    {
+      "id": "stub-e2ee",
+      "extension": "tests/fixtures/stub-e2ee.ts",
+      "baseUrl": "https://stub-e2ee.invalid/v1",
+      "hosts": [
+        "stub-e2ee.invalid"
+      ],
+      "keyEnv": "STUB_E2EE_API_KEY",
+      "transport": "test (tools inside the message text)",
+      "axes": {
+        "hw": "none (test stub)",
+        "code": "-",
+        "operator": "-",
+        "custody": "-"
+      },
+      "tools": "in-content"
+    }
+  ],
+  "default": "stub/script",
+  "verifierHosts": [],
+  "runners": {
+    "claude": {
+      "hosts": [
+        "api.anthropic.com",
+        "console.anthropic.com",
+        "platform.claude.com"
+      ],
+      "home": "runner-home/test"
+    }
+  },
+  "local": []
+}

@@ -1,0 +1,50 @@
+{
+ "slug": "verdi-raft-shim",
+ "artifact": "Verdi (Coq-verified Raft implementation, https://github.com/uwplse/verdi-raft) as analyzed in Fonseca et al., 'An Empirical Study on the Correctness of Formally Verified Distributed Systems', EuroSys 2017, https://www.cs.purdue.edu/homes/pfonseca//papers/eurosys2017-dsbugs.pdf (also covers IronFleet and Chapar)",
+ "tool": "Coq (OCaml extraction)",
+ "property": "Linearizability (safety) of the replicated key-value store built on verified Raft.",
+ "model": "Verdi's network/failure semantics in Coq; the verified protocol handlers, extracted to OCaml and linked against an unverified OCaml shim.",
+ "trusted_base": [
+  "unverified OCaml shim layer (networking, disk persistence, snapshots)",
+  "OCaml extraction and runtime",
+  "OS system-call behavior",
+  "high-level specification",
+  "auxiliary verification scripts"
+ ],
+ "assumptions": [
+  "recv returns a complete client request",
+  "disk writes and the snapshot/log sequence are atomic under crash",
+  "bounded stack/resource use"
+ ],
+ "deployed": "The Verdi key-value server running the extracted code with its shim over real TCP and a real disk, under crash and network fault injection.",
+ "gap": "Of 16 bugs found across three verified systems, none was in the verified protocol code; Verdi's bugs were in the unverified shim, e.g. assuming recv returns a whole request and a snapshot/truncate order that loses data on crash, i.e. mismatches between the shim and the verified code's assumptions.",
+ "gap_keywords": [
+  "shim",
+  "unverified",
+  "assumptions",
+  "crash",
+  "recv"
+ ],
+ "sources": [
+  {
+   "url": "https://www.cs.purdue.edu/homes/pfonseca//papers/eurosys2017-dsbugs.pdf",
+   "title": "An Empirical Study on the Correctness of Formally Verified Distributed Systems (EuroSys 2017)",
+   "quote": "Our results revealed that these assumptions referred to a small fraction of the trusted computing base, mostly at the interface of verified and unverified components."
+  },
+  {
+   "url": "https://www.cs.purdue.edu/homes/pfonseca//papers/eurosys2017-dsbugs.pdf",
+   "title": "An Empirical Study on the Correctness of Formally Verified Distributed Systems (EuroSys 2017)",
+   "quote": "The Verdi server used TCP to receive client requests but wrongly assumed that the recv system call would return the entire request in a single invocation."
+  },
+  {
+   "url": "https://www.cs.purdue.edu/homes/pfonseca//papers/eurosys2017-dsbugs.pdf",
+   "title": "An Empirical Study on the Correctness of Formally Verified Distributed Systems (EuroSys 2017)",
+   "quote": "Finding 5: No protocol bugs were found in the verified systems."
+  }
+ ],
+ "input_for_reader": [
+  "Proof artifact: https://github.com/uwplse/verdi-raft (Coq development + OCaml shim)",
+  "Verdi paper: Wilcox et al., PLDI 2015",
+  "Deployment description: run the extracted vard server over TCP with on-disk log/snapshots, under client load and crash injection"
+ ]
+}

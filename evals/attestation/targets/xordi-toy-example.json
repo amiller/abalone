@@ -1,0 +1,21 @@
+{
+  "case": "xordi-toy-example",
+  "subject": "Xordi toy-example-app (xordi-release-process) on dstack with Base KMS",
+  "inputs": {
+    "urls": [
+      "https://f9d35f495ff3592771e73a528f4fc5737e30224b-8090.dstack-base-prod9.phala.network/"
+    ],
+    "repos": [
+      "Account-Link/xordi-release-process"
+    ],
+    "app_ids": [
+      "f9d35f495ff3592771e73a528f4fc5737e30224b"
+    ],
+    "audit_date": "2026-01-28"
+  },
+  "given_files": [],
+  "withheld_files": [
+    "DEVPROOF-REPORT.md",
+    "../../README.md#L55"
+  ]
+}

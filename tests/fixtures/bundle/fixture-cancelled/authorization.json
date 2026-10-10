@@ -1,0 +1,50 @@
+{
+ "authorization": {
+  "v": "abalone-task/1",
+  "type": "authorization",
+  "task_id": "f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7",
+  "account": "6b0c60a54b66440157b14b2d9da45642778fec209088473ad87be2646aef8ff9",
+  "device": "453bd7d2fb523ac488ed8553ee22fada4bc65858a56199252b836ef6b8b0e60a",
+  "worker": "12D3KooWBfc1GHpQBuj8eEpPmzg7qVzQ5EPwzy36UZ3nWYATJcNj",
+  "offer_id": "bb3f16fa4ae7d2b01b920d182c6ca6bdc0e4b47d4c506b9b1704cd94593aa750",
+  "tariff_version": "t1",
+  "task": {
+   "prompt": "add() is wrong; fix it without changing the test.",
+   "resource": "small"
+  },
+  "inputs": [
+   {
+    "path": "add.mjs",
+    "sha256": "33a5a81349f3940bb66bd78fa2a9fc507a4c2346d61e4bd6ad0a915e506dd53a",
+    "bytes": 36,
+    "label": "open"
+   },
+   {
+    "path": "add.test.mjs",
+    "sha256": "819e30f7640988304db1d5f97090068f1f089121892792d3488e03a66f6f0ce2",
+    "bytes": 148,
+    "label": "open"
+   }
+  ],
+  "inputs_root": "2a04355a989a60597041d44237870fcd5e7b5ff3923f858bb13598ceb8bc8d41",
+  "model": "z-ai/glm-5.3-flash",
+  "capabilities": {
+   "tools": [
+    "read",
+    "bash",
+    "edit",
+    "write"
+   ],
+   "egress": []
+  },
+  "cap": 500000,
+  "expires": 1791603600000,
+  "ts": 1791600000000
+ },
+ "request": {
+  "ts": 1791600000000,
+  "idem": "f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7",
+  "body_hash": "e48812dc70b9a526a9cb9edcbea1d89c99493a592677fac4c18d83720e5ace94",
+  "sig": "ef54931152becdae3526fe412d457eb81e11cc02a4d6454eaf2642b626a5f80bda6e4da0937988f502861175577b9b97f1b80046f31030b6a51aaeee78d9ad0b"
+ }
+}

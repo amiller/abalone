@@ -1,0 +1,19 @@
+{
+ "v": "abalone-task-bundle/1",
+ "task_id": "f1c7f1c7f1c7f1c7f1c7f1c7f1c7f1c7",
+ "files": {
+  "authorization.json": "2f903362b98903f3733426cfbf4a1b8e09d20deb310211092f5e55cef7ea04a2",
+  "completion.json": "1ea6e9ba6fea89061d044f8d8acec4e9ec104ecfc545b613123c6b78b452b848",
+  "completion.sig": "40a31f66c5aa36109056ec4d78b788ac1307288dfe212b57cb023616cf4bad9f",
+  "events.jsonl": "a6ce54720f36d724fc7452377ef12085208b0c6c6ad0d3b10a67d125e74a308c",
+  "guest/app-compose.json": "ef61d0ab778067dc79adb3cff583d4e5d8ff5976e403c4655a01bd45913d7b08",
+  "guest/attest.json": "8fb712a97f07ab5803048b9eeeec68341b23dec3c6a7107103a1712097821d79",
+  "guest/clientData.bin": "10a72e6283699fbc9a5bbd43e90d509a5fac853e8deae5c56fd40d1f9b8195e3",
+  "guest/out.tar": "20836972cbfa77eaba9a77867ecd0e20ca39c0b6b6534edb5da3d83405a0e0a5",
+  "guest/receipts.jsonl": "2a1810bde7461d95a7ba8d88aee2ad1d97d482a0c3f4ce7502e9630d2b5524c5",
+  "offer.json": "1395fcc699f1925b1948271d830fc7e10dbe00624a0e6d896b9a192245f692e4",
+  "outputs/files/add.mjs": "4a381860447226426a116b024081641b32f9b6c4f7c2c5d3cb86987e85c8ae33",
+  "outputs/finish.json": "5a404d6cfb46e549ef170cc159b70ef50b87661560c60f795982e8b9492491e0",
+  "outputs/patch.diff": "52d180dc12a82b88c9b6139f9703f970586f3290ec2c036888d434b358edcdf6"
+ }
+}

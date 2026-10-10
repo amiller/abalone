@@ -1,0 +1,38 @@
+{
+  "case": "redpill-phala-aci-gateway",
+  "stage": "0",
+  "stage_cite": "case-studies/redpill-phala-aci-gateway/DEVPROOF-REPORT.md:9 **Verdict: ❌ Stage 0.** The ACI chain on this deployment is sound and independently reproducible — quote, keyset binding, measured Compose, live TLS SPKI all check out, and the OS is now the production image. Stage 0 rests on **G1**, a live compatibility endpoint that mints a passing attestation for",
+  "gaps": [
+    {
+      "tag": "code:model-unbound",
+      "id": "G1",
+      "text": "Legacy /v1/attestation/report ignores model parameter; passing gateway attestation for any model name.",
+      "cite": "case-studies/redpill-phala-aci-gateway/DEVPROOF-REPORT.md:35"
+    },
+    {
+      "tag": "op:debug-path",
+      "id": "G2",
+      "text": "DSTACK_ROOT_PUBLIC_KEY in allowed_envs written to root authorized_keys; SSH absence unproven.",
+      "cite": "case-studies/redpill-phala-aci-gateway/DEVPROOF-REPORT.md:63"
+    },
+    {
+      "tag": "op:logs",
+      "id": "G3",
+      "text": "public_logs: true with raw upstream error detail, which can echo request content.",
+      "cite": "case-studies/redpill-phala-aci-gateway/DEVPROOF-REPORT.md:71"
+    },
+    {
+      "tag": "op:config-url",
+      "id": "G4",
+      "text": "Routing in admin-mutable upstreams.json outside the measurement via PUT /v1/admin/upstreams.",
+      "cite": "case-studies/redpill-phala-aci-gateway/DEVPROOF-REPORT.md:79"
+    },
+    {
+      "tag": "op:unforced-serving",
+      "id": "G5",
+      "text": "Same attested identity serves api.redpill.ai, not TEE-only; prompts reach commercial APIs, disclosed afterward.",
+      "cite": "case-studies/redpill-phala-aci-gateway/DEVPROOF-REPORT.md:85"
+    }
+  ],
+  "report": "case-studies/redpill-phala-aci-gateway/DEVPROOF-REPORT.md"
+}

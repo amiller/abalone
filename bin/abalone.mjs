@@ -1,0 +1,684 @@
+// abalone: Pi locked down. With no arguments it opens the interactive session, which is the product.
+// Subcommands: caps, approvals, canary init, node keys, notebook, node serve, gift, gifts, redeem, report, verify, and ask (a one-shot test entry point).
+import { spawn, spawnSync } from "node:child_process";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import net from "node:net";
+import path from "node:path";
+import readline from "node:readline";
+import { place, ROOT, STATE, AGENT_DIR, LOOPBACK, admittedHosts, localPorts, providers, CFG, RUNNER_HOME, runtimeDir, log } from "../lib/config.mjs";
+import * as upstream from "../lib/upstream.mjs";
+import { verified, admit } from "../lib/manifest.mjs";
+import { download } from "../lib/fetch.mjs";
+import { torTransport } from "../lib/tor.mjs";
+import { startEgress } from "../lib/egress.mjs";
+import { browserBridge } from "../lib/browser.mjs";
+import { history } from "../lib/ui/tool-display.mjs";
+import { piArgv } from "../lib/sandbox.mjs";
+import * as nodekeys from "../lib/nodekeys.mjs";
+import * as gift from "../lib/gift.mjs";
+import * as consent from "../lib/consent/index.mjs";
+import * as p2p from "../lib/p2p.mjs";
+import { GIFT, saveLeft } from "../lib/peer.mjs";
+import { ask, notebook, showEvidence } from "../lib/private-work.mjs";
+import { runRunner } from "../lib/runner.mjs";
+import * as approvals from "../lib/approvals.mjs";
+import * as canary from "../lib/canary.mjs";
+import { separateUser } from "../lib/setup.mjs";
+import { report } from "../lib/report.mjs";
+import * as trace from "../lib/trace.mjs";
+import * as task from "../lib/commission.mjs";
+import { admitCouponSessionIssuer, openCouponSession } from "../lib/coupon-session.mjs";
+import { admitAttestedCouponIssuerPin, admitAttestedCouponSessionIssuer, openAttestedCouponSession, readAttestedCouponAdmissionFile,
+  ATTESTED_COUPON_WAIT, ATTESTED_COUPON_RECOVER } from "../lib/coupon-attested-session.mjs";
+
+const args = process.argv.slice(2);
+const flag = (name, def) => { const i = args.indexOf(name); if (i < 0) return def; const v = args[i + 1]; args.splice(i, 2); return v; };
+const PEER = () => flag("--peer", process.env.ABALONE_PEER);
+let couponSlot = null;
+
+async function couponEntry(envName, prompt, hidden = false) {
+  const fd = process.env[envName];
+  if (fd !== undefined) {
+    if (!/^[0-9]+$/.test(fd)) throw new Error("Invalid coupon input descriptor.");
+    const bytes = [], b = Buffer.alloc(1);
+    while (bytes.length < 256 && fs.readSync(Number(fd), b, 0, 1, null)) { if (b[0] === 10) break; bytes.push(b[0]); }
+    return Buffer.from(bytes).toString("utf8").trim();
+  }
+  if (!process.stdin.isTTY) throw new Error(`Coupon entry requires your terminal or the dedicated ${envName} descriptor. Never pass a coupon in command arguments.`);
+  const script = hidden ? 'IFS= read -rs -p "$1" p; echo >&2; printf %s "$p"' : 'IFS= read -r -p "$1" p; printf %s "$p"';
+  return spawnSync("bash", ["-c", script, "_", prompt], { stdio: ["inherit", "pipe", "inherit"], encoding: "utf8" }).stdout.trim();
+}
+
+async function couponSessionCmd() {
+  args.shift();
+  const attested = args.includes("--attested");
+  const peerAddr = PEER(), experimental = !attested && args.includes("--experimental-local");
+  if (experimental) args.splice(args.indexOf("--experimental-local"), 1);
+  if (attested) { args.splice(args.indexOf("--attested"), 1); return attestedCouponSessionCmd(peerAddr); }
+  const p = providers();
+  // Separate issuer adapter: peer authentication is not approved issuance code.
+  admitCouponSessionIssuer({ experimental, peerAddr, admit: p.peers?.admit });
+  const seen = new Set();
+  for (let n = 0; n < args.length; n++) {
+    const a = args[n];
+    if (seen.has(a)) throw new Error("Duplicate coupon-session options are refused. Nothing was claimed.");
+    seen.add(a);
+    if (a === "--model") { if (!args[++n]?.startsWith("synthetic-near/")) throw new Error("Select an admitted synthetic model. Nothing was claimed."); }
+    else if (a === "--mode") { if (args[++n] !== "rpc") throw new Error("The only automated coupon-session mode is RPC. Nothing was claimed."); }
+    else if (!["--incognito", "--no-canaries"].includes(a)) throw new Error("Coupon-session accepts only --peer, --model, --experimental-local, --incognito, --no-canaries and --mode rpc. Never put a coupon in command arguments. Nothing was claimed.");
+  }
+  const i = args.indexOf("--model"), selected = i >= 0 && args[i + 1];
+  if (!selected?.startsWith("synthetic-near/")) throw new Error("Select an admitted synthetic model: --model synthetic-near/<model>. Nothing was claimed.");
+  if (args.some((a) => ["--resume", "-r", "--continue", "-c", "--session", "--with-trace", "--api-key", "-e", "--extension", "--skill"].includes(a))) throw new Error("Coupon sessions cannot resume another session or load extra code. Retained credential recovery is not implemented; nothing was claimed.");
+  if (args.some((a) => REFUSED.has(a))) throw new Error("This coupon session refuses flags that change ambient resources. Nothing was claimed.");
+  if (args.includes("--incognito") && !trace.keyInfo()) throw new Error("Create your incognito trace key before claiming this coupon. Nothing was claimed.");
+  if (gift.coupon()) throw new Error("An existing routed gift is active. Nothing was replaced or claimed; use a fresh synthetic profile.");
+  verified();
+  runtimeDir();
+  if (process.platform !== "linux" || spawnSync("bwrap", ["--version"], { stdio: "pipe" }).status !== 0) throw new Error("This synthetic session requires the Linux sandbox installed before claim. Nothing was claimed.");
+  couponSlot = await openCouponSession({ peerAddr, admit: p.peers.admit, config: p, model: selected.slice("synthetic-near/".length), experimental,
+    occupied: nodekeys.load().keys.some((k) => k.provider === "synthetic-near"), ambient: !!process.env.SYNTHETIC_COUPON_API_KEY || !!process.env.ABALONE_COUPON_SOCKET });
+  const code = await couponEntry("ABALONE_COUPON_FD", "Paste the synthetic coupon (hidden; not a command argument): ", true);
+  const offer = await couponSlot.inspect(code);
+  process.stderr.write(`${offer.text}\n`);
+  const consent = await couponEntry("ABALONE_COUPON_CONSENT_FD", "Type CLAIM SESSION ONLY to accept this offer, or Enter to cancel: ");
+  if (consent !== "CLAIM SESSION ONLY") { await couponSlot.close(); couponSlot = null; process.stderr.write("Cancelled. Nothing was claimed or installed.\n"); return; }
+  try { await couponSlot.claim({ offerHash: offer.offerHash, consent }); }
+  catch (e) {
+    process.stderr.write(`${e.message}\n`);
+    const retry = await couponEntry("ABALONE_COUPON_CONSENT_FD", "Type RETRY SAME KEYS for same-process recovery, or Enter to stop (keys will be lost): ");
+    await couponSlot.recover({ consent: retry });
+  }
+  process.stderr.write("Installed a synthetic credential for this process only. Inference uses the local provider socket, not dsmack. Balance and provider expiry remain unknown. /coupon shows state; /coupon forget closes this process.\n");
+  await session();
+}
+
+// abalone coupon-session --attested --peer <issuer multiaddr> --issuer-pin <file>
+//   (--fixture-local --model synthetic-near/<model>  |  --staging-approval <file> --approval-root <hex> --model near/<model>)
+//   [--incognito] [--no-canaries] [--mode rpc]. Version 4: issuer discovery and fresh identity
+// verification, asynchronous claim, encrypted delivery, and the scoped provider-use broker.
+async function attestedCouponSessionCmd(peerAddr) {
+  const p = providers();
+  if (args.some((a) => ["--resume", "-r", "--continue", "-c", "--session", "--with-trace", "--api-key", "-e", "--extension", "--skill"].includes(a))) throw new Error("Coupon sessions cannot resume another session or load extra code. Retained credential recovery is not implemented; nothing was claimed.");
+  if (args.some((a) => REFUSED.has(a))) throw new Error("This coupon session refuses flags that change ambient resources. Nothing was claimed.");
+  if (args.includes("--experimental-local")) throw new Error("--experimental-local is the version 3 profile; the attested session takes --fixture-local or --staging-approval. Nothing was claimed.");
+  const seen = new Set();
+  let profile, approvalFile, approvalRoot, issuerPinFile, model;
+  for (let n = 0; n < args.length; n++) {
+    const a = args[n];
+    if (seen.has(a)) throw new Error("Duplicate coupon-session options are refused. Nothing was claimed.");
+    seen.add(a);
+    const value = () => { if (!args[n + 1] || args[n + 1].startsWith("--")) throw new Error(`${a} needs a value. Nothing was claimed.`); return args[++n]; };
+    if (a === "--fixture-local") { if (profile) throw new Error("Choose exactly one attested profile. Nothing was claimed."); profile = "fixture-local"; }
+    else if (a === "--staging-approval") { if (profile) throw new Error("Choose exactly one attested profile. Nothing was claimed."); profile = "debug-staging"; approvalFile = value(); }
+    else if (a === "--approval-root") approvalRoot = value();
+    else if (a === "--issuer-pin") issuerPinFile = value();
+    else if (a === "--model") model = value();
+    else if (a === "--mode") { if (value() !== "rpc") throw new Error("The only automated coupon-session mode is RPC. Nothing was claimed."); }
+    else if (!["--incognito", "--no-canaries"].includes(a)) throw new Error("An attested coupon session accepts only --peer, --attested, --fixture-local, --staging-approval <file>, --approval-root <hex>, --issuer-pin <file>, --model, --incognito, --no-canaries and --mode rpc. Never put a coupon in command arguments. Nothing was claimed.");
+  }
+  if (!profile) throw new Error("An attested coupon session needs a profile: --fixture-local (synthetic loopback issuer), or --staging-approval <file> --approval-root <hex> (signed debug staging). Nothing was claimed.");
+  if (profile === "debug-staging" && (!approvalFile || !approvalRoot)) throw new Error("The debug-staging profile needs both --staging-approval <file> and --approval-root <hex>. Nothing was claimed.");
+  if (profile === "fixture-local" && (approvalFile || approvalRoot)) throw new Error("The fixture-local profile takes no staging approval; use --staging-approval for the debug-staging profile. Nothing was claimed.");
+  if (!issuerPinFile) throw new Error("An attested coupon session needs --issuer-pin <file>: the issuer identity policy and the three pinned hashes. Nothing was claimed.");
+  if (approvalRoot !== undefined && !/^[0-9a-f]{64}$/.test(approvalRoot)) throw new Error("--approval-root must be the 64-hex-char Ed25519 public key of the approval authority you pinned. Nothing was claimed.");
+  const prefix = profile === "fixture-local" ? "synthetic-near/" : "near/";
+  if (typeof model !== "string" || !model.startsWith(prefix)) throw new Error(profile === "fixture-local" ? "Select the admitted synthetic model: --model synthetic-near/<model>. Nothing was claimed." : "Select the near model explicitly: --model near/<model>. Nothing was claimed.");
+  if (args.includes("--incognito") && !trace.keyInfo()) throw new Error("Create your incognito trace key before claiming this coupon. Nothing was claimed.");
+  if (gift.coupon()) throw new Error("An existing routed gift is active. Nothing was replaced or claimed; use a fresh profile.");
+  verified();
+  runtimeDir();
+  if (process.platform !== "linux" || spawnSync("bwrap", ["--version"], { stdio: "pipe" }).status !== 0) throw new Error("This coupon session requires the Linux sandbox installed before claim. Nothing was claimed.");
+  // Everything admission-related is checked and read before any coupon is entered or sent.
+  let pin;
+  try { pin = admitAttestedCouponIssuerPin(JSON.parse(readAttestedCouponAdmissionFile(issuerPinFile, 262_144).toString("utf8"))); }
+  catch (e) { throw new Error(e.code === "issuer_pin_refused" || e.code === "admission_file_refused" ? e.message : `The issuer pin file must be the exact JSON pin object. Nothing was claimed.`); }
+  const stagingApproval = profile === "debug-staging" ? { bytes: readAttestedCouponAdmissionFile(approvalFile, 65_536), approvalRoot } : undefined;
+  const slotProvider = profile === "fixture-local" ? "synthetic-near" : "nearai";
+  const nearKeyEnv = p.admitted?.find((a) => a.id === "nearai")?.keyEnv;
+  const poll = Number(process.env.ABALONE_COUPON_POLL_MS ?? 30_000);
+  admitAttestedCouponSessionIssuer({ profile, peerAddr, admit: p.peers?.admit, issuerPin: pin, stagingApproval, model: model.slice(prefix.length),
+    config: p, ...(profile === "fixture-local" ? { syntheticQuoteVerifier: async (hex) => JSON.parse(Buffer.from(hex, "hex").toString()) } : {}),
+    occupied: nodekeys.load().keys.some((k) => k.provider === slotProvider),
+    ambient: profile === "fixture-local" ? !!process.env.SYNTHETIC_COUPON_API_KEY || !!process.env.ABALONE_COUPON_SOCKET : !!process.env.ABALONE_COUPON_SOCKET || !!(nearKeyEnv && process.env[nearKeyEnv]) });
+  couponSlot = await openAttestedCouponSession({ peerAddr, admit: p.peers?.admit, profile, issuerPin: pin, stagingApproval, model: model.slice(prefix.length), config: p,
+    ...(profile === "fixture-local" ? { syntheticQuoteVerifier: async (hex) => JSON.parse(Buffer.from(hex, "hex").toString()) } : {}),
+    occupied: nodekeys.load().keys.some((k) => k.provider === slotProvider),
+    ambient: profile === "fixture-local" ? !!process.env.SYNTHETIC_COUPON_API_KEY || !!process.env.ABALONE_COUPON_SOCKET : !!process.env.ABALONE_COUPON_SOCKET || !!(nearKeyEnv && process.env[nearKeyEnv]),
+    ...(Number.isSafeInteger(poll) && poll >= 1000 && poll <= 600_000 ? { pollRoundMs: poll } : {}) });
+  const code = await couponEntry("ABALONE_COUPON_FD", "Paste the coupon (hidden; not a command argument): ", true);
+  const offer = await couponSlot.inspect(code);
+  process.stderr.write(`${offer.text}\n`);
+  const consent = await couponEntry("ABALONE_COUPON_CONSENT_FD", `Type ${couponSlot.admission.consent} to accept this offer, or Enter to cancel: `);
+  if (consent !== couponSlot.admission.consent) { await couponSlot.close(); couponSlot = null; process.stderr.write("Cancelled. Nothing was claimed or installed.\n"); return; }
+  const stopKeys = async (message) => { await couponSlot.close(); couponSlot = null; process.stderr.write(message); process.exit(1); };
+  let action = () => couponSlot.claim({ offerHash: offer.offerHash, consent });
+  for (;;) {
+    try { await action(); break; }
+    catch (e) {
+      process.stderr.write(`${e.message}\n`);
+      if (e.code === "claim_pending" || e.code === "claim_cancelled") {
+        const wait = await couponEntry("ABALONE_COUPON_CONSENT_FD", `Type ${ATTESTED_COUPON_WAIT} to keep polling with the original keys, or Enter to stop (the claim stays unresolved; leaving loses this process's keys): `);
+        if (wait !== ATTESTED_COUPON_WAIT) await stopKeys("Stopped waiting. The issuer's job may still deliver, but only this process's original keys could receive it, and they are now gone. Ask the issuer's operator to reconcile; do not claim a replacement with new keys.\n");
+        action = () => couponSlot.resume({ consent: wait });
+        continue;
+      }
+      if (e.code === "claim_uncertain" || e.code === "claim_not_reserved") {
+        const retry = await couponEntry("ABALONE_COUPON_CONSENT_FD", `Type ${ATTESTED_COUPON_RECOVER} for same-process recovery, or Enter to stop (keys will be lost): `);
+        if (retry !== ATTESTED_COUPON_RECOVER) await stopKeys("Stopped. The original claim's outcome is unknown and this process's keys are gone. Ask the issuer's operator to reconcile; do not claim a replacement with new keys.\n");
+        action = () => couponSlot.recover({ consent: retry });
+        continue;
+      }
+      throw e;
+    }
+  }
+  process.stderr.write(profile === "debug-staging"
+    ? "Installed the delivered credential for this process only, under the signed debug-staging admission (operator secret access; not private issuance; synthetic-only prompts). Inference uses the local provider socket through the strict NEAR adapter. Balance and provider expiry remain unknown. /coupon shows state; /coupon forget closes this process.\n"
+    : "Installed the attested fixture credential for this process only. Inference uses the local provider socket, not dsmack. Balance and provider expiry remain unknown. /coupon shows state; /coupon forget closes this process.\n");
+  // Admission flags belong to the launcher. Pi receives only its selected socket provider/model.
+  const sessionArgs = ["--model", `${couponSlot.provider.provider}/${couponSlot.provider.model}`];
+  for (const flag of ["--incognito", "--no-canaries"]) if (args.includes(flag)) sessionArgs.push(flag);
+  if (args.includes("--mode")) sessionArgs.push("--mode", "rpc");
+  args.splice(0, args.length, ...sessionArgs);
+  await session();
+}
+
+// A passphrase: from the terminal (hidden), or, for automation, from the file descriptor in ABALONE_PASSPHRASE_FD.
+async function passphrase(prompt) {
+  if (process.env.ABALONE_PASSPHRASE_FD) return fs.readFileSync(Number(process.env.ABALONE_PASSPHRASE_FD), "utf8").split("\n")[0];
+  if (!process.stdin.isTTY) throw new Error("no terminal to ask for the trace key passphrase (or set ABALONE_PASSPHRASE_FD)");
+  // Read by a child, so this process never consumes stdin that the session (Pi) inherits next.
+  return spawnSync("bash", ["-c", 'IFS= read -rs -p "$1" p; echo >&2; printf %s "$p"', "_", prompt], { stdio: ["inherit", "pipe", "inherit"], encoding: "utf8" }).stdout;
+}
+
+async function readSecret(prompt) {
+  if (process.stdin.isTTY) { process.stderr.write(prompt); spawnSync("stty", ["-echo"], { stdio: "inherit" }); }
+  let s = "";
+  for await (const chunk of process.stdin) { s += chunk; if (process.stdin.isTTY && s.includes("\n")) break; }
+  if (process.stdin.isTTY) { spawnSync("stty", ["echo"], { stdio: "inherit" }); process.stderr.write("\n"); }
+  return s.split("\n")[0];
+}
+
+async function nodeKeys([cmd, prov, label]) {
+  if (cmd === "add") {
+    await nodekeys.add(prov, label ?? "default", await readSecret(`paste the ${prov} API key (hidden): `));
+    return console.log(`added ${prov}/${label ?? "default"}`);
+  }
+  if (cmd === "use") return nodekeys.use(prov, label);
+  if (cmd === "rm") return nodekeys.rm(prov, label);
+  if (cmd === "list") {
+    for (const k of nodekeys.list()) console.log([k.active ? "*" : " ", k.provider, k.label, `…${k.key.slice(-4)}`, k.added.slice(0, 10), "balance: n/a (provider exposes no balance endpoint)"].join("  "));
+    return;
+  }
+  throw new Error("usage: abalone node keys add|list|use|rm <provider> [label]");
+}
+
+// abalone node serve [--listen /ip4/0.0.0.0/tcp/4001] [--relay <relay multiaddr>] [--evidence appattest --probe <App.app> | --evidence dev]
+// abalone node serve --evidence macrunner --relay <relay multiaddr> --reserve 6usd --ledger /abalone-ledger   (inside the Mac runner)
+//                    --reserve 6usd [--ledger dir] [--model id] [--issuer pubhex] [--chain <rpc url> --registry <address>]
+async function serveNode() {
+  const { serve } = await import("../lib/node.mjs");
+  const evidence = { kind: flag("--evidence", "appattest"), app: flag("--probe") }, reserve = flag("--reserve");
+  // Under the Mac runner the guest has no NIC: it listens only on /p2p-circuit through the relay, reached by CONNECT.
+  if (evidence.kind === "macrunner" && (args.includes("--listen") || evidence.app || !args.includes("--relay"))) throw new Error("--evidence macrunner needs --relay <multiaddr> and takes no --listen or --probe");
+  const listen = [flag("--listen", "/ip4/0.0.0.0/tcp/4001")], relays = [flag("--relay")].filter(Boolean);
+  // Under the Mac runner the provider key stays with the runner; otherwise it comes from this node's keystore.
+  const k = evidence.kind === "macrunner" ? { key: null, label: "runner" } : nodekeys.active("nearai");
+  if (!k) throw new Error("no nearai key in the node keystore: abalone node keys add nearai <label>");
+  if (!reserve) throw new Error("--reserve <amount>usd: the credit prepaid on this peer's NEAR key that gifts may claim");
+  if (evidence.kind === "appattest" && !evidence.app) throw new Error("--evidence appattest needs --probe <the approved App Attest app>");
+  // The issuer's public key. Inside the Mac runner it must be given (the guest must not invent an issuer); elsewhere
+  // the local issuer key is the default.
+  const issuer = flag("--issuer") ?? process.env.ABALONE_ISSUER_PUB ?? (evidence.kind === "macrunner" ? null : gift.pubHex(gift.issuerKey()));
+  if (!/^[0-9a-f]{64}$/.test(issuer ?? "")) throw new Error("--issuer <64-hex Ed25519 public key>: the issuer whose grants this peer honours (abalone gift --issuer-pub on the issuer's machine)");
+  const model = flag("--model", "z-ai/glm-5.3-flash"), dir = flag("--ledger"), rpc = flag("--chain"), registry = flag("--registry");
+  if (!rpc !== !registry) throw new Error("--chain <rpc url> and --registry <CouponRegistry address> go together");
+  // --tasks owner-operated|independent: also offer agent tasks (lib/task.mjs). --task-rate is µ$ per guest-second
+  // (0 = a sponsored development offer); --task-executor runner needs --task-image <name@sha256:…>.
+  const op = flag("--tasks"), executor = flag("--task-executor", evidence.kind === "macrunner" ? "runner" : "local"), image = flag("--task-image");
+  if (op && !["owner-operated", "independent"].includes(op)) throw new Error("--tasks owner-operated|independent: who runs this worker, as the offer will state it");
+  if (op && executor === "runner" && !/@sha256:[0-9a-f]{64}$/.test(image ?? "")) throw new Error("--task-executor runner needs --task-image <name>@sha256:<digest>, an image the runner admits");
+  const tasks = op && { operator: op, label: flag("--task-label", `${os.hostname()} (${process.platform})`), executor, image, perSecond: Number(flag("--task-rate", "200")) };
+  const { p, slice, near, chain, offer } = await serve({ key: k.key, label: k.label, issuer, model, dir, listen, relays, evidence, reserve: gift.usd(reserve), chain: rpc && { rpc, address: registry }, tasks });
+  if (offer) console.log(`tasks: offer ${offer.offer_id.slice(0, 12)}… ${offer.worker.operator}, ${offer.runtime.image}, ${offer.tariff.execution_per_second} µ$/s${offer.tariff.sponsored ? " (sponsored: development runs are not paid execution)" : ""}, executor ${executor}`);
+  if (chain) console.log(`chain: peer address ${chain.address}, restored checkpoint n=${chain.n} (safe head)`);
+  console.log(`abalone peer ${p.peerId} (${evidence.kind}), slice ${slice.slice(0, 12)}…, nearai/${k.label}${k.key ? ` …${k.key.slice(-4)}` : " (key held by the runner)"}, issuer ${issuer.slice(0, 12)}…, model ${model}`);
+  console.log(`NEAR ${model}: TEE key ${near.model_signing_address}, gateway TCB ${near.gateway_tcb}, TLS pin ${near.tls_pin ?? "this peer (SPKI)"}${near.runner_report_sha256 ? `, runner report ${near.runner_report_sha256.slice(0, 16)}… matches (freshness: ${near.runner_report_freshness})` : ""}`);
+  // With a relay, report addresses only once the relay holds our reservation.
+  if (relays.length) await new Promise((ok, fail) => {
+    const done = () => p.getMultiaddrs().some((a) => String(a).includes("p2p-circuit")) && ok();
+    p.addEventListener("self:peer:update", done); done();
+    setTimeout(() => fail(new Error(`no reservation from relay ${relays[0]} within 60 s`)), 60e3).unref();
+  });
+  console.log(`addresses:\n${[...new Set([...p.getMultiaddrs().map(String).filter((a) => !relays.length || !a.includes("p2p-circuit")), ...relays.map((r) => `${r}/p2p-circuit/p2p/${p.peerId}`)])].map((a) => `  ${a}`).join("\n")}`);
+}
+
+// abalone node relay [--listen /ip4/0.0.0.0/tcp/4002] [--ws-listen /ip4/127.0.0.1/tcp/4003/ws] [--seed-file f]
+//                    [--announce <multiaddr>[,…]] [--onion /onion3/<addr>:<port>] [--addrs-file f]
+// The minimal circuit relay v2 we run (no attestation needed: it carries Noise-encrypted bytes between peers and clients
+// that verify each other). With a seed file its PeerId survives restarts. --announce names its public addresses (a
+// Cloudflare quick tunnel's /dns4/<host>/tcp/443/wss), which change when the tunnel restarts. An onion address is not
+// announced to libp2p (its address manager cannot parse /onion3 in reservation replies) and is only listed. --addrs-file
+// gets all public addresses, each ending /p2p/<relay id>, for whoever issues gifts.
+async function relayNode() {
+  const seedFile = flag("--seed-file"), ws = flag("--ws-listen"), announce = (flag("--announce") ?? "").split(",").filter(Boolean), onion = flag("--onion"), addrsFile = flag("--addrs-file");
+  if (seedFile && !fs.existsSync(seedFile)) fs.writeFileSync(seedFile, (await import("node:crypto")).randomBytes(32).toString("hex"), { mode: 0o600, flag: "wx" });
+  const key = seedFile && await (await import("@libp2p/crypto/keys")).generateKeyPairFromSeed("Ed25519", Buffer.from(fs.readFileSync(seedFile, "utf8"), "hex"));
+  const r = await p2p.relay([flag("--listen", "/ip4/0.0.0.0/tcp/4002"), ...(ws ? [ws] : [])], key, announce);
+  const pub = [...announce, ...(onion ? [onion] : [])].map((a) => `${a}/p2p/${r.peerId}`);
+  if (addrsFile) fs.writeFileSync(addrsFile, JSON.stringify({ relay: r.peerId.toString(), public: pub, started: new Date().toISOString() }, null, 1) + "\n");
+  console.log(`abalone relay ${r.peerId}\n${r.getMultiaddrs().map((a) => `  ${a}`).join("\n")}${pub.length ? `\npublic:\n${pub.map((a) => `  ${a}`).join("\n")}` : ""}`);
+}
+
+// Issuer and recipient commands reach a peer through an attested libp2p client.
+const viaPeer = async (addr, fn) => {
+  if (!addr) throw new Error("which peer? pass --peer <multiaddr> (or set ABALONE_PEER)");
+  const g = await p2p.giftClient(addr, providers().peers.admit);
+  try { return await fn(g); } finally { await g.close(); }
+};
+
+// abalone gift --setup 6usd           record credit prepaid at the peer (match the peer's --reserve)
+// abalone gift 5usd --peer <multiaddr> [--days 30] [--from NAME] [--allow-promotion]
+// Issuing is local: the signed grant rides with the code, so no peer is contacted.
+async function giftCmd() {
+  if (args.includes("--issuer-pub")) return console.log(gift.pubHex(gift.issuerKey()));
+  const b = gift.book(), setup = flag("--setup");
+  if (setup) {
+    b.funded += gift.usd(setup);
+    gift.saveBook(b);
+    return console.log(`Recorded ${gift.fmt(gift.usd(setup))} of credit prepaid at the peer. You can now give up to ${gift.fmt(b.funded - gift.committed(b))} in gifts.`);
+  }
+  const peer = PEER(), days = Number(flag("--days", "30")), from = flag("--from", "Andrew"), allowPromotion = args.includes("--allow-promotion");
+  if (!peer) throw new Error("which peer will hold this gift? pass --peer <multiaddr> (or set ABALONE_PEER)");
+  const amount = gift.usd(args[1]), code = gift.newCode(), expiry = Date.now() + days * 864e5;
+  if (amount > b.funded - gift.committed(b)) throw new Error(`You have ${gift.fmt(b.funded - gift.committed(b))} left to give. Add more with: abalone gift --setup <amount>usd`);
+  // Gift terms state noPromotion explicitly; the CLI's choice is no promotion on any surface for the gift's life.
+  const terms = consent.parseTerms({ noPromotion: allowPromotion ? false : { scope: consent.SURFACES, until: new Date(expiry).toISOString() } });
+  const token = gift.makeGift(code, { amount, expiry, from, terms });
+  b.gifts.push({ account: gift.account(code), token, amount, expiry, from, peer, made: new Date().toISOString() });
+  gift.saveBook(b);
+  // With a landing page (ABALONE_LANDING, e.g. https://gift.example), the gift is a link; the code rides in its fragment.
+  const landing = process.env.ABALONE_LANDING;
+  const send = landing ? `Send this link. It works once; whoever opens it and runs the command first gets the ${gift.fmt(amount)}:\n\n  ${landing.replace(/\/$/, "")}/#peer=${encodeURIComponent(peer)}&t=${token}` : `Send this command. It works once; whoever runs it first gets the ${gift.fmt(amount)}:\n\n  abalone redeem --peer ${peer} ${token}`;
+  const onion = peer.split(",").some((a) => a.trim().startsWith("/onion3/")) ? "\n(The onion address is a backup, tried only if the first does not answer; it needs Tor installed on the friend's computer.)" : "";
+  console.log(`Gift: ${gift.fmt(amount)} from ${from}, good until ${new Date(expiry).toDateString()}.\n${send}${onion}\n\nLeft to give: ${gift.fmt(b.funded - gift.committed(b))}`);
+}
+
+async function giftsCmd() {
+  const s = await viaPeer(PEER(), (g) => gift.issue(g.url, { type: "status" }));
+  console.log(`peer slice ${s.slice.slice(0, 12)}…  key ${s.provider}  funded ${gift.fmt(s.funded)}  committed ${gift.fmt(s.committed)}  left to give ${gift.fmt(s.available)}`);
+  for (const g of s.gifts) console.log(`  ${g.account}…  ${gift.fmt(g.amount).padStart(8)}  spent ${gift.fmt(g.spent).padStart(9)}  left ${gift.fmt(g.remaining).padStart(9)}  until ${new Date(g.expiry).toDateString()}  ${g.redeemed ? "redeemed" : "not redeemed"}`);
+}
+
+// abalone offers [--peer P]                       the worker's agent-task offer, checked against its handshake
+// abalone commission [--peer P] --repo DIR --label open|released --cap 0.20usd [--check "<cmd>"] [--detach] "<prompt>"
+// abalone commission --retry <task id>            resend the same signed authorization (idempotent)
+// abalone tasks [list | attach | watch | status | stop | collect] [<task id>]
+// The peer defaults to the redeemed gift's (the credit is held there).
+const taskPeer = () => PEER() ?? gift.coupon()?.peer;
+// A worker that cannot be reached: nothing was sent, nothing charged, and its running tasks are unaffected.
+const viaWorker = async (addr, fn) => {
+  if (!addr) throw new Error("which worker? pass --peer <multiaddr>, or redeem a gift first");
+  const g = await p2p.giftClient(addr, providers().peers.admit).catch((e) => { throw e.message.startsWith("✗") ? e : new Error(`The worker is unreachable (worker_unavailable). Nothing was sent or charged; tasks already running there keep running, and you can reconnect later.\ndetails: ${e.message}`); });
+  try { return await fn(g); } finally { await g.close(); }
+};
+async function offersCmd() {
+  await viaWorker(taskPeer(), async (g) => console.log(task.describe(await task.offer(g), g.verdict)));
+}
+async function commissionCmd() {
+  const id = flag("--retry");
+  if (id) return viaWorker(task.record(id).peer, async (g) => { const hd = await task.retry(g, id); console.log(`Retried ${id}: the worker answered with the existing task (${hd.state}, ${hd.seq} events). Nothing new was started or reserved.`); });
+  const repo = flag("--repo"), label = flag("--label"), cap = flag("--cap"), chk = flag("--check"), detach = args.includes("--detach"), preview = args.includes("--preview"), prompt = args.slice(1).filter((a) => !["--detach", "--preview"].includes(a)).join(" ");
+  if (!repo || !["open", "released"].includes(label) || !cap || !prompt) throw new Error('usage: abalone commission --repo <dir> --label open|released --cap <amount>usd [--check "<test command>"] "<task>"');
+  await viaWorker(taskPeer(), async (g) => {
+    const o = await task.offer(g);
+    // --preview: exactly what would be authorized and uploaded, with the offer's key terms; nothing is sent or reserved.
+    if (preview) return console.log(task.authorizing(task.authorize(o, { prompt, repo, label, cap: gift.usd(cap), check: chk }).authorization, o).replace(/^Authorize task \S+/, "Would authorize a task") + "\n" +
+      task.describe(o, g.verdict).split("\n").filter((l) => /^(Worker| {9}|Sees|Price|At cap)/.test(l)).join("\n"));
+    console.log(task.describe(o, g.verdict) + "\n");
+    const { authorization: au, handle: hd } = await task.commission(g, o, { prompt, repo, label, cap: gift.usd(cap), check: chk });
+    console.log(`${task.authorizing(au, o)}\nCommissioned task ${au.task_id} (${hd.state}) from ${repo}.`);
+    if (detach || !process.stdin.isTTY) return console.log(`It runs at the worker without you. ${process.env.ABALONE_EGRESS ? "/tasks attach" : "abalone tasks attach"} ${au.task_id} watches and steers it.`);
+    await attachTask(g, au.task_id);
+  });
+}
+async function attachTask(g, id) {
+  console.log(`Attached to ${id}. Type to steer the agent; /take pauses it and gives you the shell (/bash <cmd>), /release hands back, /stop cancels, /detach leaves it running.`);
+  const c = await task.attach(g, id);
+  if (c) { const b = await task.collect(g, id); console.log(task.summary(b.completion, b.dir)); }
+  // From the session (/tasks attach) the terminal goes back to abalone afterwards: let the user read the result first.
+  if (c && process.env.ABALONE_TASK_PAUSE) { console.log("\nPress Enter to return to abalone."); const rl = readline.createInterface({ input: process.stdin }); await new Promise((r) => rl.once("line", r)); rl.close(); }
+}
+async function tasksCmd() {
+  const [sub = "list", id] = args.slice(1);
+  if (sub === "list") {
+    const rs = task.records();
+    if (!rs.length) return console.log("No commissioned tasks on this computer.");
+    for (const r of rs) {
+      const done = fs.existsSync(path.join(STATE, "tasks", r.task_id, "bundle/completion.json")) && JSON.parse(fs.readFileSync(path.join(STATE, "tasks", r.task_id, "bundle/completion.json"), "utf8"));
+      console.log(`${r.task_id}  ${done ? `${done.status}, collected` : `seen ${r.last_seq} events`}  ${r.offer.worker.label} (${r.offer.worker.operator})  "${r.body.authorization.task.prompt.slice(0, 60)}"`);
+    }
+    return;
+  }
+  if (!id) throw new Error(`usage: abalone tasks ${sub} <task id>`);
+  await viaWorker(task.record(id).peer, async (g) => {
+    if (sub === "attach") return attachTask(g, id);
+    if (sub === "watch") { const c = await task.watch(g, id); return c && console.log(task.summary(c)); }
+    if (sub === "status") { const s = await task.call(g, "status", id); return console.log(s.completion ? task.summary(s.completion) : `${s.state}, control ${s.control}, ${s.seq} events, charged ${gift.fmt(s.usage.charged)} of ${gift.fmt(s.usage.cap)} (execution ${gift.fmt(s.usage.execution.charge)}, inference ${gift.fmt(s.usage.inference.charge)})`); }
+    if (sub === "stop") { const s = await task.call(g, "stop", id, { reason: "stopped by the client" }, `stop:${id}`); return console.log(`Stop sent; the task is ${s.state}. abalone tasks collect ${id} once it has ended.`); }
+    if (sub === "collect") { const b = await task.collect(g, id); return console.log(task.summary(b.completion, b.dir)); }
+    throw new Error(`unknown: abalone tasks ${sub}`);
+  });
+}
+
+async function redeemCmd() {
+  const peer = PEER();
+  const token = args[1] ?? (() => { throw new Error("No gift code found. Open the link you were sent and copy the command from there."); })();
+  gift.parseGift(token);
+  const j = await viaPeer(peer, async (g) => ({ ...(await gift.redeem(g.url, peer, token)), verdict: g.verdict }));
+  if (!j.already) consent.applyGift(j.coupon.account, j.terms);
+  saveLeft(j.coupon.account, j.remaining);
+  const np = j.terms.noPromotion;
+  console.log(`${j.already ? "This gift is already set up here." : "Set up this gift on this computer."}
+  From ${j.from}: ${gift.fmt(j.remaining)} of ${gift.fmt(j.amount)} left, good until ${new Date(j.expiry).toDateString()}.
+  Terms (as the sender signed them): ${np ? `no promotional offers on ${np.scope.join(", ")} until ${new Date(np.until).toDateString()}` : "the sender allowed promotional offers"}. Using it gives nobody rights to your data.
+  Model: ${j.model} (private: messages are encrypted to a verified NEAR TEE). Server: ${peer.split("/p2p/").at(-1).slice(0, 16)}… (${j.verdict.place}${j.verdict.cdhash ? `, CDHash ${j.verdict.cdhash.slice(0, 12)}…` : ""}).${j.already ? "" : "\n  The code you pasted is now used, so it's fine to leave it in your shell history."}`);
+}
+
+// abalone trace key init|export|import, trace list|open|delete: the strict-incognito trace store (notes/contracts/trace-store.md).
+async function traceCmd([cmd, a, b]) {
+  if (cmd === "key" && a === "init") {
+    const pw = await passphrase("new passphrase for the trace key: ");
+    if (!process.env.ABALONE_PASSPHRASE_FD && await passphrase("again: ") !== pw) throw new Error("the passphrases differ; nothing was created");
+    const k = await trace.createKey(pw);
+    return console.log(`Created trace key ${k.kid}: ${k.file} (encrypted under your passphrase), recipient ${k.recipient}.
+Strict-incognito sessions encrypt their trace to it; only the passphrase unlocks them. There is no escrow: lose the key or
+the passphrase and the traces are gone. Keep a copy in your password manager: abalone trace key export`);
+  }
+  if (cmd === "key" && a === "export") return console.log(await trace.exportKey(await passphrase("trace key passphrase: ")));
+  if (cmd === "key" && a === "import") {
+    const id = await readSecret("paste the AGE-SECRET-KEY line (hidden): ");
+    const k = await trace.importKey(id, await passphrase("new passphrase for this key on this computer: "));
+    return console.log(`Imported trace key ${k.kid} into ${k.file}.`);
+  }
+  if (!a) throw new Error("usage: abalone trace key init|export|import, or abalone trace list|open|delete <folder> [id|--all]");
+  if (cmd === "list") {
+    const ts = trace.list(a);
+    if (!ts.length) return console.log(`no traces in ${trace.dir(a)}`);
+    for (const t of ts) console.log(`${t.id}  ${String(t.bytes).padStart(8)} bytes  ${t.frames} records  key ${t.kid}  ${t.hwm ? (t.hwm.closed ? "closed" : `not closed (${t.hwm.frames} records recorded here)`) : "written elsewhere (no high-water mark here)"}`);
+    return;
+  }
+  if (cmd === "open") {
+    const t = trace.find(a, b), o = await trace.open(t.file, await passphrase(`passphrase for trace key ${t.kid}: `));
+    console.log(trace.transcript(o.records));
+    return console.log(`\n[${t.file}: ${o.frames} records verified; ${o.closed ? "closed cleanly" : "NOT CLOSED: the session was interrupted, or the end was cut off (the two look the same)"}; ${o.hwm}${o.partial ? "; a partly written last line was ignored" : ""}. Nothing was added to any session.]`);
+  }
+  if (cmd === "delete") {
+    for (const f of trace.remove(a, b)) console.log(`deleted ${f}`);
+    return console.log(`Not covered: copies made elsewhere (backups, a copied folder, sync), blocks an SSD or copy-on-write disk keeps, what the TEE provider processed, files the agent wrote, and host names in ${path.join(STATE, "egress.jsonl")}. Deleting the trace key makes every copy unreadable.`);
+  }
+  throw new Error(`unknown: abalone trace ${cmd}`);
+}
+
+// caps.mjs resolves paths as Pi does, so it imports pi/: loaded only here, never on the node serve/relay path,
+// whose image has no pi/ (tests/peer-image-smoke.sh).
+async function printCaps(json) {
+  const doc = (await import("../lib/caps.mjs")).document(process.cwd());
+  if (json) return console.log(JSON.stringify(doc, null, 1));
+  console.log(`${doc.contract}  claim: ${doc.claim}\n\nACTIVE KEYS`);
+  for (const [p, k] of Object.entries(doc.active_keys)) console.log(`  ${p.padEnd(10)} ${k}`);
+  console.log("\nCAPABILITIES (holder × action → object, granted by)");
+  for (const c of doc.capabilities) console.log(`  ${c.holder.padEnd(18)} ${c.action.padEnd(12)} ${c.object.padEnd(52)} ${c.granted_by}`);
+  console.log("\nOBSERVERS");
+  for (const o of doc.observers) console.log(`  ${o.observer.padEnd(26)} ${o.sees}\n  ${"".padEnd(26)} mechanism: ${o.mechanism}${o.axis ? `; axis: ${o.axis}` : ""}`);
+  console.log("\nGUARANTEES");
+  for (const [k, v] of Object.entries(doc)) if (typeof v === "boolean") console.log(`  ${k}: ${v}`);
+  console.log("\nENFORCED BY CODE ON EVERY RELEASE"); for (const l of doc.enforced_by_code) console.log(`  - ${l}`);
+  console.log("\nLIMITATIONS"); for (const l of doc.limitations) console.log(`  - ${l}`);
+}
+
+// Flags that would re-enable ambient resources or bring outside text into the system prompt.
+const REFUSED = new Set(["--approve", "-a", "--system-prompt", "--append-system-prompt", "--prompt-template", "--theme", "--api-key"]);
+
+async function session() {
+  // abalone <folder>: work in that folder. The sandbox binds the working directory, and nothing else of the home.
+  const shell = process.cwd(); // where the user typed the command, for the reopen line
+  if (args[0] && !args[0].startsWith("-") && fs.statSync(args[0], { throwIfNoEntry: false })?.isDirectory()) process.chdir(args.shift());
+  // abalone --incognito <folder>: strict incognito (notes/contracts/trace-store.md). Only this flag turns it on.
+  const incognito = args.includes("--incognito"), withTrace = flag("--with-trace");
+  if (incognito && args[args.indexOf("--incognito") + 1] && !args[args.indexOf("--incognito") + 1].startsWith("-")) process.chdir(args.splice(args.indexOf("--incognito") + 1, 1)[0]);
+  if (withTrace && !incognito) throw new Error("✗ refused: --with-trace adds a decrypted trace to a session's context, so it works only with --incognito");
+  if (incognito && ["--resume", "-r", "--continue", "-c", "--session"].some((f) => args.includes(f))) throw new Error("✗ refused: strict incognito keeps no Pi session to resume; reopen a trace with --with-trace <id>");
+  const key = incognito && trace.keyInfo();
+  if (incognito && !key) throw new Error("✗ refused: strict incognito keeps an encrypted trace, and there is no trace key yet. Create one (you choose its passphrase): abalone trace key init");
+  // Unlocking an old trace is explicit: this flag, and its passphrase. The transcript stays in this process's memory.
+  let reopened = null;
+  if (withTrace) {
+    const t = trace.find(process.cwd(), withTrace), o = await trace.open(t.file, await passphrase(`passphrase for trace key ${t.kid}: `));
+    reopened = { id: t.id, closed: o.closed, n: o.records.length, text: trace.transcript(o.records), shown: history(t.id, o.records) };
+  }
+  const entries = verified();
+  const loads = [];
+  const user = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (REFUSED.has(a)) throw new Error(`✗ refused: ${a} is not available in abalone (ambient resources and project trust stay off)`);
+    if (a === "-e" || a === "--extension") loads.push("-e", admit(entries, args[++i], "extension"));
+    else if (a === "--skill") loads.push("--skill", admit(entries, args[++i], "skill"));
+    // abalone --resume <id> (the line printed on exit) is Pi's --session <id>; a bare --resume opens Pi's picker.
+    else if (a === "--resume" && args[i + 1] && !args[i + 1].startsWith("-")) user.push("--session", args[++i]);
+    else if (!["--no-canaries", "--incognito"].includes(a)) user.push(a);
+  }
+  const canaries = canary.forSession(process.cwd(), args.includes("--no-canaries") || process.env.ABALONE_NO_CANARIES === "1");
+  const p = providers();
+  const ports = couponSlot ? [] : localPorts(), hosts = couponSlot ? [] : admittedHosts();
+  // With a gift, the launcher (outside the sandbox) holds an attested libp2p connection to the peer and gives the
+  // sandbox a loopback endpoint for it. The peer was verified before that endpoint exists.
+  // A gift counts as an admitted TEE destination in strict incognito too: end-to-end encrypted to NEAR's attested model,
+  // through a peer whose attestation this client verified, with NEAR's signature checked on every reply.
+  const c = !couponSlot && gift.coupon();
+  const g = c && await p2p.giftClient(c.peer, p.peers.admit);
+  if (g) { ports.push(Number(new URL(g.url).port)); if (!user.includes("--model")) user.unshift("--model", `${GIFT}/${c.model}`); }
+  // The default model is abalone's (providers.json "default"), not whichever provider Pi finds first; a resumed
+  // session keeps its own.
+  if (!["--model", "--session", "--continue", "-c", "--resume", "-r"].some((f) => user.includes(f))) user.unshift("--model", p.default);
+  // Reasoning off unless asked for: glm-5.3-flash otherwise thinks for tens of seconds before each answer (/thinking changes it).
+  if (!user.includes("--thinking")) user.push("--thinking", "off");
+  if (incognito) {
+    const m = user[user.indexOf("--model") + 1].split("/")[0];
+    // The gift peer qualifies only when its handshake showed attested evidence (a dev peer only where config admits dev peers, i.e. tests).
+    const giftOk = m === GIFT && g && (g.verdict.place.startsWith("◈ attested") || p.peers.admit.dev === true);
+    const couponOk = couponSlot && m === couponSlot.provider.provider;
+    if (!giftOk && !couponOk && (m === GIFT || (place(m) !== "⌂ local" && !p.admitted.some((a) => a.id === m)))) throw new Error(`✗ refused: ${m} is not a ⌂ local or ◈ admitted provider; strict incognito sends nothing elsewhere`);
+    user.push("--no-session"); // Pi keeps its session in memory only; the launcher writes the encrypted trace
+  }
+  const env = { ...process.env, PI_RESUME_HINT: `Resume with: abalone ${/\s/.test(process.cwd()) ? JSON.stringify(process.cwd()) : process.cwd()} --resume {id}`, PI_QUIET_MANAGED_TOOLS: "1", ABALONE_DIR: STATE, PI_CODING_AGENT_DIR: AGENT_DIR, PI_ADMITTED_HOSTS: [...hosts, ...LOOPBACK].join(","), ABALONE_SANDBOX: "1" };
+  delete env.ABALONE_COUPON_FD; delete env.ABALONE_COUPON_CONSENT_FD;
+  delete env.ABALONE_COUPON_SOCKET; delete env.ABALONE_COUPON_MODEL; delete env.ABALONE_COUPON_PROVIDER;
+  if (canaries) env.ABALONE_CANARIES = canaries; else env.ABALONE_NO_CANARIES = "1";
+  delete env.ABALONE_INCOGNITO;
+  if (incognito) env.ABALONE_INCOGNITO = "1";
+  if (g) Object.assign(env, { ABALONE_GIFT_URL: g.url, ABALONE_GIFT_PEER: `${g.peerId.slice(0, 16)}… ${g.verdict.place}${g.direct ? "" : " via relay"}`, ABALONE_GIFT_PLACE: g.verdict.place });
+  for (const l of (couponSlot ? [] : p.local.filter((l) => l.builtin))) { loads.push("-e", `builtin:${l.builtin}`); env.LLAMA_BASE_URL = l.baseUrl; }
+  const via = {}; // provider/model → "via RedPill → Phala TEE", for the place labels
+  for (const a of p.admitted) {
+    delete env[a.keyEnv]; // the agent never holds a provider key of its own
+    if (couponSlot) continue; // synthetic sessions cannot fall back to another credential/provider
+    // An ACI provider attests at load; with no node key it could serve nothing, so it is not contacted at all.
+    if (a.transport === "aci/1" && !nodekeys.active(a.id)) continue;
+    // Behind an ACI aggregator, only models whose every upstream our policy admits (lib/upstream.mjs, issue 0007).
+    // A provider whose listing fails, or that has no admitted model, is not loaded: its models are refused.
+    if (a.upstreams) {
+      const v = await upstream.vet(a).catch((e) => ({ error: e.message, admitted: {} }));
+      log("upstreams.jsonl", { provider: a.id, ...v });
+      if (!Object.keys(v.admitted).length) { console.error(`✗ ${a.id}: no model admitted (${v.error ?? "no model's upstreams are all admitted"}); see ${path.join(STATE, "upstreams.jsonl")}`); continue; }
+      env[a.allowlistEnv] = Object.keys(v.admitted).join(",");
+      for (const [id, l] of Object.entries(v.admitted)) via[`${a.id}/${id}`] = l;
+    }
+    loads.push("-e", admit(entries, path.join(ROOT, a.extension), "provider extension"));
+    // devNode: until the gateway exists, the agent reads the active key from the local node keystore.
+    const k = nodekeys.active(a.id);
+    if (k) { env[a.keyEnv] = k.key; env.ABALONE_DEV_NODE = [env.ABALONE_DEV_NODE, `${a.id}:${k.label}:${k.key.slice(-4)}`].filter(Boolean).join(","); }
+  }
+  env.ABALONE_VIA = JSON.stringify(via);
+  for (const e of entries) {
+    if (e.kind === "extension") loads.push("-e", e.abs);
+    if (e.kind === "skill") loads.push("--skill", e.abs);
+    if (e.kind === "preload") env.NODE_OPTIONS = `--import ${e.abs}`;
+  }
+  // Sockets live in a short per-user runtime dir: a unix socket path may not exceed 107 bytes.
+  const run = fs.mkdtempSync(path.join(runtimeDir(), "abalone-"));
+  process.on("exit", () => fs.rmSync(run, { recursive: true, force: true })); // also when startup throws
+  env.ABALONE_EGRESS = run;
+  if (couponSlot) {
+    const socketPath = path.join(run, "coupon.sock");
+    await couponSlot.broker(socketPath, { onState: (state) => console.error(`Coupon session: ${state}. Check /coupon; no alternate key is tried.`) });
+    env.ABALONE_COUPON_SOCKET = socketPath; env.ABALONE_COUPON_MODEL = couponSlot.provider.model; env.ABALONE_COUPON_PROVIDER = couponSlot.provider.provider;
+    loads.push("-e", admit(entries, path.join(ROOT, "curated/coupon-provider.ts"), "coupon provider extension"));
+    env.PI_RESUME_HINT = "Coupon session credentials are session-only and cannot be resumed after exit.";
+  }
+  // In strict incognito Pi's own dir (settings, crash and debug logs) is in the run dir, removed at exit.
+  const agentDir = incognito ? path.join(run, "agent") : AGENT_DIR;
+  env.PI_CODING_AGENT_DIR = agentDir;
+  fs.mkdirSync(agentDir, { recursive: true });
+  // Pi's startup listing (its self-description, skills, extensions) is not abalone's first screen; /about has it.
+  // Model reasoning starts collapsed to one line, so the answer comes first; ctrl+t shows it (and Pi keeps that choice).
+  const sf = path.join(agentDir, "settings.json");
+  fs.writeFileSync(sf, JSON.stringify({ hideThinkingBlock: true, ...(fs.existsSync(sf) ? JSON.parse(fs.readFileSync(sf, "utf8")) : {}), quietStartup: "header" }, null, 1));
+  const close = await startEgress(run, hosts, incognito ? [] : Object.values(p.runners).flatMap((r) => r.hosts), ports, "pi");
+  // The encrypted trace: written only here, outside the sandbox, with a stream key that never enters the sandbox.
+  const tw = incognito && await trace.writer(process.cwd(), key.recipient, crypto.randomBytes(8).toString("hex"));
+  let traced = 0;
+  if (tw) {
+    tw.append({ t: "start", mode: "strict-incognito", folder: process.cwd(), model: user[user.indexOf("--model") + 1], at: new Date().toISOString(), reopened: reopened?.id ?? null });
+    env.ABALONE_SESSION_DESCRIPTOR = path.join(run, "session.json");
+    fs.writeFileSync(env.ABALONE_SESSION_DESCRIPTOR, JSON.stringify({ version: 1, mode: "strict-incognito", workspace: process.cwd(),
+      inference: "⌂ local and ◈ admitted providers only (providers.json); outside providers, ask_frontier, /fetch and the gift peer are off",
+      network: { shell: "none", public_web: false, egress: "admitted TEE hosts, their verifier hosts and loopback model ports" },
+      retention: { kind: "encrypted-trace", format: "abalone-trace/2", trace: tw.file, key_id: key.kid, key_file: key.file, encrypted: true,
+        session_can_read_back: false, other_harness_writes: "tmpfs (memory), gone at exit", reopened: reopened?.id ?? null } }, null, 1), { mode: 0o400 });
+  }
+  // /redeem and /gift in the session need the network, which the sandbox lacks: the session asks the launcher to run
+  // exactly these CLI commands. ask_frontier's runner runs here too, since the runner logins are not in the sandbox.
+  // Only the session's own process can reach the socket (it is in the run dir, which the bash sandbox does not see).
+  const claude = process.env.ABALONE_RUNNER_CLAUDE ?? spawnSync("bash", ["-c", "readlink -f \"$(command -v claude)\""], { encoding: "utf8" }).stdout.trim();
+  let next = null; // /folder: the folder the session restarts in after Pi exits; /redeem: the same folder and conversation
+  // The built-in Tor transport (started on first sealed use; state in <STATE>/tor). Its status file feeds the strip.
+  const tor = torTransport({ dataDir: path.join(STATE, "tor"), onStatus: (st) => fs.writeFileSync(path.join(run, "tor-status"), st) });
+  const ctl = net.createServer({ allowHalfOpen: true }, (s) => {
+    let b = "";
+    s.on("data", (d) => (b += d));
+    s.on("end", () => {
+      const argv = JSON.parse(b);
+      if (couponSlot && !["trace-append", "trace-context"].includes(argv[0])) return s.end(JSON.stringify(argv[0] === "coupon-info" ? { code: 0, out: JSON.stringify(couponSlot.info()) }
+        : { code: 2, out: "", err: "This coupon session does not run outside launcher commands or restart. Its original keys must stay in this process." }));
+      if (incognito) {
+        if (argv[0] === "trace-append") { for (const e of argv[1]) tw.append({ t: "entry", e }); traced += argv[1].length; return s.end(JSON.stringify({ code: 0, out: "" })); }
+        if (argv[0] === "trace-context") return s.end(JSON.stringify({ code: 0, out: reopened ? JSON.stringify(reopened) : "" }));
+        return s.end(JSON.stringify({ code: 2, out: "", err: `✗ refused: ${argv[0]} is not available in strict incognito` }));
+      }
+      if (argv[0] === "runner") return runRunner(argv[1], argv[2], { egress: run, bin: claude })
+        .then((r) => s.end(JSON.stringify({ code: 0, out: JSON.stringify(r) })), (e) => s.end(JSON.stringify({ code: 1, out: "", err: e.message })));
+      // /fetch: the session decided the route and the user saw why; the download happens here, where the network is.
+      if (argv[0] === "fetch") {
+        return download(new URL(argv[1]), argv[2], process.cwd(), tor).then((r) => s.end(JSON.stringify({ code: 0, out: JSON.stringify(r) })), (e) => s.end(JSON.stringify({ code: 1, out: "", err: e.message })));
+      }
+      if (argv[0] === "folder") {
+        const dir = path.resolve(process.cwd(), argv[1].replace(/^~(?=\/|$)/, os.homedir()));
+        if (!fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory()) return s.end(JSON.stringify({ code: 1, out: "", err: `${dir} is not a folder` }));
+        // Never make abalone's own code, config, state or runner logins the workspace.
+        const real = fs.realpathSync(dir), overlaps = (a, b) => a === b || a.startsWith(b + path.sep) || b.startsWith(a + path.sep);
+        if ([STATE, ROOT, CFG, RUNNER_HOME].some((p) => overlaps(real, fs.realpathSync(p)))) return s.end(JSON.stringify({ code: 1, out: "", err: `${dir} holds or is inside abalone's own code or state; choose a project folder` }));
+        // Check the code now, while this session is still open: a refusal is reported here, not after Pi has exited.
+        try { verified(); } catch (e) { return s.end(JSON.stringify({ code: 1, out: "", err: `${e.message}\nYou are still in ${process.cwd()}.` })); }
+        next = [dir];
+        return s.end(JSON.stringify({ code: 0, out: `abalone restarts in ${dir}; only that folder is visible to it` }));
+      }
+      // /tasks attach: the terminal belongs to the attachment until /detach or the task ends; then the session resumes.
+      if (argv[0] === "task-attach") {
+        const c = spawn(process.execPath, [import.meta.filename, "tasks", "attach", argv[1]], { stdio: "inherit", env: { ...process.env, ABALONE_TASK_PAUSE: "1" } });
+        return c.on("exit", (code) => {
+          const st = spawnSync(process.execPath, [import.meta.filename, "tasks", "status", argv[1]], { encoding: "utf8" });
+          s.end(JSON.stringify({ code: 0, out: `Back from task ${argv[1]}${code ? ` (attachment exited ${code})` : ""}. Its transcript was not added to this conversation.\n${(st.stdout + st.stderr).trim()}` }));
+        });
+      }
+      if (!["redeem", "gift", "gifts", "report", "offers", "commission", "tasks"].includes(argv[0])) return s.end(JSON.stringify({ code: 2, out: "", err: `✗ refused: ${argv[0]} is not a gift or report command` }));
+      const c = spawn(process.execPath, [import.meta.filename, ...argv], { stdio: ["ignore", "pipe", "pipe"] });
+      let out = "", err = "";
+      c.stdout.on("data", (d) => (out += d));
+      c.stderr.on("data", (d) => (err += d));
+      c.on("exit", (code) => { if (argv[0] === "redeem" && code === 0) next = [process.cwd(), "--continue"]; s.end(JSON.stringify({ code, out, err })); });
+    });
+  }).listen(path.join(run, "ctl.sock"));
+  // The browser bridge: the one tab the user grants with /browser, reached by the session through <run>/browser.sock.
+  const closeBrowser = browserBridge(run, { incognito });
+  const pi = path.join(ROOT, "pi/packages/coding-agent/dist/cli.js");
+  if (claude) env.ABALONE_RUNNER_CLAUDE = claude;
+  const child = spawn("bwrap", [...piArgv(run, hosts, process.cwd(), { incognito, gift: !!g }), "--", process.execPath, pi,
+    "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-themes", "--no-context-files", "--no-mcp", "--no-approve",
+    ...loads, ...user], { stdio: "inherit", env });
+  process.on("SIGINT", () => {});
+  for (const s of ["SIGTERM", "SIGHUP"]) process.on(s, () => child.kill(s)); // the child exits, then the run dir is removed
+  let sig = null;
+  const code = await new Promise((r) => child.on("exit", (c, s) => { sig = s; r(c ?? (s ? 1 : 0)); }));
+  if (tw) {
+    tw.close({ t: "close", at: new Date().toISOString(), entries: traced, reason: sig ? `the session ended on ${sig}` : `the session exited with code ${code}` });
+    const here = path.relative(shell, process.cwd()) || ".";
+    console.error(`\nStrict incognito closed.
+Kept: an encrypted trace in .abalone/traces/ (${tw.frames()} records), opened only with your trace passphrase. Files written here stay as ordinary files${g ? ", the gift's balance stays in abalone's state" : ""}, and abalone's egress log keeps the host names contacted.
+Not kept: Pi's session, logs and scratch (memory only).
+Reopen: abalone --incognito ${/\s/.test(here) ? JSON.stringify(here) : here} --with-trace ${tw.id}`);
+  }
+  close();
+  ctl.close();
+  closeBrowser();
+  tor.close();
+  if (g) await g.close();
+  if (couponSlot) { await couponSlot.close(); couponSlot = null; console.error("Coupon session closed. Local coupon identity, delivery key and credential were forgotten by this process. This is not upstream revocation or secure erasure. Conversation and workspace retention follow the session mode."); }
+  if (next) process.exit(spawnSync(process.execPath, [import.meta.filename, ...next, ...args], { stdio: "inherit" }).status);
+  process.exit(code);
+}
+
+try {
+  if (args[0] === "caps") await printCaps(args[1] === "--json");
+  else if (args[0] === "node" && args[1] === "keys") await nodeKeys(args.slice(2));
+  else if (args[0] === "node" && args[1] === "serve") await serveNode();
+  else if (args[0] === "node" && args[1] === "relay") await relayNode();
+  else if (args[0] === "gift") await giftCmd();
+  else if (args[0] === "gifts") await giftsCmd();
+  else if (args[0] === "redeem") await redeemCmd();
+  else if (args[0] === "coupon-session") await couponSessionCmd();
+  else if (args[0] === "offers") await offersCmd();
+  else if (args[0] === "commission") await commissionCmd();
+  else if (args[0] === "tasks") await tasksCmd();
+  else if (args[0] === "ask") await ask(args.slice(1));
+  else if (args[0] === "trace") await traceCmd(args.slice(1));
+  else if (args[0] === "notebook") notebook(args.slice(1));
+  else if (args[0] === "approvals") await approvals.run(args.slice(1));
+  else if (args[0] === "setup" && args[1] === "--separate-user") { const m = flag("--model"); console.log(separateUser(args[2], m)); }
+  else if (args[0] === "canary" && args[1] === "init" && args[2]) {
+    const c = canary.init(args[2]);
+    console.log(`Planted ${c.file} (two random values). Recorded them outside the folder in ${c.record}.\nThe gate now blocks any release holding either value. Keep the file; abalone refuses to start here if it is missing or changed.`);
+  }
+  else if (args[0] === "report") {
+    const into = flag("--into", process.env.ABALONE_REPORT_DIR ?? ROOT), title = flag("--title"), turn = flag("--turn"), includeText = args.includes("--include-text");
+    const r = report(args.filter((a) => a !== "--include-text")[1], { includeText, title, turn: turn && Number(turn), into });
+    console.log(`Wrote ${r.issue}\nand ${r.fixture}/ (fixture.json, expect.json). Local files only: nothing was sent.`);
+  }
+  else if (args[0] === "show" && args[1] === "evidence") showEvidence(args[2]);
+  else if (args[0] === "verify" && args[1]) {
+    const { verifyBundle, describe } = await import("../lib/bundle.mjs");
+    const expect = flag("--expect"), seen = flag("--seen"), a = expect && JSON.parse(fs.readFileSync(expect, "utf8"));
+    const r = verifyBundle(args[1], { admit: providers().peers.admit, expect: a?.authorization ?? a,
+      seen: seen ? fs.readFileSync(seen, "utf8").split("\n").filter(Boolean).map((l) => { const [task_id, record] = l.split(" "); return { task_id, record }; }) : [] });
+    console.log(describe(r));
+    process.exit(r.ok ? 0 : 1);
+  }
+  else await session();
+} catch (e) {
+  if (couponSlot) await couponSlot.close().catch(() => {});
+  console.error(e.message);
+  process.exit(1);
+}

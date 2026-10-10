@@ -1,0 +1,45 @@
+{
+  "case": "darkbloom-d-inference",
+  "stage": "0",
+  "stage_cite": "case-studies/darkbloom-d-inference/FOLLOWUP-REPORT.md:97 Darkbloom did not move its external-verifiability stage. It was Stage 0 — no security claim in the live feed is cryptographically re-checkable by a no-account third party — and it remains Stage 0. Every improvement this cycle is either **enforcement-in (server-side gating of `binary_hash`/`encryptio",
+  "gaps": [
+    {
+      "tag": "code:unmeasured-workload",
+      "id": null,
+      "text": "Provider code identity is self-reported binaryHash only; a malicious Mac owner passes attestation while reading prompts.",
+      "cite": "case-studies/darkbloom-d-inference/DEVPROOF-REPORT.md:22"
+    },
+    {
+      "tag": "hw:not-bound",
+      "id": "F1",
+      "text": "MDA-to-SE binding not gated server-side; se_key_bound unpublished.",
+      "cite": "case-studies/darkbloom-d-inference/DEVPROOF-REPORT.md:124"
+    },
+    {
+      "tag": "hw:delegated-verdict",
+      "id": "F2",
+      "text": "Feed omits SE-signed blob; posture, binary_hash and encryption key are coordinator-asserted.",
+      "cite": "case-studies/darkbloom-d-inference/DEVPROOF-REPORT.md:125"
+    },
+    {
+      "tag": "hw:not-bound",
+      "id": "F3",
+      "text": "Coordinator TDX attestation absent from api.darkbloom.dev and unbound to the endpoint.",
+      "cite": "case-studies/darkbloom-d-inference/DEVPROOF-REPORT.md:126"
+    },
+    {
+      "tag": "op:no-upgrade-log",
+      "id": "F4",
+      "text": "Provider-binary release registry has no public log.",
+      "cite": "case-studies/darkbloom-d-inference/DEVPROOF-REPORT.md:127"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": "F5",
+      "text": "Web verifier stops at 'Genuine Apple device'; no consumer SDK.",
+      "cite": "case-studies/darkbloom-d-inference/DEVPROOF-REPORT.md:128"
+    }
+  ],
+  "report": "case-studies/darkbloom-d-inference/DEVPROOF-REPORT.md",
+  "note": "DEVPROOF-REPORT.md (2026-06-07) is labeled canonical; it states no stage, so stage cites the same-date FOLLOWUP-REPORT.md. Later DEVPROOF-REPORT-2026-08-22.md and UPDATE-2026-09-03.md add findings (MDA parser inversion, constant freshness nonce) but give no stage verdict; not used. F6 omitted: report calls it a wording error, not a broken guarantee. Not in guide README table."
+}

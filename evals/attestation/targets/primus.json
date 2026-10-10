@@ -1,0 +1,18 @@
+{
+  "case": "primus",
+  "subject": "Primus attestor-node Docker image (zkTLS attestor configured for dstack KMS)",
+  "inputs": {
+    "urls": [],
+    "repos": [],
+    "app_ids": [],
+    "audit_date": null,
+    "images": [
+      "primuslabs/attestor-node:0.1.0"
+    ]
+  },
+  "given_files": [],
+  "withheld_files": [
+    "DEVPROOF-REPORT.md",
+    "../../README.md#L47"
+  ]
+}

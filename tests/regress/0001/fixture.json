@@ -1,0 +1,14 @@
+{
+ "issue": "0001",
+ "source": "reconstructed from the live demo's last turn (issue 0001): the demo saved neither invalid reply, so both are its recorded shape (prose, then a \"browser\" action) in main's intools protocol",
+ "model": "nearai/z-ai/glm-5.3-flash",
+ "protocol": "intools",
+ "redacted": false,
+ "turns": [
+  { "user": "<user text, earlier turns not recorded>", "steps": [] },
+  { "user": "hey can you help me find a streaming site, do you know how to connect to browser", "steps": [
+   { "model": "I can't browse the web on my own, but I can try opening a browser for you.\n<abalone-tool>{\"op\": \"browser\", \"action\": \"open\", \"url\": \"https://www.google.com/search?q=free+streaming+sites\"}</abalone-tool>" },
+   { "model": "Let me try connecting to the browser again.\n<abalone-tool>{\"op\": \"browser\", \"action\": \"connect\"}</abalone-tool>" }
+  ] }
+ ]
+}

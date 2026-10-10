@@ -1,0 +1,81 @@
+{
+  "case": "lunal-confidential-ai",
+  "stage": "0",
+  "stage_cite": "case-studies/lunal-confidential-ai/DEVPROOF-REPORT.md:28 **Verdict: Stage 0.** The advertised guarantee (\"Customer prompts… never visible\"; \"you can be sure what ran\") is not delivered by the shipped verification path. A genuine SEV-SNP/TDX enclave is proven, but not *which* code runs in it, and not that the attestation belongs to *this* session.",
+  "gaps": [
+    {
+      "tag": "client:verifier-gap",
+      "id": "F1",
+      "text": "No code-identity enforcement; no expected_measurement API, measurement only printed.",
+      "cite": "case-studies/lunal-confidential-ai/DEVPROOF-REPORT.md:66"
+    },
+    {
+      "tag": "hw:not-bound",
+      "id": "F2",
+      "text": "report_data match optional; CLI exits 0 on mismatch; verification gates on signature_valid.",
+      "cite": "case-studies/lunal-confidential-ai/DEVPROOF-REPORT.md:76"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": "F3",
+      "text": "WASM browser verifier skips debug-policy, TCB and measurement gates.",
+      "cite": "case-studies/lunal-confidential-ai/DEVPROOF-REPORT.md:86"
+    },
+    {
+      "tag": "hw:delegated-verdict",
+      "id": "F4",
+      "text": "Verification REST API signs an attestation JWT unconditionally.",
+      "cite": "case-studies/lunal-confidential-ai/DEVPROOF-REPORT.md:94"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": "F5",
+      "text": "Product CLI soft-passes when tooling is absent; README claims overstate.",
+      "cite": "case-studies/lunal-confidential-ai/DEVPROOF-REPORT.md:102"
+    },
+    {
+      "tag": "code:not-reproducible",
+      "id": "F6",
+      "text": "kettle build attestation disconnected from runtime; nothing pins launch measurements.",
+      "cite": "case-studies/lunal-confidential-ai/DEVPROOF-REPORT.md:112"
+    },
+    {
+      "tag": "hw:not-bound",
+      "id": "L1",
+      "text": "Served attestation is static and not session-fresh.",
+      "cite": "case-studies/lunal-confidential-ai/DEVPROOF-REPORT.md:124"
+    },
+    {
+      "tag": "hw:gpu-unbound",
+      "id": "L2",
+      "text": "GPU token stale (expired Aug 2025), HMAC-signed, never checked client-side.",
+      "cite": "case-studies/lunal-confidential-ai/DEVPROOF-REPORT.md:127"
+    },
+    {
+      "tag": "hw:not-bound",
+      "id": "L3",
+      "text": "report_data used as a static code-repo label, not a binding.",
+      "cite": "case-studies/lunal-confidential-ai/DEVPROOF-REPORT.md:130"
+    },
+    {
+      "tag": "op:config-url",
+      "id": null,
+      "text": "Orchestrator-set baseUrl inference endpoint is on the prompt path; redirected upstream still passes.",
+      "cite": "case-studies/lunal-confidential-ai/DEVPROOF-REPORT.md:139"
+    },
+    {
+      "tag": "code:model-unbound",
+      "id": null,
+      "text": "LUNAL_MODEL selects served model; model identity not bound to a measurement.",
+      "cite": "case-studies/lunal-confidential-ai/DEVPROOF-REPORT.md:140"
+    },
+    {
+      "tag": "hw:not-bound",
+      "id": null,
+      "text": "Gateway TLS via operator-provisioned CA, not tied to the attested key.",
+      "cite": "case-studies/lunal-confidential-ai/DEVPROOF-REPORT.md:141"
+    }
+  ],
+  "report": "case-studies/lunal-confidential-ai/DEVPROOF-REPORT.md",
+  "note": "Not in guide README table."
+}

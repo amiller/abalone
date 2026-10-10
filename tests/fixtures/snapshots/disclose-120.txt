@@ -1,0 +1,26 @@
+REVIEW DISCLOSURE d-0123abcd: NOT SENT                                          | Details (from config and logs, not the
+  to     runner:claude, outside abalone: one run of your own Claude             |   model)
+         subscription, in a sandbox that sees only this text                    | envelope: abalone puts one fixed line
+  why    | Whether a fixed-term tenancy rolls over if the tenant does nothing   |   before it: "The file pour.md holds a
+         | before the renewal deadline.                                         |   question from another agent. Answer
+  gate   free_text, 252 of 600 bytes: within your standing policy               |   it."
+----- BEGIN EXACT OUTBOUND TEXT (252 bytes, sha256 5e1f00c0ffee) -----          | "| " starts a line of the exact text;
+| Under a typical residential tenancy in England, if a renewal offer raises the |   "+ " continues a wrapped line
++  monthly rent by about 5% and the tenant does nothing before the deadline, do | residual: topic, numbers, dates and
++ es the tenancy roll over to a periodic tenancy, and on what terms?            |   places it keeps can still point to
+| Answer in two short paragraphs.                                               |   you or to your material
+----- END EXACT OUTBOUND TEXT -----                                             | earlier pours from this conversation:
+Not anonymous, even with names removed:                                         |   0 sent, 1 not sent
+  note   | The jurisdiction, that the user is a tenant facing a renewal with a  | runner sandbox: reads /work, which
+         | rent rise of about 5%, and that a deadline is near.                  |   holds only this text; no tools, no
+  - It goes out under your own Claude login: the vendor can tie it, its size    |   MCP servers, no browser
+    and its timing to your account.                                             | runner login: present at /repo/
+Only this text leaves: not tenancy-renewal.pdf, the notebook or tools.          |   runner-home/claude
+Continue privately is selected first, and Esc always sends nothing. Sending     | network: api.anthropic.com,
+once creates no standing policy.                                                |   console.anthropic.com,
+                                                                                |   platform.claude.com, through
+                                                                                |   abalone's egress only
+                                                                                | gate: 12 canary strings checked;
+                                                                                |   session budget 6000 bytes
+                                                                                | log: /home/user/.abalone/
+                                                                                |   disclosures.jsonl

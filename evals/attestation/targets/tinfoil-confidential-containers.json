@@ -1,0 +1,24 @@
+{
+  "case": "tinfoil-confidential-containers",
+  "subject": "Tinfoil Containers third-party confidential container hosting (operator-side view, SEV-SNP)",
+  "inputs": {
+    "urls": [
+      "https://api.tinfoil.sh"
+    ],
+    "repos": [
+      "tinfoilsh/tinfoil-cli (v0.13.0)",
+      "tinfoilsh/cvmimage"
+    ],
+    "app_ids": [],
+    "audit_date": "2026-04-30"
+  },
+  "given_files": [],
+  "withheld_files": [
+    "ARCHITECTURE-VS-DSTACK.md",
+    "CVMIMAGE-SELF-VERIFY.md",
+    "DEVPROOF-REPORT.md",
+    "PATTERNS-AND-USE-CASES.md",
+    "STAGE-733-ANALYSIS.md",
+    "UPDATES-VS-DSTACK.md"
+  ]
+}

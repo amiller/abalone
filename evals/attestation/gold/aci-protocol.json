@@ -1,0 +1,61 @@
+{
+  "case": "aci-protocol",
+  "stage": "n/a",
+  "stage_cite": "README.md:56 | [aci-protocol](case-studies/aci-protocol/) | — (protocol) | First **protocol** study in the guide. ACI is transparency-and-binding, not impossibility: a fully conformant service can still be Stage 0 (no upgrade history, no notice period, no transparency-log anchor). Top gap **P1**: nothing atteste",
+  "gaps": [
+    {
+      "tag": "op:no-upgrade-log",
+      "id": null,
+      "text": "ACI supplies no upgrade history; a conformant deployment can still be Stage 0.",
+      "cite": "case-studies/aci-protocol/DEVPROOF-REPORT.md:10"
+    },
+    {
+      "tag": "op:no-notice",
+      "id": null,
+      "text": "ACI supplies no notice period.",
+      "cite": "case-studies/aci-protocol/DEVPROOF-REPORT.md:10"
+    },
+    {
+      "tag": "op:unforced-serving",
+      "id": "P1",
+      "text": "Nothing attested tells a client whether a host forces attested serving; guard is opt-in and invisible pre-send.",
+      "cite": "case-studies/aci-protocol/DEVPROOF-REPORT.md:34"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": "P2",
+      "text": "Session list serves abbreviated entries whose ids do not hash to the listed content.",
+      "cite": "case-studies/aci-protocol/DEVPROOF-REPORT.md:48"
+    },
+    {
+      "tag": "code:model-unbound",
+      "id": "P3",
+      "text": "Compatibility rule constrains bytes not meaning; legacy endpoint attests any model name.",
+      "cite": "case-studies/aci-protocol/DEVPROOF-REPORT.md:56"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": "P4",
+      "text": "Reference CLI prints ACCEPTED, collapsing integrity with unmet policy claims.",
+      "cite": "case-studies/aci-protocol/DEVPROOF-REPORT.md:66"
+    },
+    {
+      "tag": "code:not-reproducible",
+      "id": "P5",
+      "text": "Chain terminates at an unreproduced build; reproducible builds not required for conformance.",
+      "cite": "case-studies/aci-protocol/DEVPROOF-REPORT.md:74"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": "P6",
+      "text": "Rewrite signal is a boolean, on for all traffic; client cannot apply a rewrite policy.",
+      "cite": "case-studies/aci-protocol/DEVPROOF-REPORT.md:80"
+    }
+  ],
+  "report": "case-studies/aci-protocol/DEVPROOF-REPORT.md",
+  "forced_tags": [
+    "P2 client:verifier-gap: a spec trap for verifiers",
+    "P6 client:verifier-gap: receipt expressiveness, no exact tag"
+  ],
+  "note": "Protocol study. The two un-numbered gaps come from the verdict paragraph (line 10), echoed in the README row."
+}

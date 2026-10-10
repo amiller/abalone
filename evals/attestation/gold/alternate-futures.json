@@ -1,0 +1,33 @@
+{
+  "case": "alternate-futures",
+  "stage": "0",
+  "stage_cite": "case-studies/alternate-futures/SESSION-NOTES.md:74 **Stage 0.** Strong confidentiality marketing (\"vault even the owner can't peek inside\", \"attestation\") with",
+  "gaps": [
+    {
+      "tag": "hw:no-quote",
+      "id": "F1",
+      "text": "No attestation surface exposed to end users; API returns only appId and invokeUrl.",
+      "cite": "case-studies/alternate-futures/SESSION-NOTES.md:25"
+    },
+    {
+      "tag": "client:verifier-gap",
+      "id": "F2",
+      "text": "sgx/Confidential are operator-set booleans; blake3Hash user-asserted, never proven from a quote.",
+      "cite": "case-studies/alternate-futures/SESSION-NOTES.md:33"
+    },
+    {
+      "tag": "op:debug-path",
+      "id": "F3",
+      "text": "Every deploy uses --dev-os plus platform SSH key: operator root SSH into every CVM.",
+      "cite": "case-studies/alternate-futures/SESSION-NOTES.md:40"
+    },
+    {
+      "tag": "code:image-unpinned",
+      "id": "F4",
+      "text": "Operator controls the whole compose: mutable image tag, injected env and secrets.",
+      "cite": "case-studies/alternate-futures/SESSION-NOTES.md:63"
+    }
+  ],
+  "report": "case-studies/alternate-futures/SESSION-NOTES.md",
+  "note": "Session notes with a 'Preliminary verdict'. F5 (SGX marketing vs TDX implementation) omitted: a docs inconsistency, not stated as a gap. Repo commits are the clones in sources/ (given). Not in guide README table."
+}

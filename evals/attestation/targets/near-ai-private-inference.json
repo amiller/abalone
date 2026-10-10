@@ -1,0 +1,36 @@
+{
+ "case": "near-ai-private-inference",
+ "subject": "NEAR AI Cloud private inference: cloud-api.near.ai gateway plus model CVMs (vLLM, inference-proxy)",
+ "inputs": {
+  "urls": [
+   "https://cloud-api.near.ai"
+  ],
+  "repos": [
+   "nearai/cloud-api",
+   "nearai/inference-proxy",
+   "nearai/compose-manager",
+   "nearai/cvm-compose-files"
+  ],
+  "app_ids": [],
+  "audit_date": "2026-04-19"
+ },
+ "given_files": [
+  "sources/"
+ ],
+ "withheld_files": [
+  "../../README.md#L46",
+  "ATTESTATION-ARCHITECTURE.html",
+  "CLOUD-API-ISSUE-DRAFT-model-substitution.md",
+  "DEVPROOF-REPORT-revisit-2026-05-02.md",
+  "DEVPROOF-REPORT.md",
+  "HERMES-DELTA-PLAN.md",
+  "SLIDE-cpu-gpu-attestation.html",
+  "TRUST-CHAIN-ANALYSIS.md",
+  "VERIFIER-DESIGN.md",
+  "VERIFIER-ISSUE-DRAFT.md",
+  "sources/attestation-captures-2026-05-05/README.md"
+ ],
+ "masked_files": [
+  "sources/attestation-captures-2026-05-05/README.md"
+ ]
+}
