@@ -5,7 +5,7 @@ import { servePeer } from "../lib/p2p.mjs";
 import { canonicalCouponJson } from "../lib/coupon-offer.mjs";
 import { couponAttestedClient, couponAttestedClientForTesting, couponAttestedRecipient, couponAttestedRecipientPeerHash, validateAttestedCouponOffer, COUPON_ISSUER_PROTOCOL, COUPON_ISSUER_FRAME_LIMIT, COUPON_PROTOCOL_V4 } from "../lib/coupon-attested.mjs";
 import { syntheticIssuerIdentity } from "./fixtures/coupon/issuer-v2.mjs";
-import { verifyDcapQuote } from "../lib/vendor/dstack-issuer/dstack_issuer.mjs";
+import { verifyDcapQuote, issuerPolicyHash, createDstackIssuerVerifierForTesting } from "../lib/vendor/dstack-issuer/dstack_issuer.mjs";
 
 const coupon = "a".repeat(43), sha = (v) => crypto.createHash("sha256").update(v).digest("hex");
 const bundle = (offer) => ({ offer, offer_hash: sha(Buffer.concat([Buffer.from("dsmack-coupon-offer-v4\0"), Buffer.from(canonicalCouponJson(offer))])) });
@@ -13,6 +13,42 @@ const terms = (peerId, info) => ({ version: 4, coupon_digest: sha(coupon), issue
   issuance_policy_sha256: info.issuance_policy_sha256, issuer_public_key_sha256: sha(Buffer.from(info.issuer_public_key_hex, "hex")) },
   provider: { id: "synthetic-near", scope_commitment: "cd".repeat(32) }, claim_policy: "first-authenticated-bearer", delivery_profile: "x25519-aesgcm-session-only",
   budget_nano_usd: "9223372036854775807", cap_semantics: "nominal-provider-limit", claim_expires_at: "2030-10-10T00:00:00Z", provider_expires_at: null, sponsor_powers: ["revoke", "change_limits"] });
+
+test("issuer policy admits the guest 0.5.9 key-provider event size through the existing 4096-byte replay bound", async () => {
+  // Synthetic bytes reproduce the observed 204-byte size; no captured hardware is an allowlist.
+  for (const size of [204, 4096]) {
+    const fixture = syntheticIssuerIdentity(undefined, undefined, "06".repeat(size));
+    const verifier = createDstackIssuerVerifierForTesting({ policy: fixture.policy,
+      expectedPolicySha256: fixture.info.identity_policy_sha256, syntheticQuoteVerifier: fixture.options.syntheticQuoteVerifier });
+    try {
+      const binding = verifier.challenge({ remotePeer: "FixtureIssuer0001", issuerPublicKeyHex: fixture.info.issuer_public_key_hex });
+      const identity = await verifier.verify(fixture.evidence(binding), { remotePeer: binding.peer_id });
+      assert.equal(identity.evidenceStatus, "synthetic-only-not-hardware");
+      assert.equal(identity.policySha256, issuerPolicyHash(fixture.policy));
+      assert.equal(identity.privateIssuanceQualified, false);
+    } finally { verifier.close(); }
+  }
+  const fixture = syntheticIssuerIdentity(), policy = structuredClone(fixture.policy);
+  for (const invalid of ["06".repeat(4097), "0", "", "AB", "06".repeat(204) + "g0"]) {
+    policy.approved_measurements[0].runtime_events["key-provider"] = invalid;
+    assert.throws(() => issuerPolicyHash(policy), /verification refused/);
+  }
+});
+
+test("larger key-provider pins retain exact measured content and strict TCB admission", async () => {
+  for (const change of ["pin", "tcb"]) {
+    const fixture = syntheticIssuerIdentity(undefined, undefined, "06".repeat(204));
+    const verifier = createDstackIssuerVerifierForTesting({ policy: fixture.policy,
+      expectedPolicySha256: fixture.info.identity_policy_sha256,
+      syntheticQuoteVerifier: async (quote) => ({ ...await fixture.options.syntheticQuoteVerifier(quote), ...(change === "tcb" ? { status: "OutOfDate" } : {}) }) });
+    try {
+      const binding = verifier.challenge({ remotePeer: "FixtureIssuer0001", issuerPublicKeyHex: fixture.info.issuer_public_key_hex });
+      // The fixture recomputes valid event digests and RTMR3, but the verifier keeps its original exact pin.
+      if (change === "pin") fixture.policy.approved_measurements[0].runtime_events["key-provider"] = "08".repeat(204);
+      await assert.rejects(verifier.verify(fixture.evidence(binding), { remotePeer: binding.peer_id }), /verification refused/);
+    } finally { verifier.close(); }
+  }
+});
 
 function delivery(accepted, recipientKey, peer) {
   const keyId = `synthetic-coupon-${sha(coupon)}`, recipient = Buffer.from(recipientKey, "base64");
