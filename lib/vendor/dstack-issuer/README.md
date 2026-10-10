@@ -11,7 +11,15 @@ app/compose on every refresh. Policy runtime-event pins also share the existing
 4096-byte event-replay bound, accepting the 204-byte key-provider event emitted
 by guest 0.5.9 while retaining exact event-content matching and strict TCB checks.
 Its current SHA256 is
-`5fa8424e7323b2e81304cc949555d02a582596ae73c6141bbdb8d52c2b635802`.
+`19c30ada74e70d96aeb5a351ea9b3177536919bb7b0a7c7ca3a11009f8680617`.
+
+Guest 0.5.9 SDK evidence reports runtime digests as empty strings. Only explicit
+empty IMR3 digests are accepted: the verifier derives each digest from the exact
+supported preimage, compares any reported digest, and extends its own computed
+digest before checking the authenticated RTMR3. Boot and missing digests remain
+refused. This matches the immutable upstream v0.5.9 source
+[`TdxEvent::stripped` and `digest`](https://github.com/Dstack-TEE/dstack/blob/282eeb27d22d8f091ad0fa5a90e638f85cf68751/cc-eventlog/src/tdx.rs)
+and [runtime event hashing](https://github.com/Dstack-TEE/dstack/blob/282eeb27d22d8f091ad0fa5a90e638f85cf68751/cc-eventlog/src/runtime_events.rs).
 The original worker SHA256 is
 `91f616c13e7a5245306ee055b9c829d51954343df7370d840a9a61da818404fc`.
 The worker here adapts only dependency lookup: Abalone uses the existing

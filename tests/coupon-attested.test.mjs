@@ -50,6 +50,29 @@ test("larger key-provider pins retain exact measured content and strict TCB admi
   }
 });
 
+test("guest 0.5.9 stripped runtime digests replay their own exact preimages against authenticated RTMR3", async () => {
+  const fixture = syntheticIssuerIdentity(undefined, undefined, "06".repeat(204));
+  for (const change of ["valid", "mismatched-digest", "missing-digest", "empty-boot-digest", "changed-payload"]) {
+    const verifier = createDstackIssuerVerifierForTesting({ policy: fixture.policy,
+      expectedPolicySha256: fixture.info.identity_policy_sha256, syntheticQuoteVerifier: fixture.options.syntheticQuoteVerifier });
+    try {
+      const binding = verifier.challenge({ remotePeer: "FixtureIssuer0001", issuerPublicKeyHex: fixture.info.issuer_public_key_hex });
+      const evidence = fixture.evidence(binding), events = JSON.parse(evidence.event_log);
+      for (const event of events) event.digest = "";
+      if (change === "mismatched-digest") events[0].digest = "ff".repeat(48);
+      if (change === "missing-digest") delete events[0].digest;
+      if (change === "empty-boot-digest") events.unshift({ ...events[0], imr: 0 });
+      if (change === "changed-payload") events.find((e) => e.event === "key-provider").event_payload = "08".repeat(204);
+      evidence.event_log = JSON.stringify(events);
+      if (change === "valid") {
+        const identity = await verifier.verify(evidence, { remotePeer: binding.peer_id });
+        assert.equal(identity.evidenceStatus, "synthetic-only-not-hardware");
+        assert.equal(identity.policySha256, fixture.info.identity_policy_sha256);
+      } else await assert.rejects(verifier.verify(evidence, { remotePeer: binding.peer_id }), /verification refused/);
+    } finally { verifier.close(); }
+  }
+});
+
 function delivery(accepted, recipientKey, peer) {
   const keyId = `synthetic-coupon-${sha(coupon)}`, recipient = Buffer.from(recipientKey, "base64");
   const aad = Buffer.from(canonicalCouponJson({ domain: "dsmack-coupon-delivery-v4", version: 4, offer_hash: accepted.offer_hash, coupon_digest: sha(coupon), key_id: keyId,
