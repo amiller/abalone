@@ -66,10 +66,16 @@
           "additionalProperties": false,
           "properties": {
             "gatewayTcb": {
-              "const": "UpToDate"
+              "enum": [
+                "UpToDate",
+                "UpToDate-or-OutOfDate-with-warning"
+              ]
             },
             "modelTcb": {
-              "const": "UpToDate"
+              "enum": [
+                "UpToDate",
+                "UpToDate-or-OutOfDate-with-warning"
+              ]
             },
             "gpuSignature": {
               "const": "required"
@@ -99,6 +105,28 @@
             "modelTcb",
             "gpuSignature",
             "composeRegistry"
+          ],
+          "oneOf": [
+            {
+              "properties": {
+                "gatewayTcb": {
+                  "const": "UpToDate"
+                },
+                "modelTcb": {
+                  "const": "UpToDate"
+                }
+              }
+            },
+            {
+              "properties": {
+                "gatewayTcb": {
+                  "const": "UpToDate-or-OutOfDate-with-warning"
+                },
+                "modelTcb": {
+                  "const": "UpToDate-or-OutOfDate-with-warning"
+                }
+              }
+            }
           ]
         }
       },
@@ -118,7 +146,7 @@
         },
         "files": {
           "type": "object",
-          "minProperties": 12,
+          "minProperties": 13,
           "additionalProperties": {
             "type": "string",
             "pattern": "^[0-9a-f]{64}$"
@@ -129,6 +157,7 @@
             "lib/coupon-attested.mjs",
             "lib/coupon-attested-session.mjs",
             "lib/coupon-near.mjs",
+            "lib/near.mjs",
             "lib/coupon-staging.mjs",
             "curated/coupon-provider.ts",
             "curated/manifest.json",

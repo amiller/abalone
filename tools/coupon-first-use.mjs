@@ -10,7 +10,7 @@ import { multiaddr } from "@multiformats/multiaddr";
 import { ROOT, providers, runtimeDir } from "../lib/config.mjs";
 import { verified } from "../lib/manifest.mjs";
 import { issuerPolicyHash } from "../lib/vendor/dstack-issuer/dstack_issuer.mjs";
-import { validateCouponNearProfile } from "../lib/coupon-near.mjs";
+import { validateCouponNearProfile, OUT_OF_DATE_TRIAL_POLICY, OUT_OF_DATE_TRIAL_NOTICE } from "../lib/coupon-near.mjs";
 import { verifyCouponStagingAdmission } from "../lib/coupon-staging.mjs";
 import { keyInfo } from "../lib/trace.mjs";
 import * as nodekeys from "../lib/nodekeys.mjs";
@@ -20,7 +20,7 @@ const exact = (v, keys) => v && Object.getPrototypeOf(v) === Object.prototype &&
 const hex = (v) => typeof v === "string" && /^[0-9a-f]{64}$/.test(v);
 const sha = (b) => crypto.createHash("sha256").update(b).digest("hex");
 const fail = (code, message) => Object.assign(new Error(message), { code });
-export const FIRST_USE_SOURCE_FILES = ["tools/coupon-first-use.mjs", "bin/abalone.mjs", "lib/coupon-attested.mjs", "lib/coupon-attested-session.mjs", "lib/coupon-near.mjs", "lib/coupon-staging.mjs", "curated/coupon-provider.ts", "curated/manifest.json", "package-lock.json", "pi/package-lock.json", "aci/package-lock.json", "pi/packages/coding-agent/dist/cli.js"];
+export const FIRST_USE_SOURCE_FILES = ["tools/coupon-first-use.mjs", "bin/abalone.mjs", "lib/coupon-attested.mjs", "lib/coupon-attested-session.mjs", "lib/coupon-near.mjs", "lib/near.mjs", "lib/coupon-staging.mjs", "curated/coupon-provider.ts", "curated/manifest.json", "package-lock.json", "pi/package-lock.json", "aci/package-lock.json", "pi/packages/coding-agent/dist/cli.js"];
 function publicFile(base, name) {
   if (typeof name !== "string" || !name || path.isAbsolute(name) || name.split(/[\\/]/).includes("..")) throw fail("bundle_invalid", "Public artifact paths must be relative within the trial bundle.");
   const real = fs.realpathSync(path.resolve(base, name));
@@ -39,6 +39,7 @@ export function loadTrial(file) {
   const approval = verifyCouponStagingAdmission(publicFile(base, b.issuer.approval), { approvalRoot: b.issuer.approvalRoot, identityPolicySha256: pin.expectedIdentityPolicySha256, issuancePolicySha256: pin.expectedIssuancePolicySha256, issuerPublicKeySha256: pin.expectedIssuerPublicKeySha256 });
   if (!exact(b.provider, ["baseUrl", "model", "policy", "maxTokens"])) throw fail("provider_not_admitted", "Supply the exact strict direct NEAR profile and explicit model.");
   validateCouponNearProfile(b.provider);
+  if (b.provider.policy.gatewayTcb === OUT_OF_DATE_TRIAL_POLICY && (BigInt(approval.maxCouponNanoUsd) > 5_000_000_000n || BigInt(approval.maxTotalNanoUsd) > 5_000_000_000n)) throw fail("provider_not_admitted", "The explicit OutOfDate exception is limited to a signed synthetic-only $5 trial.");
   if (b.provider.maxTokens !== 512) throw fail("provider_not_admitted", "The current recipient entrypoint pins a 512-token limit.");
   if (!exact(b.source, ["profile", "files"]) || b.source.profile !== "reviewed-development-source-v1" || !b.source.files || !FIRST_USE_SOURCE_FILES.every((name) => hex(b.source.files[name])) || !Object.entries(b.source.files).every(([name, hash]) => hex(hash) && !path.isAbsolute(name) && !name.split(/[\\/]/).includes(".."))) throw fail("source_inputs_missing", "Supply the reviewed candidate's selected source and dependency/build file hashes.");
   return { bundle: b, base, pin, approval };
@@ -77,7 +78,7 @@ export async function preflight(file) {
 export const firstUseNotice = "Debug staging trial: use synthetic, non-sensitive prompts only. The operator may know, use or revoke the API key. Direct attested NEAR model transport is admitted separately; the issuer is not a prompt relay. Private issuer custody, rollback and settlement are unqualified. Incognito keeps an encrypted trace; it does not provide OS/VPN anonymity or erase workspace files.";
 export function recipientArgv(trial) {
   const { bundle: b, base } = trial;
-  return [path.join(ROOT, "bin/abalone.mjs"), "coupon-session", "--attested", "--peer", b.issuer.peer, "--issuer-pin", path.resolve(base, b.issuer.pin), "--staging-approval", path.resolve(base, b.issuer.approval), "--approval-root", b.issuer.approvalRoot, "--model", `near/${b.provider.model}`, "--incognito"];
+  return [path.join(ROOT, "bin/abalone.mjs"), "coupon-session", "--attested", "--peer", b.issuer.peer, "--issuer-pin", path.resolve(base, b.issuer.pin), "--staging-approval", path.resolve(base, b.issuer.approval), "--approval-root", b.issuer.approvalRoot, "--model", `near/${b.provider.model}`, "--incognito", ...(b.provider.policy.gatewayTcb === OUT_OF_DATE_TRIAL_POLICY ? ["--allow-out-of-date-trial"] : [])];
 }
 export function recipientStdio(env = process.env) {
   const stdio = ["inherit", "inherit", "inherit"], seen = new Set();
@@ -98,6 +99,7 @@ async function main(argv) {
   for (const c of trial.missing) process.stderr.write(`${c.code}: ${c.message}\n`);
   if (!trial.ready) { process.exitCode = 2; return; }
   process.stderr.write(`${firstUseNotice}\n`);
+  if (trial.bundle.provider.policy.gatewayTcb === OUT_OF_DATE_TRIAL_POLICY) process.stderr.write(`${OUT_OF_DATE_TRIAL_NOTICE}\n`);
   if (argv[0] === "preflight") return;
   // The public profile is pinned to the recipient defaults; bearer entry remains hidden.
   const child = spawn(process.execPath, recipientArgv(trial), { stdio: recipientStdio(), env: { ...process.env } });

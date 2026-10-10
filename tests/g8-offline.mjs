@@ -69,3 +69,22 @@ for (const [name, run, why] of [
   ["compose registry unreachable", () => check(fx.report, replay((r) => { if (r.request?.includes("eth_chainId")) throw new Error("connect ECONNREFUSED"); return r; })), /compose registry RPC .* is unreachable/],
   ["gateway quote byte flipped", () => check(copy((r) => (r.gateway_attestation.intel_quote = flipHex(r.gateway_attestation.intel_quote, 1000)))), /signature is invalid/],
 ]) test(`refused: ${name}`, async () => { await assert.rejects(run(), why); });
+
+test("explicit firmware trial still verifies recorded cryptography and warns verified statuses; tampering remains refused", async () => {
+  const mode = "UpToDate-or-OutOfDate-with-warning";
+  const policy = { gatewayTcb: mode, modelTcb: mode, gpuSignature: "required", composeRegistry: { rpc: "https://mainnet.base.org", chainId: 8453 } };
+  const { couponNearAdmissionWarning } = await import("../lib/coupon-near.mjs");
+  const verified = await checkReport(fx.report, fx.nonce, fx.baseUrl, fx.model, policy, replay());
+  try {
+    assert.equal(verified.profile.gateway_tcb_status, "OutOfDate");
+    assert.ok(verified.profile.model_tcb_statuses.every(s => ["UpToDate", "OutOfDate"].includes(s)));
+    assert.match(couponNearAdmissionWarning(verified.profile, policy), /gateway verified TCB OutOfDate; advisories: INTEL-SA-/);
+  } finally { await verified.transport.close(); }
+  for (const [rep, nonce, http, failure] of [
+    [fx.report, "00".repeat(32), replay(), /nonce/],
+    [copy(r => r.gateway_attestation.intel_quote = flipHex(r.gateway_attestation.intel_quote, 1000)), fx.nonce, replay(), /signature is invalid/],
+    [copy(r => r.model_attestations[0].signing_public_key = flipHex(r.model_attestations[0].signing_public_key, 10)), fx.nonce, replay(), /does not hash/],
+    [fx.report, fx.nonce, replay(nrasFalse), /NRAS token signature/],
+    [fx.report, fx.nonce, replay(r => r.url.endsWith("/jwks.json") ? { ...r, status: 503 } : r), /signature is required/],
+  ]) await assert.rejects(checkReport(rep, nonce, fx.baseUrl, fx.model, policy, http), failure);
+});

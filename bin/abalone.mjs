@@ -105,7 +105,7 @@ async function attestedCouponSessionCmd(peerAddr) {
   if (args.some((a) => REFUSED.has(a))) throw new Error("This coupon session refuses flags that change ambient resources. Nothing was claimed.");
   if (args.includes("--experimental-local")) throw new Error("--experimental-local is the version 3 profile; the attested session takes --fixture-local or --staging-approval. Nothing was claimed.");
   const seen = new Set();
-  let profile, approvalFile, approvalRoot, issuerPinFile, model;
+  let profile, approvalFile, approvalRoot, issuerPinFile, model, allowOutOfDateTrial = false;
   for (let n = 0; n < args.length; n++) {
     const a = args[n];
     if (seen.has(a)) throw new Error("Duplicate coupon-session options are refused. Nothing was claimed.");
@@ -113,13 +113,16 @@ async function attestedCouponSessionCmd(peerAddr) {
     const value = () => { if (!args[n + 1] || args[n + 1].startsWith("--")) throw new Error(`${a} needs a value. Nothing was claimed.`); return args[++n]; };
     if (a === "--fixture-local") { if (profile) throw new Error("Choose exactly one attested profile. Nothing was claimed."); profile = "fixture-local"; }
     else if (a === "--staging-approval") { if (profile) throw new Error("Choose exactly one attested profile. Nothing was claimed."); profile = "debug-staging"; approvalFile = value(); }
+    else if (a === "--allow-out-of-date-trial") allowOutOfDateTrial = true;
     else if (a === "--approval-root") approvalRoot = value();
     else if (a === "--issuer-pin") issuerPinFile = value();
     else if (a === "--model") model = value();
     else if (a === "--mode") { if (value() !== "rpc") throw new Error("The only automated coupon-session mode is RPC. Nothing was claimed."); }
-    else if (!["--incognito", "--no-canaries"].includes(a)) throw new Error("An attested coupon session accepts only --peer, --attested, --fixture-local, --staging-approval <file>, --approval-root <hex>, --issuer-pin <file>, --model, --incognito, --no-canaries and --mode rpc. Never put a coupon in command arguments. Nothing was claimed.");
+    else if (!["--incognito", "--no-canaries"].includes(a)) throw new Error("An attested coupon session accepts only --peer, --attested, --fixture-local, --staging-approval <file>, --approval-root <hex>, --issuer-pin <file>, --model, --allow-out-of-date-trial, --incognito, --no-canaries and --mode rpc. Never put a coupon in command arguments. Nothing was claimed.");
   }
   if (!profile) throw new Error("An attested coupon session needs a profile: --fixture-local (synthetic loopback issuer), or --staging-approval <file> --approval-root <hex> (signed debug staging). Nothing was claimed.");
+  if (allowOutOfDateTrial && profile !== "debug-staging") throw new Error("--allow-out-of-date-trial is available only with signed synthetic debug staging. Nothing was claimed.");
+  if (allowOutOfDateTrial) process.stderr.write("WARNING: Explicit synthetic, non-sensitive $5 trial accepts verified gateway and model OutOfDate firmware/advisories. All cryptographic checks remain required. Actual verified status/advisories will be shown before provider use; private guarantees are not qualified.\n");
   if (profile === "debug-staging" && (!approvalFile || !approvalRoot)) throw new Error("The debug-staging profile needs both --staging-approval <file> and --approval-root <hex>. Nothing was claimed.");
   if (profile === "fixture-local" && (approvalFile || approvalRoot)) throw new Error("The fixture-local profile takes no staging approval; use --staging-approval for the debug-staging profile. Nothing was claimed.");
   if (!issuerPinFile) throw new Error("An attested coupon session needs --issuer-pin <file>: the issuer identity policy and the three pinned hashes. Nothing was claimed.");
@@ -139,11 +142,11 @@ async function attestedCouponSessionCmd(peerAddr) {
   const slotProvider = profile === "fixture-local" ? "synthetic-near" : "nearai";
   const nearKeyEnv = p.admitted?.find((a) => a.id === "nearai")?.keyEnv;
   const poll = Number(process.env.ABALONE_COUPON_POLL_MS ?? 30_000);
-  admitAttestedCouponSessionIssuer({ profile, peerAddr, admit: p.peers?.admit, issuerPin: pin, stagingApproval, model: model.slice(prefix.length),
+  admitAttestedCouponSessionIssuer({ profile, peerAddr, admit: p.peers?.admit, issuerPin: pin, stagingApproval, allowOutOfDateTrial, model: model.slice(prefix.length),
     config: p, ...(profile === "fixture-local" ? { syntheticQuoteVerifier: async (hex) => JSON.parse(Buffer.from(hex, "hex").toString()) } : {}),
     occupied: nodekeys.load().keys.some((k) => k.provider === slotProvider),
     ambient: profile === "fixture-local" ? !!process.env.SYNTHETIC_COUPON_API_KEY || !!process.env.ABALONE_COUPON_SOCKET : !!process.env.ABALONE_COUPON_SOCKET || !!(nearKeyEnv && process.env[nearKeyEnv]) });
-  couponSlot = await openAttestedCouponSession({ peerAddr, admit: p.peers?.admit, profile, issuerPin: pin, stagingApproval, model: model.slice(prefix.length), config: p,
+  couponSlot = await openAttestedCouponSession({ peerAddr, admit: p.peers?.admit, profile, issuerPin: pin, stagingApproval, allowOutOfDateTrial, model: model.slice(prefix.length), config: p,
     ...(profile === "fixture-local" ? { syntheticQuoteVerifier: async (hex) => JSON.parse(Buffer.from(hex, "hex").toString()) } : {}),
     occupied: nodekeys.load().keys.some((k) => k.provider === slotProvider),
     ambient: profile === "fixture-local" ? !!process.env.SYNTHETIC_COUPON_API_KEY || !!process.env.ABALONE_COUPON_SOCKET : !!process.env.ABALONE_COUPON_SOCKET || !!(nearKeyEnv && process.env[nearKeyEnv]),
@@ -175,7 +178,7 @@ async function attestedCouponSessionCmd(peerAddr) {
     }
   }
   process.stderr.write(profile === "debug-staging"
-    ? "Installed the delivered credential for this process only, under the signed debug-staging admission (operator secret access; not private issuance; synthetic-only prompts). Inference uses the local provider socket through the strict NEAR adapter. Balance and provider expiry remain unknown. /coupon shows state; /coupon forget closes this process.\n"
+    ? "Installed the delivered credential for this process only, under the signed debug-staging admission (operator secret access; not private issuance; synthetic-only prompts). Inference uses the local provider socket through the selected NEAR policy; the explicit trial exception is disclosed when selected. Balance and provider expiry remain unknown. /coupon shows state; /coupon forget closes this process.\n"
     : "Installed the attested fixture credential for this process only. Inference uses the local provider socket, not dsmack. Balance and provider expiry remain unknown. /coupon shows state; /coupon forget closes this process.\n");
   // Admission flags belong to the launcher. Pi receives only its selected socket provider/model.
   const sessionArgs = ["--model", `${couponSlot.provider.provider}/${couponSlot.provider.model}`];

@@ -500,3 +500,22 @@ test("closing during a pending claim or broker opening aborts cleanly and leaves
     } finally { fs.rmSync(directory, { recursive: true, force: true }); }
   } finally { await session?.close(); await server.host.stop(); }
 });
+
+test("firmware exception is explicit signed-debug-only and refuses a larger trial before any bearer", async () => {
+  const signer = syntheticStagingSigner(), approval = signer.sign({ identityPolicySha256: pin().expectedIdentityPolicySha256,
+    issuancePolicySha256: pin().expectedIssuancePolicySha256, issuerPublicKeySha256: issuerKeySha, providerScopeCommitment: "cd".repeat(32) });
+  const common = { peerAddr: "/ip4/127.0.0.1/tcp/1234/p2p/12D3KooWDbxDummy", issuerPin: pin(), model: nearModel,
+    stagingApproval: { bytes: approval.bytes, approvalRoot: approval.rootHex }, profile: "debug-staging" };
+  const strict = admitAttestedCouponSessionIssuer(common), trial = admitAttestedCouponSessionIssuer({ ...common, allowOutOfDateTrial: true });
+  assert.equal(strict.provider.policy.modelTcb, "UpToDate");
+  assert.equal(trial.provider.policy.gatewayTcb, "UpToDate-or-OutOfDate-with-warning");
+  assert.equal(trial.provider.policy.modelTcb, trial.provider.policy.gatewayTcb);
+  assert.throws(() => admitAttestedCouponSessionIssuer({ ...common, profile: "fixture-local", allowOutOfDateTrial: true }), { code: "profile_refused" });
+  assert.throws(() => admitAttestedCouponSessionIssuer({ ...common, allowOutOfDateTrial: "true" }), { code: "profile_refused" });
+  let closed = 0;
+  await assert.rejects(openAttestedCouponSession({ ...common, allowOutOfDateTrial: true, connect: async () => ({
+    stagingAdmission: { promptPolicy: "synthetic-only", maxCouponNanoUsd: "5000000000", maxTotalNanoUsd: "5000000001" },
+    close: async () => { closed++; }, offer: () => { throw Error("bearer must not be sent"); },
+  }) }), { code: "profile_refused" });
+  assert.equal(closed, 1);
+});

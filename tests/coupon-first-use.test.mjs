@@ -83,3 +83,22 @@ test("standalone incognito does not require VPN; broader preview retains its qua
     assert.equal(preview.missing.find((c) => c.name === "VPN").code, "vpn_not_qualified");
   } finally { fs.rmSync(f.directory, { recursive: true, force: true }); }
 });
+
+test("signed $5 trial explicitly carries the paired firmware exception to the recipient; default and larger approvals remain strict", () => {
+  const f = fixture();
+  try {
+    f.save(); assert.ok(!recipientArgv(loadTrial(f.file)).includes("--allow-out-of-date-trial"));
+    f.bundle.provider.policy.gatewayTcb = f.bundle.provider.policy.modelTcb = "UpToDate-or-OutOfDate-with-warning";
+    f.save(); assert.ok(recipientArgv(loadTrial(f.file)).includes("--allow-out-of-date-trial"));
+    f.bundle.provider.policy.modelTcb = "UpToDate"; f.save(); assert.throws(() => loadTrial(f.file));
+    f.bundle.provider.policy.modelTcb = f.bundle.provider.policy.gatewayTcb;
+    const pin = JSON.parse(fs.readFileSync(path.join(f.directory, "issuer-pin.json"))), signer = syntheticStagingSigner();
+    const approval = signer.sign({ identityPolicySha256: pin.expectedIdentityPolicySha256, issuancePolicySha256: pin.expectedIssuancePolicySha256,
+      issuerPublicKeySha256: pin.expectedIssuerPublicKeySha256, providerScopeCommitment: "cd".repeat(32), maxCouponNanoUsd: "5000000000", maxTotalNanoUsd: "5000000001" });
+    f.bundle.issuer.approvalRoot = signer.rootHex;
+    fs.writeFileSync(path.join(f.directory, "approval.json"), approval.bytes);
+    f.save(); assert.throws(() => loadTrial(f.file), { code: "provider_not_admitted" });
+    f.bundle.provider.policy.gatewayTcb = f.bundle.provider.policy.modelTcb = "UpToDate";
+    f.save(); assert.ok(loadTrial(f.file), "larger approvals retain their original strict policy");
+  } finally { fs.rmSync(f.directory, { recursive: true, force: true }); }
+});

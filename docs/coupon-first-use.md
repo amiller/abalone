@@ -92,9 +92,32 @@ not fixture-selected live authority, model, budget or route pins.
 | Issuer | Actual private advertised `/p2p` multiaddr and approved route description |
 | Identity pin | Exact `identityPolicy`, `expectedIdentityPolicySha256`, `expectedIssuancePolicySha256`, `expectedIssuerPublicKeySha256` |
 | Staging | Exact canonical signed approval bytes and independently supplied 64-hex Ed25519 root **public** key |
-| Provider | Explicit NEAR model, `https://cloud-api.near.ai/v1`, gateway/model `UpToDate`, required GPU signature, Base 8453 at `https://mainnet.base.org`, 512-token bound |
+| Provider | Explicit NEAR model, `https://cloud-api.near.ai/v1`, gateway/model `UpToDate` by default (explicit warning trial below), required GPU signature, Base 8453 at `https://mainnet.base.org`, 512-token bound |
 | Source | Reviewed candidate's selected source/lock/build SHA256 map; curated manifest verifies its complete admitted trees |
 | VPN | `null` for standalone incognito; optional reviewed profile/report only for a separately selected later VPN trial |
+
+## Explicit firmware warning trial
+
+Default admission requires gateway and model `UpToDate`. For the authorized
+synthetic, non-sensitive $5 trial only, the operator may set **both**
+`provider.policy.gatewayTcb` and `provider.policy.modelTcb` to
+`UpToDate-or-OutOfDate-with-warning` in the public bundle. The wrapper translates
+this explicit choice to `--allow-out-of-date-trial`; the direct coupon command
+accepts that flag only with signed debug staging. A signed approval must cap each
+coupon and the entire trial at 5000000000 nanoUSD; the token bound remains 512.
+The strict template stays unchanged. No ambient provider setting selects the
+exception.
+
+This permits only cryptographically verified `UpToDate` and `OutOfDate`, with a
+warning before gift entry/consent and actual component statuses and Intel advisory
+IDs before every fresh provider admission, including lease renewal. Every other
+TCB status, bad signature, stale evidence, broken nonce/key/measurement/TLS binding,
+unapproved compose or failed NVIDIA check still refuses. The verified gateway
+and Qwen platforms observed on 10 October were `OutOfDate`; accepting known
+firmware exposure does not establish private guarantees. Only synthetic,
+non-sensitive prompts are authorized. Prompt sensitivity is a consent rule,
+not an automatic content classifier. No live gift/inference success is asserted
+by this option or its offline tests.
 
 ## Separate later portable-agent and node-provided VPN milestone
 
