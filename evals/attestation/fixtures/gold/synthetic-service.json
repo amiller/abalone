@@ -1,0 +1,1 @@
+{"case":"synthetic-service","stage":"0","gaps":[{"tag":"op:no-upgrade-log","text":"Synthetic operator has no public upgrade log.","cite":"evidence/README.md"}],"note":"Expected fake-analyst plumbing output only; not a competence baseline."}

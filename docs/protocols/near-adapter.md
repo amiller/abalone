@@ -1,17 +1,20 @@
-# Strict real NEAR recipient adapter
+# NEAR recipient adapter
 
-Draft recipient adapter, 10 October 2026. `lib/coupon-near.mjs` connects a delivered
+`lib/coupon-near.mjs` connects a delivered
 version 4 coupon credential to real NEAR AI inference: a selected provider profile,
 fresh remote attestation before the first prompt byte, a pinned transport, model
-end-to-end encryption and a sandbox-facing credential broker. It is client inference
+end-to-end encryption and a launcher-side credential broker. It is client inference
 code only. Issuance remains the separately gated
-[attested issuer path](coupon-attested-experiment.md); nothing here qualifies private
-issuance, rollback recovery, settlement, the [host VPN boundary](vpn-qualification.md)
+[issuer-bound coupon protocol](coupon.md); nothing here qualifies private
+issuance, rollback recovery, settlement, the [host VPN boundary](../vpn-qualification.md)
 or an installed release.
 
 ## Selected profile
 
-The adapter accepts no inherited `providers.json` defaults. `validateCouponNearProfile`
+The adapter accepts no inherited `providers.json` defaults. The normal policy
+requires `UpToDate`; the separately selected signed synthetic trial can allow
+`OutOfDate` only with actual warnings, as described in
+[the development trial](../gift-trial.md). `validateCouponNearProfile`
 requires the exact endpoint `https://cloud-api.near.ai/v1`, an explicit model id, a
 `maxTokens` bound, and a policy whose `gatewayTcb` and `modelTcb` are both `UpToDate`,
 whose `gpuSignature` is `required`, and whose `composeRegistry` is exactly
@@ -26,7 +29,7 @@ against the pinned intermediate, and the compose measured into RTMR3 admitted by
 DstackApp governance on Base. **The compose registry check is an RPC-trusted read at one
 block from the pinned Base mainnet endpoint; it is not a Helios light-client finality
 proof.** Its trust is the RPC endpoint plus NEAR's on-chain governance, which is the
-same trust the [ordinary profile](../lib/near.mjs) documents. Admission collateral
+same trust the [ordinary profile](../../lib/near.mjs) documents. Admission collateral
 fetches are pinned to the Intel, NVIDIA and Base hosts above, refuse redirects and any
 credential header, and are byte-bounded. The chat transport is pinned to the gateway
 TLS SPKI from the verified quote.
@@ -60,7 +63,7 @@ that hits expiry.
 ## Recipient credential broker
 
 `couponNearCredentialBroker({ socketPath, adapter, ... })` connects the adapter to the
-sandbox child the same way the synthetic session broker does: a mode-0600 Unix socket
+selected child process the same way the synthetic session broker does: a mode-0600 Unix socket
 in an unused, user-owned private directory is the only thing that crosses into the
 child, with the placeholder authorization. The raw provider key stays in the launcher
 process inside the adapter; the broker itself never holds it. Only
@@ -77,7 +80,7 @@ An inference failure never issues another credential or uses an alternate key. A
 possession-of-socket capability is not sealing against the host or proof that
 arbitrary sandbox code cannot use it.
 
-## Testing boundary and the future staging drill
+## Synthetic testing boundary
 
 `openCouponNearAdapterForTesting` is a separately named factory whose admission verdict
 must be explicitly synthetic — its exact shape cannot carry a genuine verification
@@ -88,19 +91,19 @@ Full admission cannot be replayed offline at all: the attestation nonce is fresh
 admission and the quotes are genuine bytes, so a recording only verifies against its
 own nonce. A future bounded staging drill against the real service will use this
 adapter unmodified with synthetic prompt content under an explicitly authorized,
-budgeted task; this development handoff makes no live provider calls.
+budgeted task; the fixture path does not qualify live service behavior.
 
 ## Service staging manifest coordination
 
-Staging admission of the dsmack service is a signed, independently pinned manifest, and
-the service task now ships the exact schema. The client mirrors it in
+Staging admission uses a signed, independently pinned manifest with an exact
+versioned approval schema. The client validates it in
 `lib/coupon-staging.mjs` (`verifyCouponStagingAdmission`), verified against vectors the
 service's own fixture signed — not a boolean and not an always-refuse wrapper. The
 approval envelope is `{domain, payload, signature_hex}` with domain
 `dsmack-coupon-staging-approval-v1` and an Ed25519 signature over the domain, a NUL,
 and canonical ASCII JSON, checked against the approval root the service compiles into
 its measured image (`packaging/coupon/approval-root.json`); the recipient pins that
-root independently. The payload is exactly:
+root independently. This is the legacy TDX/version 1 Sepolia payload:
 
 ```js
 { "version": 1, "profile": "debug-staging", "app_id": "<40 hex>",
@@ -116,20 +119,44 @@ root independently. The payload is exactly:
   "expires_at": "<ISO-8601 Z>", "generation": 1 }
 ```
 
+The current Mac profile uses envelope domain `dsmack-coupon-mac-approval-v1`.
+Its payload has `version:2`, adds exactly `issuer_profile:"mac-appattest-coupon-v1"`
+and a lowercase 64-hex `cdhash`, and uses an application identifier matching
+`[A-Za-z0-9:_./|+-]{1,200}` rather than the TDX 40-hex app id. Other payload fields
+and fixed ordered `powers` are unchanged. Domain, payload version and profile
+must agree; a valid signature does not permit unknown or extra fields.
+
+Both identity variants accept either the legacy Sepolia guard shown above or
+chain 8453 with these exact additional Base guard confirmation fields:
+
+```js
+confirmation: {
+  version: 1, profile: "base-mainnet-rpc-safe-debug-v1", block_tag: "safe",
+  rpc_url: "https://mainnet.base.org", trust: "configured-rpc",
+  l1_finality_verified: false, reorg_action: "quarantine-no-retry"
+}
+```
+
+For Base, each coupon and the aggregate approval cap are at most 5000000000
+nanoUSD. The recipient verifies the signed descriptor, not independent chain
+state or Ethereum L1 finality. `generation` is a positive safe integer and
+`expires_at` must be a future UTC timestamp. Exact validation lives in
+`lib/coupon-staging.mjs`; signed Mac and TDX negatives are exercised by
+`tests/mac-coupon-issuer.test.mjs` and `tests/coupon-staging.test.mjs`.
+
 Genuine hardware identity is stated, never inferred: the manifest binds the app id,
 compose hash and issuer key hash the service proves over `/dsmack/coupon/issuer/2`,
 and the client cross-checks those pins against its own identity admission. The powers
 are an exact allowlist — debug staging permits operator secret access — so a verified
 manifest can never claim private issuance, rollback qualification or settlement
 approval; the verifier's typed verdict states `operatorSecretAccess: true` alongside
-`privateIssuance/rollback/settlement: false`, and the first private-inference release
-still requires the restrictive target profile. The companion
+`privateIssuance/rollback/settlement: false`, and broader private-inference qualification
+requires a restrictive custody profile. The companion
 `dsmack-coupon-staging-config-v1` envelope (approval hash, peers, provider account,
 finality profile) is operator-side and carries provider secrets, so recipient code
 never consumes it. The fixture vectors in `tests/fixtures/coupon/staging/` are signed
 by the service's published test root — not the measured image root and not a staging
-authority — and the exact field set remains owned by the service task's
-`staging_approval.py`.
+authority — and the exact field set is enforced by `lib/coupon-staging.mjs` and must match the issuer implementation.
 
 ## Evidence
 

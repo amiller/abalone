@@ -115,7 +115,7 @@
       },
       "dev": false,
    "task": {
-    "note": "Task image digests a client accepts in a runner worker's offer (notes/contracts/runner-task-needs.md), compared by digest only: the repository name in the offer never matters. An offer with a local: image is a development process and is shown as one. appId and category: the runner build whose App Attest assertion binds a task VM boot (abalone verify; its CDHashes are macrunner.cdhashes).",
+    "note": "Task image digests a client accepts in a runner worker's offer (docs/protocols/runner-task.md), compared by digest only: the repository name in the offer never matters. An offer with a local: image is a development process and is shown as one. appId and category: the runner build whose App Attest assertion binds a task VM boot (abalone verify; its CDHashes are macrunner.cdhashes).",
     "appId": "DC9JH5DRMY.dev.dsmack.provider",
     "category": 3,
     "images": [

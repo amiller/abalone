@@ -1,18 +1,24 @@
 # Contract: the strict-incognito trace store (`abalone-trace/2`)
 
-Owner: Track A (`agent/incognito`). Status: pinned 2026-10-08; revised the same night after review (v1 → v2: maintained formats, a passphrase-protected key, a launcher-side writer, high-water marks). Code: `lib/trace.mjs`, `bin/abalone.mjs` (`session`, `traceCmd`). Other tracks and the UI/runtime-facts integrator may rely on everything below; a change bumps the version string.
+The format is implemented in `lib/trace.mjs` and `bin/abalone.mjs`.
+The storage format is distinct from the selected host boundary; see
+[security profiles](../security.md).
 
 ## Entry and mode
 
 `abalone --incognito <folder>` starts a strict-incognito session in `<folder>`. Nothing else turns the mode on: the launcher deletes any inherited `ABALONE_INCOGNITO` and sets it itself. By default no conversation trace is retained and no trace key or passphrase is needed. `--keep-trace` explicitly retains an encrypted trace, creating a passphrase-protected key before any gift entry if absent. The session refuses `--resume`/`--continue`/`--session`, and refuses a `--model` whose provider is not ⌂ local or ◈ admitted.
 
-Inside the mode:
+The incognito managed inference routes exclude outside workers. The friend
+wrapper obtains a coupon credential before handing control to Pi; incognito
+is not a claim that every launcher control operation is absent. Browser grants
+and managed public-fetch/outside-runner paths are refused.
 
-- **Inference**: only `providers.json` `local` (⌂, loopback) and `admitted` (◈, attested before the first prompt byte) providers. The `runner` and `nearai-outside` providers are not registered, `ask_frontier` is not registered, and the gift peer is not connected. A turn on any other model is refused at input and again before the request is built.
-- **Network**: the existing egress allows admitted TEE hosts, their verifier hosts and loopback model ports, with no runner CONNECT hosts. There is no `/fetch`, no Tor and no public shell. Bash has no network.
-- **Browser**: the launcher's browser bridge refuses `tabs` and `grant` (`/browser grant`), and the capability table has no `browse` row. A page is a destination outside ⌂/◈, and the page's content would carry the session's context there.
-- **Launcher control socket**: only `trace-append` and `trace-context`. `folder`, `fetch`, `runner`, `redeem`, `gift` and `report` are refused.
-- **Harness state**: the Pi sandbox sees `$ABALONE_DIR` as an empty tmpfs. Only `canaries/` and `approvals/` are bound in, read-only. Pi runs with `--no-session`, and its agent dir (settings, crash log, debug log) is `$run/agent` in the per-user runtime dir, removed at exit. Every harness write inside the sandbox stays in memory and vanishes at exit: notebook, `agents.jsonl`, `folders.json`, evidence cache, extraction scratch. The launcher (outside the sandbox) appends `egress.jsonl` (host names only) and, only with `--keep-trace`, the trace high-water mark (below).
+In the bubblewrap profile, the harness uses explicit sandbox mounts and network
+restriction. In the owned-host friend profile, local tools run with ordinary
+account filesystem/network access. Both profiles use temporary managed agent
+state and discard trace appends by default. With `--keep-trace`, the launcher
+writes the encrypted trace. tmpfs can swap, and workspace files and terminal
+captures can survive; these are not secure-erasure guarantees.
 
 ## Files
 
@@ -24,11 +30,11 @@ $ABALONE_DIR/keys/trace-active                             the kid new traces ar
 $ABALONE_DIR/trace-hwm/<id>.json                           high-water mark {id, file, frames, last, closed}
 ```
 
-`$ABALONE_DIR` defaults to `~/.abalone`. Neither key file is under the folder, so copying the folder does not copy them. Every sandbox hides `$ABALONE_DIR/keys`: Pi gets a tmpfs over it in every mode, and bash gets a tmpfs over all of `$ABALONE_DIR`.
+`$ABALONE_DIR` defaults to `~/.abalone`. Neither key file is under the folder, so copying the folder does not copy them. In the bubblewrap profile, Pi sees a tmpfs over `$ABALONE_DIR/keys`, and bash sees a tmpfs over all of `$ABALONE_DIR`. The owned-host profile has no such account-wide confinement.
 
-**With explicit `--keep-trace`, the writer is the launcher, outside the sandbox.** In default session-only mode `trace-append` is acknowledged and discarded; no transcript is written or indexed. Pi's extension sends each new session entry over the launcher's control socket (`trace-append`, a unix socket in the run dir, which bash cannot see). The launcher encrypts the entry and appends it. The stream key exists only in the launcher's memory, and each session draws a fresh one. No code path reopens an existing trace for writing, so a resumed or continued session (`--with-trace`) writes a new trace under a new stream key only if `--keep-trace` is also selected. The sandbox never holds a key that decrypts any trace, its own included. The launcher writes the final frame after Pi exits, whatever the exit code, so a Pi crash still closes the trace. Only a launcher killed without a chance to run (SIGKILL, power loss) leaves it unclosed.
+**With explicit `--keep-trace`, the writer is the launcher.** In default session-only mode `trace-append` is acknowledged and discarded; no transcript is written or indexed. Pi's extension sends each new session entry over the launcher's control socket (`trace-append`, a Unix socket in the run dir, hidden from bash in the bubblewrap profile). The launcher encrypts the entry and appends it. The stream key exists only in the launcher's memory, and each session draws a fresh one. No code path reopens an existing trace for writing, so an explicitly reopened session (`--with-trace`) writes a new trace under a new stream key only if `--keep-trace` is also selected. The managed Pi process receives no trace decryption key; an owned-host process is not confined against same-user memory or filesystem access. The launcher writes the final frame after Pi exits, whatever the exit code, so a Pi crash still closes the trace. Only a launcher killed without a chance to run (SIGKILL, power loss) leaves it unclosed.
 
-Model tools treat `<folder>/.abalone/` as outside the workspace: the folder listing omits it, in-content `list`/`read`/`grep`/`write` and `@` mentions refuse or skip it, native `read`/`write`/`edit` lack the capability for it, and bash sees it read-only.
+Model tools treat `<folder>/.abalone/` as outside the workspace: the folder listing omits it, in-content `list`/`read`/`grep`/`write` and `@` mentions refuse or skip it, native `read`/`write`/`edit` lack the capability for it, and, in the bubblewrap profile, bash sees it read-only. These managed tool checks are not filesystem confinement on the owned-host profile.
 
 ## Format
 
@@ -60,7 +66,7 @@ What this gives: confidentiality and integrity of every record, their order, bin
 
 ## Key custody and recovery
 
-The private key is an age identity, stored only encrypted under a passphrase the user chooses (`abalone trace key init`; age scrypt, work factor 2^18, about 2 s on this laptop). A session needs only the recipient, so starting incognito never asks for the passphrase. The passphrase is asked for only by `trace open`, `--with-trace` and `trace key export`, on the terminal, hidden. For automation, `ABALONE_PASSPHRASE_FD=<n>` reads it from that file descriptor instead; it is never read from an environment variable.
+The private key is an age identity, stored only encrypted under a passphrase the user chooses (`abalone trace key init`; age scrypt, work factor 2^18). Default session-only use needs no key. Writing with an existing retained-trace key needs only the recipient, so it asks no passphrase; initializing a missing key for explicit `--keep-trace` asks at hidden entry. Opening existing keys for `trace open`, `--with-trace` or `trace key export` asks for the passphrase on the terminal, hidden; key initialization/import also prompts for the new passphrase. For automation, `ABALONE_PASSPHRASE_FD=<n>` reads it from that file descriptor instead; it is never read from an environment variable.
 
 Recovery: `abalone trace key export` prints the `AGE-SECRET-KEY-1…` identity for a password manager. `abalone trace key import` reads it on stdin and stores it under a new passphrase, for example in a fresh `$ABALONE_DIR` on another computer. There is no escrow. Lose the identity or its passphrase and the traces are gone. Deleting `$ABALONE_DIR/keys/trace-<kid>.age` on purpose destroys every trace encrypted to that key at once, including copies of the folder held elsewhere, provided no exported copy of the identity survives.
 
@@ -103,9 +109,11 @@ Reopening is always a separate, explicit command that asks for the passphrase. `
 
 Deleting the key, as above, is the stronger option.
 
-## Runtime facts (for `session_info`, `/privacy` and the strip)
+## Runtime descriptor
 
-The launcher writes `$run/session.json` (0400, path in `ABALONE_SESSION_DESCRIPTOR`; this is the candidate branch's descriptor name):
+The bubblewrap profile's descriptor includes the restricted-network fields shown below.
+The owned-host profile declares its different local authority and must not be
+read as this restricted-network example. The launcher writes `$run/session.json` (0400, path in `ABALONE_SESSION_DESCRIPTOR`):
 
 ```
 { version: 1, mode: "strict-incognito", workspace, inference, network: { shell: "none", public_web: false, egress },

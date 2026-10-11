@@ -29,22 +29,24 @@ aci/node_modules/.bin/tsc -p aci/verifier-ts/tsconfig.test.json
 make verify-offline
 ```
 
-The dependency installation and Pi/ACI build steps above passed on 10 October
-2026 at source revision d51227b from a fresh source-only worktree with Node 24.15.0
-and npm 11.12.1; no copied
-build outputs were needed. Build Pi before ACI, whose adapters use Pi's generated
-types. This is development-build evidence, not a full offline-suite pass or
-installed-release qualification. Offline tests use synthetic/recorded
-inputs; installing dependencies may require network access. See tests/verify.sh
-for suite prerequisites. `make verify` also contacts real hosts without spending;
-credential/hardware/paid suites are explicit separate work. The historical
-traceability runner is outside this candidate's supported workflow.
+Build Pi before ACI, whose adapters use Pi's generated types. The commands above
+are the source build procedure; their presence is not a qualification record for
+a release. Record checks against a public commit, environment and actual result.
+Offline tests use synthetic/recorded inputs; dependency installation can need
+network access. See `tests/verify.sh` for suite prerequisites. `make verify` also
+contacts real hosts without spending; credential/hardware/paid suites are
+separate work. Keep all evaluation outputs in ignored `local-data/`.
+
+See [architecture and layout](docs/architecture.md) for vendored source and
+generated-output policy, and [fixture provenance](tests/fixtures/README.md) before
+adding recordings. Maintained documentation belongs in `docs/`; private work plans,
+worker handoffs and raw release coordination do not belong in this repository.
 
 ## Changes and review
 
 Describe the user-visible outcome, changed trust/retention boundary, relevant
 checks and limits. Runtime changes require the offline integration gate; docs
-need links and `git diff --check`. Seek independent review. Worktree helpers are
+need `make verify-docs` (local Markdown links/fragments and whitespace). Seek independent review. Worktree helpers are
 optional; no particular assistant model or private directory is required.
 
 Preserve curated/manifest.json. The staged-file import and manifest tools are

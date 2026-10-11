@@ -16,11 +16,11 @@ npm ci --no-audit --no-fund --omit=dev
 (cd aci && npm ci --no-audit --no-fund && npm run build)
 tar -C "$out/build" -czf "$out/abalone-$rev.tar.gz" abalone
 sha=$(sha256sum "$out/abalone-$rev.tar.gz" | cut -d' ' -f1)
-# Without a base URL there is nothing for install.sh to fetch from, so none is written (tools/friend-kit.sh renders its own).
+# Without a base URL there is nothing for install.sh to fetch from, so none is written (render-installer.py can render one after public input assembly).
 if [[ $base ]]; then python3 "$out/build/abalone/tools/render-installer.py" --rev "$rev" --artifact-sha256 "$sha" --base "$base" --out "$out/install.sh"
 else echo "no base URL given, so no install.sh: tools/release.sh $rev <base URL> writes one" >&2; fi
-# The landing page, to host next to install.sh and the tarball (Andrew's step; nothing is published from here).
-sed -e "s|@REV@|$rev|g" -e "s|@SHA256@|$sha|g" "$out/build/abalone/site/index.html" > "$out/index.html"
+# Prepare the hidden-entry landing next to the installer/tarball; publishing is separate.
+cp "$out/build/abalone/site/friend.html" "$out/index.html"
 rm -rf "$out/build"
 echo "abalone-$rev.tar.gz sha256 $sha ($(du -h "$out/abalone-$rev.tar.gz" | cut -f1))"
 echo "$out"

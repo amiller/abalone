@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """Score analyst profiles against gold: stage match and gap-tag precision/recall/F1 (tag sets), split by contamination.
 Usage: score.py OUT_DIR"""
-import json, re, sys
+import argparse, json, re, sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 TAGS = set(re.findall(r"^\| `([a-z]+:[a-z-]+)`", (HERE.parents[1] / "skills/attestation-analyst/references/gap-tags.md").read_text(), re.M))
+parser = argparse.ArgumentParser()
+parser.add_argument("out", type=Path)
+parser.add_argument("--gold", type=Path, default=HERE / "fixtures/gold")
+args = parser.parse_args()
 rows = []
-for f in sorted(Path(sys.argv[1]).glob("*.json")):
-    prof, gold = json.loads(f.read_text()), json.loads((HERE / "gold" / f.name).read_text())
+for f in sorted(args.out.glob("*.json")):
+    prof, gold = json.loads(f.read_text()), json.loads((args.gold / f.name).read_text())
     got, want = {g["tag"] for g in prof["gaps"]}, {g["tag"] for g in gold["gaps"]}
     bad = got - TAGS
     if bad:

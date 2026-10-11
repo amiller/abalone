@@ -388,7 +388,7 @@ async function redeemCmd() {
   Model: ${j.model} (private: messages are encrypted to a verified NEAR TEE). Server: ${peer.split("/p2p/").at(-1).slice(0, 16)}… (${j.verdict.place}${j.verdict.cdhash ? `, CDHash ${j.verdict.cdhash.slice(0, 12)}…` : ""}).${j.already ? "" : "\n  The code you pasted is now used, so it's fine to leave it in your shell history."}`);
 }
 
-// abalone trace key init|export|import, trace list|open|delete: the strict-incognito trace store (notes/contracts/trace-store.md).
+// abalone trace key init|export|import, trace list|open|delete: the strict-incognito trace store (docs/protocols/trace-store.md).
 async function traceCmd([cmd, a, b]) {
   if (cmd === "key" && a === "init") {
     const pw = await passphrase("new passphrase for the trace key: ");
@@ -452,7 +452,7 @@ async function session() {
   // abalone <folder>: work in that folder. The sandbox binds the working directory, and nothing else of the home.
   const shell = process.cwd(); // where the user typed the command, for the reopen line
   if (args[0] && !args[0].startsWith("-") && fs.statSync(args[0], { throwIfNoEntry: false })?.isDirectory()) process.chdir(args.shift());
-  // abalone --incognito <folder>: strict incognito (notes/contracts/trace-store.md). Only this flag turns it on.
+  // abalone --incognito <folder>: strict incognito (docs/protocols/trace-store.md). Only this flag turns it on.
   const incognito = args.includes("--incognito"), keepTrace = args.includes("--keep-trace"), withTrace = flag("--with-trace");
   const ownedHost = args.includes("--owned-host");
   if (ownedHost && (!incognito || !couponSlot)) throw new Error("Owned-host mode requires an explicit incognito coupon session; no ambient provider is substituted.");

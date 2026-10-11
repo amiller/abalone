@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The task guest's entrypoint (notes/contracts/task-v1.md, runner-task-needs.md). NDJSON on stdin/stdout to the peer:
+// The task guest's entrypoint (docs/protocols/task-v1.md, runner-task.md). NDJSON on stdin/stdout to the peer:
 //   peer → guest  {t:"init", prompt, model, tools, check?}  once, first
 //                 {t:"pi", cmd}                             a Pi RPC command (steer, follow_up, prompt, abort, clear_queue, bash)
 //                 {t:"infer-head", id, status} {t:"infer-data", id, b64} {t:"infer-end", id}   the peer's model replies

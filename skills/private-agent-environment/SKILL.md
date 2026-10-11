@@ -5,7 +5,7 @@ description: Prepare and maintain an Abalone agent environment with explicit hos
 
 # Private agent environment
 
-**Reviewed E0 design; runtime profiles remain unqualified.** This skill is not in
+**Experimental preparation guidance; profiles require separate qualification.** This skill is not in
 Abalone's curated manifest and is not installed or enabled by adding this file.
 It guides preparation; OS/runtime mechanisms enforce a boundary. Do not use its
 presence, a successful model reply or a setup agent's report as qualification.
@@ -42,8 +42,9 @@ evidence and a bound session channel.
 ## Prepare, rehearse, hand over
 
 Inspect the checkout's launcher, provider policy and skill admission before
-choosing commands. At the inspected candidate, interactive private sessions
-require Linux, Node 24 and bubblewrap. macOS client/remote commands do not imply
+choosing commands. The isolated Linux profile requires Node 24 and bubblewrap.
+The selected friend preview instead explicitly trusts the owned host and has
+no OS isolation; see [security profiles](../../docs/security.md). macOS client/remote commands do not imply
 support for a private local session. `abalone setup --separate-user` prints
 Linux administrator commands for a separate MCP service; it neither executes
 them nor sets up encrypted storage. Do not invent a portable installer.
@@ -75,5 +76,6 @@ backups before depending on recovery. Deleting local files does not erase backup
 SSD remnants, terminal captures or provider copies; local key removal is not
 provider credential revocation.
 
-For evaluation and the bounded next implementation, see the
-[E0 research and E1 design](../../docs/private-agent-environments-research.md).
+Use the [security profile](../../docs/security.md) and
+[release procedure](../../docs/release.md) to assess an exact candidate. Keep
+local rehearsal plans and raw results outside the public source tree.

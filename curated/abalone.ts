@@ -241,7 +241,7 @@ export default async function (pi: ExtensionAPI) {
     if (!ctx.model) return;
     // Pi's list of the curated skills is kept; the rest of Pi's prompt (which describes Pi) is not.
     const skills = event.systemPrompt.match(/The following skills provide[\s\S]*<\/available_skills>/)?.[0];
-    // The grant as the bridge holds it now; native-tool models get no browser tool in this version (notes/contracts/browser-grant.md).
+    // The grant as the bridge holds it now; native-tool models get no browser tool in this version (docs/protocols/browser-grant.md).
     const tools = inContent(ctx.model.provider) ? "in-content" : "native";
     return { systemPrompt: systemPrompt({ cwd: ctx.cwd, model: `${ctx.model.provider}/${ctx.model.id}`, place: place(ctx.model.provider), tools,
       usage: spend({ entries: ctx.sessionManager.getEntries(), coupon: coupon() }), browser: tools === "in-content" ? grantLine(await browser("status")) : null }) + (skills ? `\n\n${skills}` : "") };

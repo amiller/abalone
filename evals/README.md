@@ -4,7 +4,7 @@ Three harnesses for the core-competence skills in `skills/`. Each has a `run.py`
 
 **Models are shell commands.** Every `--sealed`, `--frontier`, `--analyst`, `--reader` and `--judge` flag takes a command that reads the prompt on stdin and prints the reply on stdout (`llm.py`). Examples:
 - sealed (TEE): `bin/abalone -p --no-skills --model redpill/<model-id>` (needs a node key: `abalone node keys add redpill`)
-- frontier: `claude -p` or `codex exec -` (subscriptions; the bwrap runner from tasks/todo.md is not built yet)
+- frontier: `claude -p` or `codex exec -` (outside inference; use synthetic or explicitly released inputs only)
 - offline stand-ins: `python3 evals/<eval>/fixtures/fake.py <role>`. These test the plumbing only. They are not baselines.
 
 Errors propagate. A reply that does not parse as JSON, a missing field, or a non-zero exit stops the run.
@@ -18,11 +18,11 @@ Corpus: `python3 evals/pour/make_corpus.py` writes `local-data/demo-corpus/` (de
 
 Run and score:
 ```
-python3 evals/pour/run.py --mode floor        --sealed "$S"                  --out runs/floor
-python3 evals/pour/run.py --mode ceiling      --frontier "$F"                --out runs/ceiling
-python3 evals/pour/run.py --mode orchestrated --sealed "$S" --frontier "$F"  --out runs/orch
-python3 evals/pour/run.py --mode orchestrated --sealed "$S" --frontier "$F"  --out runs/hostile --hostile
-python3 evals/pour/score.py --judge "$J" runs/floor runs/ceiling runs/orch runs/hostile
+python3 evals/pour/run.py --mode floor        --sealed "$S"                  --out local-data/evals/floor
+python3 evals/pour/run.py --mode ceiling      --frontier "$F"                --out local-data/evals/ceiling
+python3 evals/pour/run.py --mode orchestrated --sealed "$S" --frontier "$F"  --out local-data/evals/orch
+python3 evals/pour/run.py --mode orchestrated --sealed "$S" --frontier "$F"  --out local-data/evals/hostile --hostile
+python3 evals/pour/score.py --judge "$J" local-data/evals/floor local-data/evals/ceiling local-data/evals/orch local-data/evals/hostile
 ```
 - **floor**: the sealed model alone, may run code. **ceiling**: the frontier model sees everything. **orchestrated**: the sealed model with `skills/pour-planning` pours to a stateless frontier answerer.
 - The gate in `run.py` enforces the catalog (`skills/pour-planning/policies.json`): `max_bytes`, and no widening after `○` content. A refused pour ends the session with no answer. It deliberately does not block canaries, so leakage measures the planner.
@@ -32,19 +32,51 @@ python3 evals/pour/score.py --judge "$J" runs/floor runs/ceiling runs/orch runs/
 
 ## attestation/
 
-Runs `skills/attestation-analyst` on each `~/projects/dstack/devproof-audits-guide/case-studies/*` with the verdict files withheld, and scores stage and gap tags against `gold/`.
+The attestation skill ships its general checklist and gap vocabulary. The default
+corpus is one visibly synthetic case for checking the harness, not a historical
+benchmark or model-quality baseline. No maintainer checkout is required:
 
-**Withheld ("verdict") files**, per case: every audit-authored file outside `refs/`, `sources/`, `evidence/`, `composes/` and `repo/`. That is all `*.md`, `*.html`, `*.txt` at any depth, plus `verify/`, `demo/`, `prep/` and `note-from-*` (auditor work product), plus the guide's `README.md` (its Case Studies table states every verdict). **Given**: `refs/`, `sources/`, `evidence/`, `composes/`, `repo/`, top-level raw artifacts (e.g. `deployed-app-compose.json`, `bundle.json`, `cert.pem`), and the inputs a user would hand over (URLs, repo@commit, app ids) in `targets/<case>.json`. Each target lists its `given_files` and `withheld_files` explicitly.
-
-Enforcement: `run.py` runs the analyst command under bwrap with the guide directory replaced by an empty tmpfs; only `LEARNINGS.md`, `framework/` and the case's `given_files` are bound back in, and `evals/attestation/gold/` is hidden. Three auditor notes that sit inside evidence directories (`masked_files` in the target) are masked too.
-
-**Contamination.** The skill reads `LEARNINGS.md` and `notes/aci-gaps.md`, which name some cases and their findings. `run.py` marks a case contaminated if its directory name appears in those files, and `score.py` reports clean and contaminated splits separately. Several cases are thin once withheld (some directories hold only the report); `gold/EXCLUDED.md` lists cases left out.
-
-Scoring: stage exact match; precision/recall/F1 of the gap tag set (`skills/attestation-analyst/references/gap-tags.md`; a tag outside the vocabulary is an error). Record the score for every admitted sealed model.
+```sh
+python3 evals/attestation/run.py \
+  --analyst "python3 evals/attestation/fixtures/fake.py" \
+  --out local-data/evals/attestation-smoke
+python3 evals/attestation/score.py local-data/evals/attestation-smoke
 ```
-python3 evals/attestation/run.py --analyst "bin/abalone -p --skill skills/attestation-analyst --model <id>" --out runs/att
-python3 evals/attestation/score.py runs/att
+
+The analyst runs through bubblewrap. The corpus is hidden, then only each target's
+`given_files` are bound back; gold and explicitly masked evidence notes are hidden.
+This protects the exercised answer-withholding boundary, not a general sandbox
+against malicious analyst code with access to unrelated host paths. `--inline N`
+adds general references, a file listing and up to N bytes of selected evidence
+for a command without file-reading tools. The prompt forbids network lookup.
+
+Historical `targets/` and `gold/` retain selected dated scoring references. The
+underlying evidence corpus is **not bundled** and must be supplied explicitly as
+reviewed case directories matching `given_files`:
+
+```sh
+python3 evals/attestation/run.py --corpus /ABS/reviewed-guide/case-studies \
+  --withhold-root /ABS/reviewed-guide \
+  --targets evals/attestation/targets --gold evals/attestation/gold \
+  --analyst "$A" --out local-data/evals/attestation-historical
+python3 evals/attestation/score.py --gold evals/attestation/gold \
+  local-data/evals/attestation-historical
 ```
+
+External corpora require `--withhold-root` for the entire guide tree, including
+its sibling reports, summary README and verdicts. The harness hides that tree
+and both bundled and selected gold directories before exposing given evidence.
+A missing corpus/case fails before running a model. Some historical targets have
+no raw evidence after withholding; `gold/EXCLUDED.md` explains omissions. Gold
+labels can conflict with their own findings, as recorded in their notes; agreement
+is not an independent security verdict. Do not compare old scores to a run with
+changed references or corpus without declaring that change. Contamination flags
+check case-name occurrences in the shipped general references. Case-specific
+reports and answers must stay outside the analyst's inputs.
+
+Scoring compares stage labels and gap-tag sets; tags outside the vocabulary refuse.
+Live model commands need explicit access/budget and share only the selected inputs.
+Offline stand-ins verify plumbing, not attestation, privacy or model competence.
 
 ## formal/
 
@@ -52,6 +84,6 @@ python3 evals/attestation/score.py runs/att
 
 Scoring: keyword recall of `gap_keywords` over the reader's gap, model, deployed, assumptions and trusted-base fields, plus a judge verdict on whether the stated gap names the documented one.
 ```
-python3 evals/formal/run.py --reader "$R" --out runs/formal
-python3 evals/formal/score.py --judge "$J" runs/formal
+python3 evals/formal/run.py --reader "$R" --out local-data/evals/formal
+python3 evals/formal/score.py --judge "$J" local-data/evals/formal
 ```

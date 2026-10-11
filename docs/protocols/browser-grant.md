@@ -1,10 +1,12 @@
 # Browser grant contract (`org.abalone.browser-grant/1`)
 
-Track B of the [tonight worker plan](../../../sealed-agent-wt-night-plan/notes/tonight-worker-plan.md), milestone B0/B1 in [release milestones](../release-milestones.md). This pins the interface between the session (`curated/abalone.ts`), the in-content tool protocol (`lib/intools.mjs`) and the browser bridge (`lib/browser.mjs`). Owner: agent/browser.
+This specifies the interface between `curated/abalone.ts`, the in-content tool
+protocol (`lib/intools.mjs`) and the CDP browser bridge (`lib/browser.mjs`).
+It is a connected-session interface; incognito refuses browser grants.
 
 ## Backend
 
-One backend: Chromium/Chrome on Linux over the DevTools protocol (CDP), spoken directly with node's built-in `WebSocket`. No playwright-core (13.6 MB) and no extension. The bridge runs in the launcher, outside the Pi sandbox, the same place `/fetch` downloads run. The sandbox reaches it only through `<run>/browser.sock`; the bash sandbox does not see the run dir.
+For the bubblewrap connected-session profile, one backend: Chromium/Chrome on Linux over the DevTools protocol (CDP), spoken directly with node's built-in `WebSocket`. No playwright-core (13.6 MB) and no extension. The bridge runs in the launcher, outside the Pi sandbox, the same place `/fetch` downloads run. The sandbox reaches it only through `<run>/browser.sock`; the bash sandbox does not see the run dir.
 
 Two identities. The user picks one per grant, and the strip names it.
 
@@ -69,4 +71,4 @@ Into model context: a short grant summary in the system prompt (identity label, 
 
 Page text goes only to the session's current model, as an in-content tool result inside its encrypted messages. Browser ops run only for models whose tools are in-content (`◈ attested` or `⌂ local`); a mediated `○ outside` reply's tool lines are never run (existing rule in `curated/abalone.ts`). Native-tool providers get no browser tool in this version. Page text is untrusted: the protocol says so, and a page's instructions cannot reach the grant because only `/browser` changes it.
 
-Traces follow the session's mode. In the ordinary connected mode, op requests and results are entries in the Pi session file like other tool results (local, 0600, plaintext). The bridge also appends `<ABALONE_DIR>/browser.jsonl`: grant, revoke, take, give, stop, detach, reconnect and each agent op with its host, action and outcome, but no page text and only the byte count of typed text. In strict incognito (Track A) `/browser grant` must be refused. Main has no mode flag for it yet, so the integrator wires that refusal when Track A lands.
+Traces follow the session's mode. In the ordinary connected mode, op requests and results are entries in the Pi session file like other tool results (local, 0600, plaintext). The bridge also appends `<ABALONE_DIR>/browser.jsonl`: grant, revoke, take, give, stop, detach, reconnect and each agent op with its host, action and outcome, but no page text and only the byte count of typed text. Incognito refuses `/browser grant`; this browser interface does not qualify the friend preview or an extension attached to an ordinary browser profile.

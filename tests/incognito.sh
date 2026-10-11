@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Strict incognito (abalone --incognito, notes/contracts/trace-store.md), offline with the stub-e2ee model:
+# Strict incognito (abalone --incognito, docs/protocols/trace-store.md), offline with the stub-e2ee model:
 #   entry refusals; a private read plus an offline test run; destination and mode facts; a plaintext-marker scan of
 #   state, run and temp dirs; fresh-process open; wrong passphrase, wrong key, key export/import into a fresh state dir;
 #   corrupted, reordered, truncated and header-edited traces; an interrupted close (launcher SIGKILL); --with-trace;

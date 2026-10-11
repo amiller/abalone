@@ -7,7 +7,8 @@ use independent review before integration. Runtime/protocol changes need relevan
 positive and negative checks. Documentation-only work needs link and whitespace
 checks. Do not change live services or publish artifacts as a side effect of editing.
 
-This is a development candidate. First-party code is MIT licensed; existing
+Source is public; installed-release and live-service qualification remain
+separate from integration. First-party code is MIT licensed; existing
 component notices remain applicable. Source publication and installable-release
 qualification are separate reviewed actions. Do not expose private history,
 change visibility or publish a release as a side effect of development. Existing historical component

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Track C: a redeemed gift commissions agent tasks on a worker peer over libp2p (notes/contracts/task-v1.md).
+# Track C: a redeemed gift commissions agent tasks on a worker peer over libp2p (docs/protocols/task-v1.md).
 # Live NEAR (z-ai/glm-5.3-flash) through the peer; spend: about a cent of inference per run.
 #   tests/commission.sh                 starts a relay and a dev worker peer here (local executor, 200 µ$/s)
 #   TASK_RUNNER=1 tests/commission.sh  the worker peer runs in Mac-runner mode in its own network namespace against

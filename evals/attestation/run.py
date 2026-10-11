@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Run attestation-analyst on each devproof case study with the verdict files withheld.
-The model command runs under bwrap with the guide directory replaced by an empty tmpfs; only LEARNINGS.md, framework/
-and the case's given_files (targets/<case>.json) are bound back in at their real paths, and this eval's gold/ is hidden.
-The model command needs file-reading tools (e.g. bin/abalone -p --skill skills/attestation-analyst ...), unless --inline N:
-then the prompt carries the reference docs, the given-file listing (no .git/), and up to N bytes of the given files most
-likely to matter (compose, Dockerfile, top-level README and *.json/*.yaml, by path depth), for a model with no tools.
-Usage: run.py --analyst CMD --out DIR [--cases a,b] [--inline N]"""
+"""Run attestation-analyst against an explicitly selected evidence corpus.
+The default is a bundled synthetic plumbing case, not a model-quality baseline.
+The bwrap harness hides the corpus and gold, then exposes only given evidence.
+Historical targets require --corpus and --targets; no maintainer path is assumed.
+Usage: run.py --analyst CMD --out DIR [--corpus DIR --targets DIR] [--cases a,b] [--inline N]
+"""
 import argparse, json, re, subprocess, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -13,19 +12,19 @@ from llm import parse_json
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-GUIDE = Path.home() / "projects/dstack/devproof-audits-guide"
+CORPUS = HERE / "fixtures/corpus"
+GOLD = HERE / "fixtures/gold"
+WITHHOLD = CORPUS
 SKILL = ROOT / "skills/attestation-analyst"
 
 def contaminated(case):
     """Cases whose name appears in reference material the skill reads."""
-    refs = (GUIDE / "LEARNINGS.md").read_text() + (ROOT / "notes/aci-gaps.md").read_text() + (GUIDE / "framework/STAGE-1-CHECKLIST.md").read_text()
+    refs = "\n".join(p.read_text() for p in sorted((SKILL / "references").glob("*.md")))
     return case in refs
 
 def sandbox(t):
-    case_dir = GUIDE / "case-studies" / t["case"]
-    args = ["bwrap", "--bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--tmpfs", str(GUIDE),
-            "--ro-bind", str(GUIDE / "LEARNINGS.md"), str(GUIDE / "LEARNINGS.md"),
-            "--ro-bind", str(GUIDE / "framework"), str(GUIDE / "framework"), "--tmpfs", str(HERE / "gold")]
+    case_dir = CORPUS / t["case"]
+    args = ["bwrap", "--bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--tmpfs", str(WITHHOLD), "--tmpfs", str(HERE / "gold"), "--tmpfs", str(HERE / "fixtures/gold"), "--tmpfs", str(GOLD)]
     for g in t["given_files"]:
         args += ["--ro-bind", str(case_dir / g), str(case_dir / g)]
     for m in t.get("masked_files", []):  # auditor notes that sit inside an evidence directory
@@ -40,7 +39,7 @@ def inline(t, case_dir, budget):
              and not any(str(f.relative_to(case_dir)).startswith(m + "/") for m in t.get("masked_files", []))]
     rel = [str(f.relative_to(case_dir)) for f in files]
     text = "\n\nREFERENCE DOCS (inlined; you have no tools):\n" + "".join(f"\n=== {p} ===\n{p.read_text()}" for p in
-            [GUIDE / "LEARNINGS.md", GUIDE / "framework/STAGE-1-CHECKLIST.md", ROOT / "notes/aci-gaps.md"])
+            sorted((SKILL / "references").glob("*.md")))
     text += f"\n\nGIVEN FILE LISTING ({len(rel)} files, first 400):\n" + "\n".join(rel[:400])
     shown = []
     for f in sorted((f for f in files if KEY.search(f.name)), key=lambda f: len(f.relative_to(case_dir).parts)):
@@ -58,13 +57,46 @@ def main():
     p.add_argument("--out", required=True)
     p.add_argument("--cases")
     p.add_argument("--inline", type=int)
+    p.add_argument("--corpus", type=Path, default=HERE / "fixtures/corpus", help="case directories containing reviewed evidence")
+    p.add_argument("--targets", type=Path, default=HERE / "fixtures/targets", help="target definitions; use attestation/targets for historical cases")
+    p.add_argument("--gold", type=Path, default=HERE / "fixtures/gold", help="scoring directory to hide from the analyst")
+    p.add_argument("--withhold-root", type=Path, help="hide the entire external guide/corpus tree, including sibling verdicts")
     a = p.parse_args()
-    out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
-    for f in sorted((HERE / "targets").glob("*.json")):
+    global CORPUS, GOLD, WITHHOLD
+    CORPUS, GOLD = a.corpus.resolve(), a.gold.resolve()
+    if not CORPUS.is_dir() or not a.targets.is_dir() or not GOLD.is_dir():
+        p.error("Use existing corpus, targets and gold directories; historical evidence is not bundled.")
+    if CORPUS in (ROOT, HERE) or ROOT.is_relative_to(CORPUS):
+        p.error("The corpus must be a dedicated evidence directory, not the repository or its parent.")
+    if not CORPUS.is_relative_to(ROOT) and a.withhold_root is None:
+        p.error("External corpora require --withhold-root for the entire guide, including sibling verdicts.")
+    WITHHOLD = a.withhold_root.resolve() if a.withhold_root else CORPUS
+    if not WITHHOLD.is_dir() or not CORPUS.is_relative_to(WITHHOLD) or ROOT.is_relative_to(WITHHOLD):
+        p.error("The withholding root must contain the corpus and must not hide the repository.")
+    targets = []
+    for f in sorted(a.targets.glob("*.json")):
         t = json.loads(f.read_text())
         if a.cases and t["case"] not in a.cases.split(","):
             continue
-        case_dir = GUIDE / "case-studies" / t["case"]
+        case_dir = CORPUS / t["case"]
+        if case_dir.parent != CORPUS or not case_dir.is_dir() or case_dir.is_symlink() or not case_dir.resolve().is_relative_to(CORPUS):
+            p.error(f"Missing bounded case directory: {t['case']}")
+        for given in [*t["given_files"], *t.get("masked_files", [])]:
+            item = case_dir / given
+            if not isinstance(given, str) or Path(given).is_absolute() or ".." in Path(given).parts:
+                p.error(f"Out-of-case evidence in {t['case']}")
+            if not item.exists() or not item.resolve().is_relative_to(case_dir.resolve()):
+                p.error(f"Missing or out-of-case evidence in {t['case']}: {given}")
+            if item.is_dir():
+                for child in item.rglob("*"):
+                    if child.is_symlink() and not child.resolve().is_relative_to(case_dir.resolve()):
+                        p.error(f"Out-of-case evidence symlink in {t['case']}")
+        targets.append((f, t))
+    if not targets:
+        p.error("No selected target definitions.")
+    out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
+    for f, t in targets:
+        case_dir = CORPUS / t["case"]
         prompt = ((SKILL / "SKILL.md").read_text() + "\n\nreferences/gap-tags.md:\n" + (SKILL / "references/gap-tags.md").read_text() +
                   f"\n\nSUBJECT: {t['subject']}\nINPUTS: {json.dumps(t['inputs'])}\nEVIDENCE FILES (under {case_dir}): {json.dumps(t['given_files'])}\n"
                   "Do not fetch anything over the network. Reply with the JSON profile only.") + (inline(t, case_dir, a.inline) if a.inline else "")

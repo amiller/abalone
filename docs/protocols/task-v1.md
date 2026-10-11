@@ -3,7 +3,7 @@
 **Product scope:** this is the interface between the **Abalone client** and the **dsmack worker service**. `abalone-task/1`, `/abalone/offer/1` and `/abalone/task/1` are existing compatibility identifiers, not a separate network name. This task interface does not specify or establish dsmack-wide peer enrollment or discovery. See [product scope](../../README.md).
 
 Shared by the client (`abalone commission`, `/commission`, `/tasks`), the worker peer (`/abalone/offer/1`,
-`/abalone/task/1` in `lib/node.mjs`), the runner's task API (`notes/contracts/runner-task-needs.md`) and the receipt
+`/abalone/task/1` in `lib/node.mjs`), the runner's task API (`docs/protocols/runner-task.md`) and the receipt
 verifier (C2). Validators: `lib/contracts/task-v1.mjs`. A change to any field below is `abalone-task/2`; v1 peers
 refuse a v2 object.
 

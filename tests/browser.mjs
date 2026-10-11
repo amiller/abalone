@@ -1,4 +1,4 @@
-// The browser bridge against a real headless Chromium on the abalone profile (lib/browser.mjs, notes/contracts/browser-grant.md):
+// The browser bridge against a real headless Chromium on the abalone profile (lib/browser.mjs, docs/protocols/browser-grant.md):
 // a form task, scope refusals and a hostile page, Stop, Take control, detach/reconnect, expiry, and that the other tab
 // and the site's cookie never reach an agent op's output or browser.jsonl. Needs /usr/bin/chromium; no network beyond loopback.
 import assert from "node:assert/strict";

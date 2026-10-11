@@ -1,0 +1,1 @@
+{"case":"synthetic-service","subject":"Synthetic harness service; not a deployment","inputs":{"synthetic":true},"given_files":["evidence"],"withheld_files":["VERDICT-WITHHELD.txt"]}

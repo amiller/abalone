@@ -16,7 +16,7 @@ Sample: `tests/fixtures/bundle/fixture/` (a FIXTURE, see below).
 A dev worker signs `completion.sig` as `{type:"peer-ed25519", peer, data, sig}` with its libp2p key. The verifier
 accepts that for integrity only and says it is a bare host signature, not attested execution.
 
-## The runner's task record (souk-ab, implemented)
+## Required runner task record
 
 1. **Task boot binding.** `guest/clientData.bin` is canonical `{attested, compose_hash, domain:"mac-compose-task-boot/1", nonce, receipt_pub}`.
    `guest/attest.json` is in the `/attest` shape, with `assertClientData` equal to those exact bytes, asserted under the peer VM's current
@@ -58,7 +58,7 @@ there are no failures.
    inference, charged and released amounts, and the settle entry.
 
 Then **Failures**, **Unknowns** (e.g. no `--expect`, no `--seen`, the device-signed body includes input bytes the bundle omits,
-and whether the worker's ledger really holds the line `settlement.entry_sha256` names, which `tools/reconcile-tasks.mjs` checks online) and
+and whether the worker's ledger really holds the line `settlement.entry_sha256` names, which needs separately qualified live ledger reconciliation) and
 **Freshness**, which is kept separate from historical verification. Freshness asks whether the Apple evidence would still pass today, and says that admission
 is judged by the verifier's current policy and that revocation is unknown, since no feed exists. The last line is the replay record
 (`<task_id> <receipt_pub or events head>`) to append to the `--seen` file once the client accepts the bundle.
@@ -76,4 +76,4 @@ is judged by the verifier's current policy and that revocation is unknown, since
 
 `tests/fixtures/bundle/fixture/` comes from `tests/fixtures/bundle/make-fixture.mjs` and carries a `FIXTURE` file, so every report is
 labelled. The worker and runner keys are dev keys and the fix is hand-written. The repo, the device signature, every hash and chain, and the
-`node --test` run are real. Claim 2 is refused on it by design. Replace it with a bundle collected from a real Track C run.
+`node --test` run are real. Claim 2 is refused on it by design. It proves exercised verification behavior, not actual attested task execution. A real deployment needs separately collected and reviewed evidence.
