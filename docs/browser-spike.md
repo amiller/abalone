@@ -25,6 +25,38 @@ has powerful access; this does not contain hostile software running as your OS
 user. A profile token skips connection approval. Leave it unset unless that is
 your intended workflow; do not put tokens in Git, command arguments or recordings.
 
+## Connection lifecycle patch
+
+The pinned 0.4.0 token-bypass path uses `connect.html` as its initial controlled
+tab. Unlike a manual selection, it leaves that screen open after pairing and
+can accumulate “Connected” tabs across fresh MCP processes. This is separate
+from the normal-session adapter, which pairs manually.
+
+For an existing source/build checkout matching this spike, apply
+[the small extension patch](../tools/patches/playwright-extension-lifecycle.patch)
+at the extension package root, then rebuild its background entry:
+
+```sh
+patch -p1 < /absolute/path/to/abalone/tools/patches/playwright-extension-lifecycle.patch
+esbuild src/background.ts --bundle --format=esm --outfile=dist/lib/background.mjs
+```
+
+Use the existing build tool/install; this does not require another dependency
+installation or rebuilding the UI. Reload **Playwright Extension** in
+`chrome://extensions` after updating the unpacked build. The patch is a local
+research change, not an upstream release or a vendored extension.
+
+Token pairing now creates a work tab and closes its connection screen. An unused
+blank work tab is removed on disconnect; visited and manually selected tabs stay.
+Pairing screens for exited loopback relays are removed on extension startup and
+before another pairing request. A responding relay or a timed-out probe is
+preserved. The probe sends no pairing token/path and never claims its WebSocket.
+Pairing screens are excluded from the manual tab picker.
+
+The Abalone transport shares one pending approval across concurrent requests and
+cancels it when the browser bridge closes. It does not automatically retry a lost
+connection; `/browser reconnect` remains an explicit new approval.
+
 ## Start the spike
 
 Use a built development checkout (see [CONTRIBUTING](../CONTRIBUTING.md)). Select

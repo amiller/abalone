@@ -1,0 +1,125 @@
+--- a/src/background.ts
++++ b/src/background.ts
+@@ -49,7 +49,7 @@
+   constructor() {
+     chrome.runtime.onMessage.addListener(this._onMessage.bind(this));
+     chrome.action.onClicked.addListener(this._onActionClicked.bind(this));
+-    this._cleanupPromise = cleanupStalePlaywrightGroups();
++    this._cleanupPromise = Promise.all([cleanupStalePlaywrightGroups(), cleanupAbandonedPairingPages()]).then(() => {});
+   }
+
+   // Promise-based message handling is not supported in Chrome: https://issues.chromium.org/issues/40753031
+@@ -57,7 +57,7 @@
+     switch (message.type) {
+       case 'connectionRequested': {
+         const selectorTabId = sender.tab!.id!;
+-        this._releaseConnectPage(selectorTabId).then(() => {
++        Promise.all([this._releaseConnectPage(selectorTabId), cleanupAbandonedPairingPages(selectorTabId)]).then(() => {
+           this._pendingConnections.create(selectorTabId, message.mcpRelayUrl);
+           sendResponse({ success: true });
+         });
+@@ -69,11 +69,9 @@
+             (error: any) => sendResponse({ success: false, error: error.message }));
+         return true;
+       case 'connectToTab': {
+-        // Token-bypass (no specific pick) falls back to the connect page itself
+-        // so `ConnectedTabGroup` always has a concrete tab to start from. Both
+-        // sender.tab and UI-supplied tabs come from chrome.tabs.query / runtime
+-        // message sender, where `id` is always defined.
+-        const selectedTab = (message.tab ?? sender.tab!) as chrome.tabs.Tab & { id: number };
++        // A manual selection reuses that tab. Token-bypass creates a work tab
++        // after the relay opens; it must never control the connection screen.
++        const selectedTab = message.tab as (chrome.tabs.Tab & { id: number }) | undefined;
+         this._connectTab(sender.tab!.id!, selectedTab, message.clientName).then(
+             () => sendResponse({ success: true }),
+             (error: any) => sendResponse({ success: false, error: error.message }));
+@@ -99,21 +97,39 @@
+     }
+   }
+
+-  private async _connectTab(selectorTabId: number, tab: chrome.tabs.Tab & { id: number }, clientName: string | undefined): Promise<void> {
++  private async _connectTab(selectorTabId: number, tab: (chrome.tabs.Tab & { id: number }) | undefined, clientName: string | undefined): Promise<void> {
++    let connection;
++    let createdTabId: number | undefined;
+     try {
+       await this._cleanupPromise;
+       this._releaseTab(selectorTabId);
+-      if (tab.id !== selectorTabId && this._connectedTabIds().has(tab.id))
++      if (tab && tab.id !== selectorTabId && this._connectedTabIds().has(tab.id))
+         throw new Error('This tab is already connected to another client');
+
+-      const connection = await this._pendingConnections.take(selectorTabId);
++      connection = await this._pendingConnections.take(selectorTabId);
+       if (!connection)
+         throw new Error('Pending client connection closed');
++
++      // Token authentication authorizes a fresh work tab, not the pairing UI.
++      // Otherwise every new MCP process leaves a Connected page behind.
++      if (!tab) {
++        tab = await chrome.tabs.create({ url: 'about:blank', active: true }) as chrome.tabs.Tab & { id: number };
++        createdTabId = tab.id;
++      }
+
+       const id = ++this._lastConnectionId;
+       const taken = [...this._connections.values()].map(group => group.groupStyle);
+       const group = new ConnectedTabGroup(connection, tab, clientName, uniqueGroupStyle(clientName, taken), tabId => this._pendingConnections.has(tabId));
+-      group.onclose = () => this._connections.delete(id);
++      group.onclose = () => {
++        this._connections.delete(id);
++        // An unused token-created blank is disposable; visited and selected tabs stay.
++        if (createdTabId !== undefined) {
++          const ownedId = createdTabId;
++          void chrome.tabs.get(ownedId).then(tab => {
++            if (tab.url === 'about:blank') return chrome.tabs.remove(ownedId);
++          }).catch(() => {});
++        }
++      };
+       this._connections.set(id, group);
+
+       await Promise.all([
+@@ -124,7 +140,10 @@
+       if (tab.id !== selectorTabId)
+         await chrome.tabs.remove(selectorTabId).catch(() => {});
+     } catch (error: any) {
+-      debugLog(`Failed to connect tab ${tab.id}:`, error.message);
++      connection?.close('Pairing failed');
++      if (createdTabId !== undefined)
++        await chrome.tabs.remove(createdTabId).catch(() => {});
++      debugLog(`Failed to connect tab ${tab?.id}:`, error.message);
+       throw error;
+     }
+   }
+@@ -143,7 +162,8 @@
+   private async _getTabs(selectorTabId: number | undefined): Promise<chrome.tabs.Tab[]> {
+     const tabs = await chrome.tabs.query({});
+     const connectedTabIds = this._connectedTabIds();
+-    return tabs.filter(tab => !isNonDebuggableUrl(tab.url) && (tab.id === selectorTabId || !connectedTabIds.has(tab.id!)));
++    const pairingPage = chrome.runtime.getURL('connect.html');
++    return tabs.filter(tab => !tab.url?.startsWith(pairingPage) && !isNonDebuggableUrl(tab.url) && (tab.id === selectorTabId || !connectedTabIds.has(tab.id!)));
+   }
+
+   private _connectedTabIds(): Set<number> {
+@@ -158,4 +178,23 @@
+   }
+ }
+
++// Reconcile only our connection screens whose local relay has exited. A live
++// approval, a slow relay, and every ordinary user tab are preserved.
++async function cleanupAbandonedPairingPages(exceptTabId?: number): Promise<void> {
++  const pages = await chrome.tabs.query({ url: chrome.runtime.getURL('connect.html') + '*' });
++  await Promise.all(pages.map(async page => {
++    if (page.id === exceptTabId || page.id === undefined || !page.url) return;
++    let relay: URL;
++    try { relay = new URL(new URL(page.url).searchParams.get('mcpRelayUrl')!); } catch { return; }
++    if (relay.protocol !== 'ws:' || !['127.0.0.1', '[::1]'].includes(relay.hostname)) return;
++    try {
++      // A response of any HTTP status proves the server is still there. Do not
++      // send its pairing path/token, claim its WebSocket, or consume approval.
++      await fetch('http://' + relay.host + '/', { signal: AbortSignal.timeout(1200), cache: 'no-store' });
++    } catch (error: any) {
++      if (error.name === 'TypeError') await chrome.tabs.remove(page.id).catch(() => {});
++    }
++  }));
++}
++
+ new PlaywrightExtension();

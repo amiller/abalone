@@ -38,3 +38,40 @@ assert.equal(commands.at(-1).params[0].tabId, 7);
 await connection.send('Target.detachFromTarget', { sessionId: 'abalone-extension' });
 await assert.rejects(connection.send('Page.enable', {}, 'abalone-extension'), /disconnected/);
 console.log('browser-extension: PASS origin refusal, manual pairing, one-tab authority, CDP event filtering, detach refusal');
+
+// Cancelling before approval releases the loopback listener, without another page.
+let endpoint;
+const abort = new AbortController();
+const cancelled = extensionConnection({ timeout: 3000, signal: abort.signal, onPairing: link => {
+  endpoint = new URL(link).searchParams.get('mcpRelayUrl'); abort.abort();
+} });
+await assert.rejects(cancelled, /disconnected before pairing/);
+const gone = new WebSocket(endpoint, { origin: 'chrome-extension://mmlmfjhmonkocbjadbfplnigmagldckm' });
+await new Promise(resolve => gone.on('error', resolve));
+
+// Concurrent browser requests share one approval, and launcher shutdown cancels it.
+const fs = await import('node:fs');
+const os = await import('node:os');
+const dir = fs.mkdtempSync(`${os.tmpdir()}/abalone-pairing-test-`);
+const { browserBridge, call } = await import('../lib/browser.mjs');
+let opens = 0, finish;
+const fake = { events: new Set(), closed: false, close() { this.closed = true; }, async send() { return { targetInfos: [] }; } };
+const cleanup = browserBridge(dir, { extensionConnector: () => { opens++; return new Promise(resolve => { finish = resolve; }); } });
+try {
+  const requests = [call(dir, 'tabs', { identity: { mode: 'extension' } }), call(dir, 'tabs', { identity: { mode: 'extension' } })];
+  await new Promise(resolve => setTimeout(resolve, 40));
+  assert.equal(opens, 1);
+  finish(fake); await Promise.all(requests);
+} finally { cleanup(); fs.rmSync(dir, { recursive: true }); }
+const dir2 = fs.mkdtempSync(`${os.tmpdir()}/abalone-pairing-test-`);
+let cancelledPairing = false;
+const cleanup2 = browserBridge(dir2, { extensionConnector: ({ signal }) => new Promise((_resolve, reject) => {
+  signal.addEventListener('abort', () => { cancelledPairing = true; reject(new Error('pairing cancelled')); }, { once: true });
+}) });
+try {
+  const request = call(dir2, 'tabs', { identity: { mode: 'extension' } });
+  const rejection = assert.rejects(request, /pairing cancelled/);
+  await new Promise(resolve => setTimeout(resolve, 40));
+  cleanup2(); await rejection; assert.equal(cancelledPairing, true);
+} finally { cleanup2(); fs.rmSync(dir2, { recursive: true }); }
+console.log('browser-extension: PASS pairing cancellation, concurrent single approval, shutdown cancellation');
