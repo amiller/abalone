@@ -10,9 +10,9 @@ Use this skill to prepare a session, then hand it to the human. Use the publishe
 profile. Do not invent a release or use an expired trial. The owner walkthrough
 remains pending; read the [current release status](../../README.md).
 
-Preview.4 passed the aggregate offline checks, installed runtime checks and fresh Mac issuer admission.
-**Redemption remains paused until the full coupon-to-document canary passes. Do not retry a failed claim.**
-A separate retained provider key produced a useful encrypted synthetic-document answer; that component proof does not establish the full coupon journey. Owner useful-document acceptance remains pending.
+Preview.5 passed aggregate offline coverage, installed runtime checks and unauthenticated public acquisition.
+**Bounded synthetic preview qualified: new claims only before 2026-10-11 23:56:53 UTC. Do not retry a failed or uncertain claim.**
+The installed preview completed one new $0.05 Mac-mini coupon claim, encrypted selected synthetic document request and clean close in 55.7 seconds. The service ledger confirms one delivered $0.05 claim; provider-reported history contains one matching request. Owner useful-document acceptance remains pending.
 
 1. **Check support.** Initial profile: ordinary-user Linux x86_64, compatible
    Node24, bash, curl, tar and sha256sum, with an existing Linux tmpfs.
@@ -23,7 +23,7 @@ A separate retained provider key produced a useful encrypted synthetic-document 
    reviewed landing and expected checksums. The installer pins the artifact and
    all four public files by checksum. The helper verifies the signed issuer controls. Reuse an exact matching installation or prepare
    it through the reviewed setup path; do not build a private checkout, bypass
-   checks, or introduce operator/provider credentials. Public acquisition and fresh installed admission passed; redemption is paused pending reconciliation; do not retry the failed claim. Do not ask a friend to repair its environment.
+   checks, or introduce operator/provider credentials. Public acquisition and installed runtime checks passed; the installed coupon-to-document-and-close canary passed. Check the current claim window before use; do not retry a failed or uncertain claim. Do not ask a friend to repair its environment.
 3. **Choose retention.** Default session-only use needs no trace passphrase and
    writes no durable managed prompt/response trace. Use `--keep-trace` only if
    requested: it retains encrypted traces and needs a user-held passphrase to
@@ -42,7 +42,7 @@ A separate retained provider key produced a useful encrypted synthetic-document 
    non-sensitive documents only; attestation/E2EE required, explicit firmware
    exceptions shown. The coupon comes from Dsmack's testnet issuer on the
    operator's Mac mini (Apple Containerization ARM guest, Apple identity-only
-   admission, operator-readable custody); genuine public-installed issuer admission passed. Redemption is paused pending reconciliation; the owner useful-document
+   admission, operator-readable custody); fresh issuer admission is required for each session. The installed coupon-to-document-and-close canary passed. New claims are bounded by the current window; the owner useful-document
    walkthrough remains pending. Apple identity does not establish operator-resistant key custody. The
    operator can read created keys/control access. A cap is not a reserved purse
    or verified balance. `/coupon` provides details. Inside the session a document

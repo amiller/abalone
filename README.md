@@ -6,9 +6,9 @@ before coupon entry or private input. Dsmack handles redemption; the helper
 verifies the remote provider and encrypts inference directly to it.
 
 **Current preview: synthetic, non-sensitive prompts only.** The
-[friend entry](docs/friend-preview.md) is public. Preview.4 passed the aggregate offline checks, installed runtime checks and fresh Mac issuer admission.
-**Redemption remains paused until the full coupon-to-document canary passes. Do not retry a failed claim.**
-A separate retained provider key produced a useful encrypted synthetic-document answer; that component proof does not establish the full coupon journey. Owner useful-document acceptance remains pending.
+[friend entry](docs/friend-preview.md) is public. Preview.5 passed aggregate offline coverage, installed runtime checks and unauthenticated public acquisition.
+**Bounded synthetic preview qualified: new claims only before 2026-10-11 23:56:53 UTC. Do not retry a failed or uncertain claim.**
+The installed preview completed one new $0.05 Mac-mini coupon claim, encrypted selected synthetic document request and clean close in 55.7 seconds. The service ledger confirms one delivered $0.05 claim; provider-reported history contains one matching request. Owner useful-document acceptance remains pending.
 Use the current signed trial; expired or historical staging bundles are unusable.
 
 ## Start
