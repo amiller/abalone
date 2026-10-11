@@ -369,7 +369,7 @@ export default async function (pi: ExtensionAPI) {
       } catch (e) { fail(ctx, e); }
     } });
   const BROWSER_SUBS = ["take", "give", "stop", "detach", "reconnect", "revoke"];
-  pi.registerCommand("browser", { description: "Let the agent use one browser tab: /browser grant [--attach <port>] [--open <url>] [--sites a,b] [--actions observe,navigate,click,type] [--minutes n]; then take | give | stop | detach | reconnect | revoke",
+  pi.registerCommand("browser", { description: "Let the agent use one browser tab: /browser grant [--extension | --attach <port>] [--open <url>] [--sites a,b] [--actions observe,navigate,click,type] [--minutes n]; then take | give | stop | detach | reconnect | revoke",
     handler: async (a, ctx) => {
       try {
         const [sub = "", ...rest] = a.trim().split(/\s+/).filter(Boolean);
@@ -378,8 +378,9 @@ export default async function (pi: ExtensionAPI) {
         if (BROWSER_SUBS.includes(sub)) { show(ctx, await browser(sub)); return refresh(ctx); }
         if (sub !== "grant") return show(ctx, `/browser ${sub}: unknown. Use grant, take, give, stop, detach, reconnect or revoke.`);
         const f = (k: string) => { const i = rest.indexOf(`--${k}`); return i < 0 ? undefined : rest[i + 1]; };
-        const identity = f("attach") ? { mode: "attach", port: Number(f("attach")) } : { mode: "profile" };
-        const label = identity.mode === "attach" ? `your Chrome on 127.0.0.1:${f("attach")} (its DevTools port is open to any program you run, not only abalone)`
+        if (rest.includes("--extension") && (f("attach") || f("open"))) throw new Error("--extension selects an existing tab; do not combine it with --attach or --open");
+        const identity = rest.includes("--extension") ? { mode: "extension" } : f("attach") ? { mode: "attach", port: Number(f("attach")) } : { mode: "profile" };
+        const label = identity.mode === "extension" ? "your selected Playwright extension tab (experimental internal protocol 2; approve pairing in Chrome)" : identity.mode === "attach" ? `your Chrome on 127.0.0.1:${f("attach")} (its DevTools port is open to any program you run, not only abalone)`
           : "the abalone profile (a separate Chromium profile kept for abalone, driven over a pipe only abalone holds)";
         let open = f("open"), tab: any = null;
         if (!open) {

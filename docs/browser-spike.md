@@ -72,6 +72,36 @@ exposed, but powerful browser tools such as evaluation remain available.
 
 ## Acceptance and remaining work
 
+### Experimental normal-session extension transport
+
+The research branch also supports `/browser grant --extension` in a normal
+Abalone session. Launch `bin/abalone --model nearai/z-ai/glm-5.3-flash`, then
+run that command. Approve the Playwright extension connection in Chrome, select
+the existing tab, and confirm Abalone's site/action grant. Use the unpacked
+Playwright extension **0.4.0, protocol 2**. This adapter speaks its internal
+Chrome-method relay directly; Playwright MCP is not part of this route.
+`ABALONE_BROWSER_EXTENSION_OPENER` optionally selects an executable that receives
+the connection URL as its sole argument; the default is `xdg-open`. This URL
+contains temporary pairing authority and should not be logged or recorded.
+
+Abalone's existing CDP bridge executes the four browser operations and enforces
+the grant. NEAR uses the existing admitted encrypted message-text tool protocol;
+native MCP definitions/arguments are not sent to NEAR. The loopback WebSocket
+relay requires a random connection path and the extension's origin, attaches
+only the initially selected tab, and ignores additional tabs/popups. It does not
+open a general Chrome debugging port or enable automatic profile-token pairing.
+Same-user hostile processes remain outside this security claim.
+
+`/browser take`, `give`, `stop`, `detach`, `reconnect` and `revoke` retain their
+normal meanings. Reconnect requires fresh extension pairing; selecting a different
+tab invalidates the old target rather than silently granting the new one.
+Strict incognito continues to refuse browser grants. Existing Fetch interception
+does not cover WebSockets, WebRTC, service workers or popups; this adapter does
+not broaden that claim. The internal protocol and pinned extension need review
+and compatibility checks before integration or release. The standalone
+`browser-spike` command above remains outside provider admission and is a
+different experiment.
+
 Use a synthetic signed-in mailbox for repeatable demonstrations. Verify that a
 real model finds the search field, types the query, submits it and reports the
 actual matching subjects. A scripted response is not evidence of model-driven
