@@ -5,8 +5,8 @@ The issuer runs on the Mac mini; the reference client runs on your trusted Linux
 host. Public client/source qualification and service admission do not replace the
 owner's useful-document walkthrough acceptance.
 
-Public files/local installer/direct Mac admission passed; fresh public-installed
-connection is currently failing. **Do not redeem until resolved.**
+Public acquisition and fresh public-installed Mac admission passed in preview.2.
+**Redemption remains paused while provider authorization is restored or an alternative is qualified. Do not redeem yet.**
 
 ## Start with the skill
 
@@ -26,9 +26,9 @@ passphrase or private session input. Do not send those to its chat. A same-user
 agent stepping aside is cooperation, not isolation from that agent or administrator.
 
 Download and inspect the
-[installer](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.1/install.sh)
+[installer](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.2/install.sh)
 and verify it against
-[FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.1/FRIEND-SHA256SUMS).
+[FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.2/FRIEND-SHA256SUMS).
 The installer pins the package and all four public trial files by checksum; the
 helper verifies the signed issuer controls. In your interactive terminal, run:
 
@@ -84,6 +84,6 @@ entitlement. Keep session keys alive for pending delivery. Closed-session recove
 is not qualified. Use `/coupon` for details. Base RPC-safe confirmation is not
 independent Ethereum L1 finality.
 
-[Client preview and immutable provenance](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.1)
+[Client preview and immutable provenance](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.2)
 · [Dsmack source](https://github.com/amiller/dsmack)
 · [Friend acceptance](https://github.com/amiller/abalone/issues/4)

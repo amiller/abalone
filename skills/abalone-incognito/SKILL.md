@@ -10,8 +10,8 @@ Use this skill to prepare a session, then hand it to the human. Use the publishe
 profile. Do not invent a release or use an expired trial. The owner walkthrough
 remains pending; read the [current release status](../../README.md).
 
-Public files/local installer/direct Mac admission passed; fresh public-installed
-connection is currently failing. **Do not redeem until resolved.**
+Public acquisition and fresh public-installed Mac admission passed in preview.2.
+**Redemption remains paused while provider authorization is restored or an alternative is qualified. Do not redeem yet.**
 
 1. **Check support.** Initial profile: ordinary-user Linux x86_64, compatible
    Node24, bash, curl, tar and sha256sum, with an existing Linux tmpfs.
@@ -22,8 +22,8 @@ connection is currently failing. **Do not redeem until resolved.**
    reviewed landing and expected checksums. The installer pins the artifact and
    all four public files by checksum. The helper verifies the signed issuer controls. Reuse an exact matching installation or prepare
    it through the reviewed setup path; do not build a private checkout, bypass
-   checks, or introduce operator/provider credentials. Public files and local installer checks passed; the fresh public-installed
-   connection is currently failing. Do not redeem until resolved. Do not ask a friend to repair its environment.
+   checks, or introduce operator/provider credentials. Public acquisition and fresh installed admission passed; redemption remains
+   paused pending provider readiness. Do not redeem yet. Do not ask a friend to repair its environment.
 3. **Choose retention.** Default session-only use needs no trace passphrase and
    writes no durable managed prompt/response trace. Use `--keep-trace` only if
    requested: it retains encrypted traces and needs a user-held passphrase to
@@ -42,8 +42,8 @@ connection is currently failing. **Do not redeem until resolved.**
    non-sensitive documents only; attestation/E2EE required, explicit firmware
    exceptions shown. The coupon comes from Dsmack's testnet issuer on the
    operator's Mac mini (Apple Containerization ARM guest, Apple identity-only
-   admission, operator-readable custody); an earlier genuine issuer probe passed, but the fresh public-installed connection
-   is currently failing. Do not redeem until resolved; the owner useful-document
+   admission, operator-readable custody); genuine public-installed issuer admission passed. Redemption remains
+   paused pending provider readiness; the owner useful-document
    walkthrough remains pending. Apple identity does not establish operator-resistant key custody. The
    operator can read created keys/control access. A cap is not a reserved purse
    or verified balance. `/coupon` provides details. Inside the session a document
