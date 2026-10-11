@@ -138,3 +138,17 @@ test("pre-bearer workspace setup checks normal canaries and refuses tampering in
     assert.ok(!fs.existsSync(path.join(state, "keys", "trace-active")), "default setup needs no trace passphrase");
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });
+
+test("owned-host is an explicit pinned boundary; unknown profiles and implicit fallback are refused", async () => {
+  const f = fixture();
+  try {
+    f.bundle.platform = "linux-node24-owned-host"; f.save();
+    assert.ok(recipientArgv(loadTrial(f.file)).includes("--owned-host"));
+    const result = await preflight(f.file);
+    assert.match(result.checks.find(c => c.name === "local boundary").result, /ordinary account.*filesystem and network access/);
+    f.bundle.platform = "linux-node24-bubblewrap"; f.save();
+    assert.ok(!recipientArgv(loadTrial(f.file)).includes("--owned-host"));
+    f.bundle.platform = "linux-node24-auto"; f.save();
+    assert.throws(() => loadTrial(f.file), { code: "bundle_invalid" });
+  } finally { fs.rmSync(f.directory, {recursive:true,force:true}); }
+});

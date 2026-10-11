@@ -23,7 +23,7 @@ if not re.fullmatch(r'[0-9a-f]{7,40}', args.rev) or not re.fullmatch(r'[0-9a-f]{
 base = urlparse(args.base)
 if base.scheme != 'https' or not base.hostname or base.username or base.password or base.query or base.fragment or not re.fullmatch(r'https://[A-Za-z0-9./_:-]+', args.base):
     parser.error('Use a credential-free HTTPS release base without query or fragment.')
-values = {'REV': args.rev, 'SHA256': args.artifact_sha256, 'BASE': args.base.rstrip('/')}
+values = {'REV': args.rev, 'SHA256': args.artifact_sha256, 'BASE': args.base.rstrip('/'), 'TRIAL_PLATFORM': 'linux-node24-bubblewrap'}
 names = {'TRIAL_SHA256': 'trial.json', 'PIN_SHA256': 'issuer-pin.json', 'APPROVAL_SHA256': 'staging-approval.json', 'READINESS_SHA256': 'readiness.json'}
 values.update({key: '' for key in names})
 if args.trial_dir:
@@ -39,6 +39,9 @@ if args.trial_dir:
         public_bytes[name] = raw
         values[key] = hashlib.sha256(raw).hexdigest()
     trial = json.loads(public_bytes['trial.json'])
+    if trial.get('platform') not in ('linux-node24-bubblewrap', 'linux-node24-owned-host'):
+        parser.error('Use an explicit supported friend platform; no boundary fallback is allowed.')
+    values['TRIAL_PLATFORM'] = trial['platform']
     if trial.get('issuer', {}).get('pin') != 'issuer-pin.json' or trial.get('issuer', {}).get('approval') != 'staging-approval.json':
         parser.error('The friend bundle must use the exact public sibling filenames.')
 text = args.template.read_text()

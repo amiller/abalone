@@ -1,40 +1,67 @@
 # Abalone
 
-Abalone is a curated guide to an incognito AI session, built around a minimally
-patched Pi agent. Bring a gift, review its terms, and connect directly to an
-admitted inference provider. DSMACK handles redemption; Abalone guides first use
-and close.
+Abalone is a curated skill that guides you into an incognito AI session.
+The [Abalone incognito skill](skills/abalone-incognito/SKILL.md) prepares the
+reviewed reference helper and hands its interactive terminal to you. Bring a
+gift, review its terms, and connect directly to an admitted inference provider.
+Dsmack handles redemption; Abalone guides first use and close.
+
+The skill is instructions for a setup agent, not the privacy mechanism. The
+current reference implementation downloads a distribution built around a
+patched Pi agent; adding this skill to stock Pi or Hermes does not supply it.
+
+| Component | What it does |
+| --- | --- |
+| Outside setup skill | Checks support, prepares the reviewed helper and hands the terminal to you |
+| Abalone reference helper | Launcher, patched Pi, curated extensions, verification and credential broker |
+| Local host | First release trusts the owned host; bubblewrap containment is milestone 2 |
+| Dsmack / remote NEAR | Coupon redemption / admitted encrypted inference |
+
+This remains a substantial runtime and dependency boundary; a skill entry does
+not reduce its trusted code or qualify other agent hosts.
 
 ```mermaid
 flowchart LR
     Gift[Your gift] --> Client[Abalone incognito session]
-    Client -->|Verify issuer, redeem once| DSMACK[DSMACK public testnet issuer]
-    DSMACK -->|Encrypted credential delivery| Client
+    Client -->|Verify issuer, redeem once| Dsmack[Dsmack public testnet issuer]
+    Dsmack -->|Encrypted credential delivery| Client
     Client -->|Attest provider, encrypted inference| NEAR[Remote NEAR model]
 ```
 
-## Try a gift
+## Use the skill
 
 The friend release is **being prepared**. There is no qualified public download
-yet. The [friend-URL acceptance issue](https://github.com/amiller/abalone/issues/4)
+yet, and the new skill-first handoff is not yet rehearsed. The
+[friend-URL acceptance issue](https://github.com/amiller/abalone/issues/4)
 tracks the reviewed artifact, public acquisition and actual walkthrough. Do not
 use an old trial bundle merely because it appears on a release page.
 
-Supported recipient: **Linux x86_64, Node 24, bash, bubblewrap, curl, tar and
-sha256sum**, running as an ordinary user. Bubblewrap needs working user and
-network namespaces. macOS, Windows, Docker containers and USB/Tails are not
+Supported recipient: **Linux x86_64, compatible Node 24, bash, curl, tar and
+sha256sum**, running as an ordinary user with an existing Linux tmpfs. The first
+release selects an explicit trusted-owned-host profile with **no OS isolation**;
+local tools have your ordinary account filesystem/network access. Bubblewrap
+containment and portable setup belong to milestone 2 after this release. macOS, Windows, Docker containers and USB/Tails are not
 qualified recipient profiles for this release. No VPN, provider account, manual
 API key or funded recipient wallet is required.
 
-The prepared release will provide one reviewed `install.sh`, its SHA256 and the
-public trial files it pins. Download and inspect it, verify its published
-checksum, then run:
+Once the public entry is ready, ask your setup agent to use the linked skill.
+It prepares the exact helper if needed, then steps aside before hidden input;
+you operate the private session yourself. Do not send the agent your coupon,
+passphrase or private prompts. A same-user setup agent stepping aside supplies
+cooperation, not enforced privacy from that agent or your administrator.
+
+The release will provide one reviewed `install.sh`, its SHA256 and the public
+trial files it pins. These are the implementation of the skill's setup step,
+not an additional service/account to sign up for. The equivalent manual entry
+after downloading, inspecting and verifying the installer is:
 
 ```sh
 sh install.sh --friend
 ```
 
-This installs the pinned client and creates a fresh private workspace/session.
+This downloads the pinned reference distribution and creates a fresh private
+workspace/session. Compatible Node and the selected owned-host memory prerequisites are checked;
+the installer does not silently turn another agent into this runtime.
 Enter your gift at the hidden prompt, never in arguments, shell history,
 environment values or an AI message. Read the offer before claiming. Keep the
 same window open while delivery is pending; it holds the recipient keys needed
@@ -55,8 +82,7 @@ erasure. These release interfaces are candidates until acceptance passes.
 
 ## Understand the session
 
-The first trial uses **remote NEAR inference**. A local broker/tool sandbox does
-not make the model local. Redemption creates a provider-capped credential: a $1
+The first trial uses **remote NEAR inference**. A local credential broker does not make the model local. Redemption creates a provider-capped credential: a $1
 cap is not a segregated purse, wallet transfer or verified remaining balance.
 The sponsor/provider can revoke access, provider caps can overshoot, and
 remaining credit is unknown unless verified usage is available.

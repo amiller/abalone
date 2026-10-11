@@ -5,13 +5,16 @@
 #   sh install.sh                                                              install only
 #   sh install.sh --trial /ABS/trial.json                                        install and start incognito
 #   curl -fsSL @BASE@/install.sh | sh -s -- --peer <peer address> <code>.<grant>    install and redeem a gift
-# Needs: node 24, bwrap (bubblewrap), curl, tar. Installs into ~/.abalone-app/@REV@ and links ~/.local/bin/abalone.
+# Needs: Node24, curl, tar, bash, sha256sum. Bubblewrap is required except for
+# the explicitly pinned linux-node24-owned-host friend profile (no OS isolation).
+# Installs into ~/.abalone-app/@REV@ and links ~/.local/bin/abalone.
 # On macOS there is no bubblewrap, so the private local session does not run; redeem, offers, commission, tasks and
 # verify do (node 24 or later).
 set -eu
 trial=
 friend=no
 keep_trace=no
+friend_platform='@TRIAL_PLATFORM@'
 if [ "${1:-}" = --friend ]; then
   friend=yes
   shift
@@ -31,24 +34,40 @@ if [ "$friend" = yes ]; then
   [ "$os:$(uname -m)" = Linux:x86_64 ] || { echo "The friend trial currently supports Linux x86_64 only." >&2; exit 1; }
   [ "$(id -u)" != 0 ] || { echo "Run the friend session as your ordinary user, not root." >&2; exit 1; }
 fi
-for c in node curl tar sha256sum bash $([ "$os" = Darwin ] || echo bwrap); do command -v "$c" >/dev/null 2>&1 || { echo "abalone needs $c, which is not installed on this computer." >&2; exit 1; }; done
+need_bwrap=yes
+if [ "$friend" = yes ]; then
+  case "$friend_platform" in
+    linux-node24-owned-host) need_bwrap=no ;;
+    linux-node24-bubblewrap) ;;
+    *) echo "Unsupported pinned friend platform. Nothing was started." >&2; exit 1 ;;
+  esac
+fi
+for c in node curl tar sha256sum bash; do command -v "$c" >/dev/null 2>&1 || { echo "abalone needs $c, which is not installed on this computer." >&2; exit 1; }; done
+if [ "$os" != Darwin ] && [ "$need_bwrap" = yes ]; then command -v bwrap >/dev/null 2>&1 || { echo "This isolated profile requires bubblewrap. No weaker profile was selected." >&2; exit 1; }; fi
 case "$os:$(node -v)" in *:v24.*|Darwin:v2[5-9].*) ;; *) echo "abalone needs node 24 (this computer has $(node -v))." >&2; exit 1 ;; esac
 app="$HOME/.abalone-app/@REV@"
 if [ ! -x "$app/abalone/bin/abalone" ]; then
   tmp=$(mktemp -d)
   curl -fsSL "@BASE@/abalone-@REV@.tar.gz" -o "$tmp/a.tgz"
   echo "@SHA256@  $tmp/a.tgz" | sha256sum -c --quiet - || { echo "The download does not match the expected release (@REV@). Nothing was installed." >&2; exit 1; }
-  mkdir -p "$app" && tar -xzf "$tmp/a.tgz" -C "$app" && rm -rf "$tmp"
+  mkdir -p "$app"
+  tar -xzf "$tmp/a.tgz" -C "$app" || { echo "The verified archive could not be extracted. Nothing was started." >&2; exit 1; }
+  rm -rf "$tmp"
 fi
 mkdir -p "$HOME/.local/bin" && ln -sf "$app/abalone/bin/abalone" "$HOME/.local/bin/abalone"
 echo "Installed abalone @REV@."
 if [ "$friend" = yes ]; then
   # Fresh, private state: no existing account keys or operator profile are reused.
   umask 077
-  mkdir -p "$app/abalone/runner-home"
+  [ "$need_bwrap" = no ] || mkdir -p "$app/abalone/runner-home"
   mkdir -p "$HOME/.abalone-friend"
   session=$(mktemp -d "$HOME/.abalone-friend/session.XXXXXX")
-  runtime=$(mktemp -d /tmp/abalone-friend.XXXXXX)
+  if [ "$friend_platform" = linux-node24-owned-host ]; then
+    echo "Trusted owned host: no OS isolation. Local tools have your ordinary account's filesystem and network access."
+    runtime=$(mktemp -d /dev/shm/abalone-friend.XXXXXX) || { echo "Owned-host memory runtime unavailable. No disk fallback or gift entry." >&2; exit 1; }
+  else
+    runtime=$(mktemp -d /tmp/abalone-friend.XXXXXX)
+  fi
   trap 'rmdir "$runtime" 2>/dev/null || true' EXIT
   mkdir "$session/home" "$session/state" "$session/work" "$session/trial"
   for name in trial.json issuer-pin.json staging-approval.json readiness.json; do

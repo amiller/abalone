@@ -16,6 +16,7 @@ import { startEgress } from "../lib/egress.mjs";
 import { browserBridge } from "../lib/browser.mjs";
 import { history } from "../lib/ui/tool-display.mjs";
 import { piArgv } from "../lib/sandbox.mjs";
+import { memoryRoot, memoryRun, ownedHostEnvironment, OWNED_HOST_NOTICE } from "../lib/owned-host.mjs";
 import * as nodekeys from "../lib/nodekeys.mjs";
 import * as gift from "../lib/gift.mjs";
 import * as consent from "../lib/consent/index.mjs";
@@ -108,7 +109,7 @@ async function attestedCouponSessionCmd(peerAddr) {
     else if (a === "--issuer-pin") issuerPinFile = value();
     else if (a === "--model") model = value();
     else if (a === "--mode") { if (value() !== "rpc") throw new Error("The only automated coupon-session mode is RPC. Nothing was claimed."); }
-    else if (!["--incognito", "--keep-trace", "--no-canaries"].includes(a)) throw new Error("An attested coupon session accepts only --peer, --attested, --fixture-local, --staging-approval <file>, --approval-root <hex>, --issuer-pin <file>, --model, --allow-out-of-date-trial, --incognito, --no-canaries and --mode rpc. Never put a coupon in command arguments. Nothing was claimed.");
+    else if (!["--incognito", "--keep-trace", "--no-canaries", "--owned-host"].includes(a)) throw new Error("An attested coupon session accepts only --peer, --attested, --fixture-local, --staging-approval <file>, --approval-root <hex>, --issuer-pin <file>, --model, --allow-out-of-date-trial, --incognito, --no-canaries and --mode rpc. Never put a coupon in command arguments. Nothing was claimed.");
   }
   if (!profile) throw new Error("An attested coupon session needs a profile: --fixture-local (synthetic loopback issuer), or --staging-approval <file> --approval-root <hex> (signed debug staging). Nothing was claimed.");
   if (allowOutOfDateTrial && profile !== "debug-staging") throw new Error("--allow-out-of-date-trial is available only with signed synthetic debug staging. Nothing was claimed.");
@@ -124,7 +125,10 @@ async function attestedCouponSessionCmd(peerAddr) {
   if (gift.coupon()) throw new Error("An existing routed gift is active. Nothing was replaced or claimed; use a fresh profile.");
   verified();
   runtimeDir();
-  if (process.platform !== "linux" || spawnSync("bwrap", ["--version"], { stdio: "pipe" }).status !== 0) throw new Error("This coupon session requires the Linux sandbox installed before claim. Nothing was claimed.");
+  if (args.includes("--owned-host")) {
+    if (!args.includes("--incognito") || process.platform !== "linux") throw new Error("--owned-host requires Linux incognito. Nothing was claimed.");
+    memoryRoot(); process.stderr.write(`${OWNED_HOST_NOTICE}\n`);
+  } else if (process.platform !== "linux" || spawnSync("bwrap", ["--version"], { stdio: "pipe" }).status !== 0) throw new Error("This coupon session requires the Linux sandbox installed before claim. Nothing was claimed.");
   // Everything admission-related is checked and read before any coupon is entered or sent.
   let pin;
   try { pin = admitAttestedCouponIssuerPin(JSON.parse(readAttestedCouponAdmissionFile(issuerPinFile, 262_144).toString("utf8"))); }
@@ -176,7 +180,7 @@ async function attestedCouponSessionCmd(peerAddr) {
     : "Installed the attested fixture credential for this process only. Inference uses the local provider socket, not dsmack. Balance and provider expiry remain unknown. /coupon shows state; /coupon forget closes this process.\n");
   // Admission flags belong to the launcher. Pi receives only its selected socket provider/model.
   const sessionArgs = ["--model", `${couponSlot.provider.provider}/${couponSlot.provider.model}`];
-  for (const flag of ["--incognito", "--keep-trace", "--no-canaries"]) if (args.includes(flag)) sessionArgs.push(flag);
+  for (const flag of ["--incognito", "--keep-trace", "--no-canaries", "--owned-host"]) if (args.includes(flag)) sessionArgs.push(flag);
   if (args.includes("--mode")) sessionArgs.push("--mode", "rpc");
   args.splice(0, args.length, ...sessionArgs);
   await session();
@@ -450,6 +454,8 @@ async function session() {
   if (args[0] && !args[0].startsWith("-") && fs.statSync(args[0], { throwIfNoEntry: false })?.isDirectory()) process.chdir(args.shift());
   // abalone --incognito <folder>: strict incognito (notes/contracts/trace-store.md). Only this flag turns it on.
   const incognito = args.includes("--incognito"), keepTrace = args.includes("--keep-trace"), withTrace = flag("--with-trace");
+  const ownedHost = args.includes("--owned-host");
+  if (ownedHost && (!incognito || !couponSlot)) throw new Error("Owned-host mode requires an explicit incognito coupon session; no ambient provider is substituted.");
   await prepareRetention();
   if (incognito && args[args.indexOf("--incognito") + 1] && !args[args.indexOf("--incognito") + 1].startsWith("-")) process.chdir(args.splice(args.indexOf("--incognito") + 1, 1)[0]);
   if (withTrace && !incognito) throw new Error("✗ refused: --with-trace adds a decrypted trace to a session's context, so it works only with --incognito");
@@ -471,7 +477,7 @@ async function session() {
     else if (a === "--skill") loads.push("--skill", admit(entries, args[++i], "skill"));
     // abalone --resume <id> (the line printed on exit) is Pi's --session <id>; a bare --resume opens Pi's picker.
     else if (a === "--resume" && args[i + 1] && !args[i + 1].startsWith("-")) user.push("--session", args[++i]);
-    else if (!["--no-canaries", "--incognito", "--keep-trace"].includes(a)) user.push(a);
+    else if (!["--no-canaries", "--incognito", "--keep-trace", "--owned-host"].includes(a)) user.push(a);
   }
   const canaries = canary.forSession(process.cwd(), args.includes("--no-canaries") || process.env.ABALONE_NO_CANARIES === "1");
   const p = providers();
@@ -532,9 +538,11 @@ async function session() {
     if (e.kind === "preload") env.NODE_OPTIONS = `--import ${e.abs}`;
   }
   // Sockets live in a short per-user runtime dir: a unix socket path may not exceed 107 bytes.
-  const run = fs.mkdtempSync(path.join(runtimeDir(), "abalone-"));
+  const run = ownedHost ? memoryRun() : fs.mkdtempSync(path.join(runtimeDir(), "abalone-"));
   process.on("exit", () => fs.rmSync(run, { recursive: true, force: true })); // also when startup throws
   env.ABALONE_EGRESS = run;
+  delete env.ABALONE_OWNED_HOST;
+  if (ownedHost) { env.ABALONE_OWNED_HOST = "1"; env.ABALONE_DIR = path.join(run, "state"); delete env.ABALONE_SANDBOX; env.TMPDIR = path.join(run, "tmp"); }
   if (couponSlot) {
     const socketPath = path.join(run, "coupon.sock");
     await couponSlot.broker(socketPath, { onState: (state) => console.error(`Coupon session: ${state}. Check /coupon; no alternate key is tried.`) });
@@ -559,9 +567,9 @@ async function session() {
   }
   if (incognito) {
     env.ABALONE_SESSION_DESCRIPTOR = path.join(run, "session.json");
-    fs.writeFileSync(env.ABALONE_SESSION_DESCRIPTOR, JSON.stringify({ version: 1, mode: "strict-incognito", workspace: process.cwd(),
-      inference: "⌂ local and ◈ admitted providers only (providers.json); outside providers, ask_frontier, /fetch and the gift peer are off",
-      network: { shell: "none", public_web: false, egress: "admitted TEE hosts, their verifier hosts and loopback model ports" },
+    fs.writeFileSync(env.ABALONE_SESSION_DESCRIPTOR, JSON.stringify({ version: 1, mode: ownedHost ? "owned-host-incognito" : "strict-incognito", workspace: process.cwd(), local_boundary: ownedHost ? "trusted-owned-host" : "bubblewrap",
+      inference: ownedHost ? "Pinned admitted coupon inference only; alternate inference credentials, ask_frontier, /fetch and gift control commands are disabled. Ordinary-account tools retain filesystem/network access." : "⌂ local and ◈ admitted providers only (providers.json); outside providers, ask_frontier, /fetch and the gift peer are off",
+      network: ownedHost ? { shell: "ordinary account network access; not isolated", public_web: true, egress: "tool network is not confined; inference remains pinned to the admitted coupon provider" } : { shell: "none", public_web: false, egress: "admitted TEE hosts, their verifier hosts and loopback model ports" },
       retention: tw ? { kind: "encrypted-trace", format: "abalone-trace/2", trace: tw.file, key_id: key.kid, key_file: key.file, encrypted: true,
         session_can_read_back: false, other_harness_writes: "tmpfs (memory), gone at exit", reopened: reopened?.id ?? null } : { kind: "session-only", session_can_read_back: false, other_harness_writes: "tmpfs (memory), gone at exit", reopened: reopened?.id ?? null } }, null, 1), { mode: 0o400 });
   }
@@ -621,10 +629,11 @@ async function session() {
   const closeBrowser = browserBridge(run, { incognito });
   const pi = path.join(ROOT, "pi/packages/coding-agent/dist/cli.js");
   if (claude) env.ABALONE_RUNNER_CLAUDE = claude;
-  const settingsFd = incognito ? fs.openSync(sf, "r") : undefined;
-  const child = spawn("bwrap", [...piArgv(run, hosts, process.cwd(), { incognito, gift: !!g, ...(incognito ? { settingsFd: 3 } : {}) }), "--", process.execPath, pi,
+  const settingsFd = incognito && !ownedHost ? fs.openSync(sf, "r") : undefined;
+  const prefix = ownedHost ? [] : [...piArgv(run, hosts, process.cwd(), { incognito, gift: !!g, ...(incognito ? { settingsFd: 3 } : {}) }), "--", process.execPath];
+  const child = spawn(ownedHost ? process.execPath : "bwrap", [...prefix, pi,
     "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-themes", "--no-context-files", "--no-mcp", "--no-approve",
-    ...loads, ...user], { stdio: incognito ? ["inherit", "inherit", "inherit", settingsFd] : "inherit", env });
+    ...loads, ...user], { stdio: settingsFd !== undefined ? ["inherit", "inherit", "inherit", settingsFd] : "inherit", env: ownedHost ? ownedHostEnvironment(env) : env });
   if (settingsFd !== undefined) fs.closeSync(settingsFd);
   process.on("SIGINT", () => {});
   for (const s of ["SIGTERM", "SIGHUP"]) process.on(s, () => child.kill(s)); // the child exits, then the run dir is removed

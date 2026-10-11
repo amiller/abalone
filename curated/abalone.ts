@@ -90,7 +90,7 @@ export default async function (pi: ExtensionAPI) {
   let render = () => {};
 
   const bash = createBashTool(process.cwd(), {
-    spawnHook: ({ command, cwd, env }) => ({ command: `exec ${[...bashArgv(cwd), "bash", "-c", command].map(q).join(" ")}`, cwd, env }),
+    ...(process.env.ABALONE_OWNED_HOST === "1" ? {} : { spawnHook: ({ command, cwd, env }) => ({ command: `exec ${[...bashArgv(cwd), "bash", "-c", command].map(q).join(" ")}`, cwd, env }) }),
   });
   pi.registerTool({ ...bash, execute: (id, params, signal, onUpdate) => bash.execute(id, params, signal, onUpdate) });
 

@@ -15,6 +15,9 @@ import { COUPON_PROTOCOL_V3 } from "../lib/coupon-accountless.mjs";
 import { runPrompt, assistantText } from "../lib/rpc.mjs";
 
 const attested = process.argv.includes("--attested");
+const ownedHost = process.argv.includes("--owned-host");
+if (ownedHost && !attested) throw new Error("Owned-host fixture requires --attested");
+const memoryRuns = new Set();
 const protocol = attested ? COUPON_PROTOCOL_V4 : COUPON_PROTOCOL_V3;
 const source = process.env.DSMACK_CODE_DIR;
 if (!source || !path.isAbsolute(source)) throw new Error("Set DSMACK_CODE_DIR to an absolute dsmack code checkout");
@@ -63,11 +66,23 @@ raise SystemExit(peer_worker.main(sys.argv[3:]))
     assert.equal(req.url, "/v1/chat/completions"); assert.equal(req.headers.authorization, `Bearer ${credential}`);
     let text = ""; for await (const c of req) text += c; const body = JSON.parse(text); prompts.push(text);
     assert.equal(body.model, "fixture-model"); assert.ok(text.includes(prompt)); creates++;
-    // Inspect the actual sandbox child, not merely a constructed env object.
+    // Inspect the actual Pi child, not merely a constructed env object. Pi sets
+    // process.title, replacing its cmdline, so bind inspection to this fixture config.
     for (const name of fs.readdirSync("/proc").filter((n) => /^[0-9]+$/.test(n))) {
-      try { const command = fs.readFileSync(`/proc/${name}/cmdline`, "utf8"), env = fs.readFileSync(`/proc/${name}/environ`, "utf8");
-        if (env.includes(`ABALONE_DIR=${path.join(dir, "recipient")}`)) { argv.push(command); environment.push(env); }
-      } catch { /* unrelated process may disappear */ }
+      let command, childEnv;
+      try {
+        command = fs.readFileSync(`/proc/${name}/cmdline`, "utf8");
+        childEnv = fs.readFileSync(`/proc/${name}/environ`, "utf8");
+      } catch { continue; } // unrelated processes can disappear or deny inspection
+      const fields = Object.fromEntries(childEnv.split("\0").filter(x => x.includes("=")).map(x => { const at=x.indexOf("="); return [x.slice(0,at),x.slice(at+1)]; }));
+      if (fields.ABALONE_DIR === path.join(dir, "recipient") || (ownedHost && fields.ABALONE_OWNED_HOST === "1" && fields.ABALONE_CONFIG === configDir)) {
+        argv.push(command); environment.push(childEnv);
+        if (ownedHost && fields.ABALONE_OWNED_HOST === "1") {
+          assert.ok(fields.ABALONE_DIR, "actual Pi child has managed state");
+          assert.equal(fs.statfsSync(fields.ABALONE_DIR).type, 0x01021994, "actual Pi state is tmpfs");
+          memoryRuns.add(path.dirname(fields.ABALONE_DIR));
+        }
+      }
     }
     res.writeHead(200, { "content-type": "text/event-stream" });
     const event = (choices, usage) => `data: ${JSON.stringify({ id: "synthetic-session-reply", object: "chat.completion.chunk", created: 1, model: body.model, choices, ...(usage ? { usage } : {}) })}\n\n`;
@@ -94,9 +109,17 @@ raise SystemExit(peer_worker.main(sys.argv[3:]))
     const pinFile = path.join(dir, "issuer-pin.json");
     fs.writeFileSync(pinFile, JSON.stringify({ identityPolicy: fixture.identity_policy, expectedIdentityPolicySha256: fixture.identity_policy_sha256, expectedIssuancePolicySha256: fixture.issuance_policy_sha256, expectedIssuerPublicKeySha256: crypto.createHash("sha256").update(crypto.createPublicKey(key).export({ format: "der", type: "spki" }).subarray(-32)).digest("hex") }));
     const passFD = input("synthetic trace passphrase", "passphrase-input");
-    try { execFileSync(path.join(root, "bin/abalone"), ["trace", "key", "init"], { env: { ...env, ABALONE_PASSPHRASE_FD: "3" }, stdio: ["ignore", "pipe", "pipe", passFD] }); } finally { fs.closeSync(passFD); }
-    profileArgs = ["--attested", "--fixture-local", "--issuer-pin", pinFile, "--incognito"];
+    try { if (!ownedHost) execFileSync(path.join(root, "bin/abalone"), ["trace", "key", "init"], { env: { ...env, ABALONE_PASSPHRASE_FD: "3" }, stdio: ["ignore", "pipe", "pipe", passFD] }); } finally { fs.closeSync(passFD); }
+    profileArgs = ["--attested", "--fixture-local", "--issuer-pin", pinFile, "--incognito", ...(ownedHost ? ["--owned-host"] : [])];
     env.ABALONE_COUPON_POLL_MS = "1000";
+  }
+  if (ownedHost) {
+    const fake=path.join(dir,"no-bwrap"); fs.mkdirSync(fake);
+    fs.writeFileSync(path.join(fake,"bwrap"), `#!/bin/sh\necho called >> ${path.join(dir,"bwrap-called")}\nexit 127\n`,{mode:0o700});
+    env.PATH=fake+":"+env.PATH;
+    const strict=await execute(profileArgs.filter(x=>x!=="--owned-host"),gift.coupon,"");
+    assert.equal(strict.code,1);assert.ok(strict.text.includes("Linux sandbox installed before claim"));
+    assert.equal(frames.length,0); fs.unlinkSync(path.join(dir,"bwrap-called"));
   }
   stage = "default refusal";
   const denied = await execute([], gift.coupon, "CLAIM SESSION ONLY"); assert.equal(denied.code, 1); assert.ok(denied.text.includes("No coupon was read or sent")); assert.equal(frames.length, 0);
@@ -115,9 +138,15 @@ raise SystemExit(peer_worker.main(sys.argv[3:]))
   assert.equal(assistantText(session.events), "The sum is 5 (synthetic fixture)."); assert.ok(session.stderr.includes("EXIT OR CRASH LOSES RECOVERY")); assert.ok(session.stderr.includes("Coupon session closed"));
   if (attested) {
     assert.ok(session.stderr.includes("asynchronous claim is still in progress"));
-    assert.ok(session.stderr.includes("Strict incognito closed"));
+    assert.ok(session.stderr.includes(ownedHost ? "Incognito closed. No conversation trace retained" : "Strict incognito closed"));
     const claims = frames.filter((f) => f.includes('"op":"claim"')).map(JSON.parse);
     assert.ok(claims.length >= 2); assert.equal(new Set(claims.map((f) => f.recipient_key)).size, 1); assert.equal(new Set(claims.map((f) => f.offer_hash)).size, 1);
+  }
+  if (ownedHost) {
+    assert.equal(fs.existsSync(path.join(dir,"bwrap-called")),false,"explicit owned-host never attempts bwrap");
+    assert.ok(session.stderr.includes("local tools have your ordinary account"));
+    assert.ok(memoryRuns.size>0);for(const run of memoryRuns)assert.equal(fs.existsSync(run),false,"managed state/socket directory removed on close");
+    assert.equal(fs.existsSync(path.join(recipient,"keys")),false,"default has no trace key");
   }
   assert.equal(creates, 1); assert.equal(prompts.length, 1); assert.ok(environment.length > 0);
   for (const content of [...environment, ...argv, ...logs, session.stderr, JSON.stringify(session.events)]) assert.ok(!content.includes(credential) && !content.includes(gift.coupon), "no raw credential or coupon in exercised child/log/transcript channels");
@@ -130,6 +159,6 @@ raise SystemExit(peer_worker.main(sys.argv[3:]))
   }
   const counts = attested ? { create: fs.readFileSync(path.join(state, "async-provider-effects"), "utf8").trim().split("\n").length } : JSON.parse(execFileSync("python3", ["-c", "import json,sqlite3,sys;c=sqlite3.connect(sys.argv[1]);print(json.dumps(dict(c.execute('SELECT kind,COUNT(*) FROM synthetic_events GROUP BY kind'))))", path.join(state, "state.sqlite")], { encoding: "utf8" }));
   assert.deepEqual(counts, { create: 1 });
-  originalError(JSON.stringify({ mode: attested ? "synthetic-async-v4-incognito-Pi-session-e2e" : "synthetic-recipient-session-e2e", production_default_refused: true, cancelled_before_claim: true, useful_direct_response: true, provider_creates: 1, raw_key_in_child_environment: false, no_credential_persistence: true, broker_cleaned_up: true, issuer_verified_for_production: false, vpn_qualified: false }));
+  originalError(JSON.stringify({ mode: ownedHost ? "synthetic-async-v4-owned-host-Pi-session-e2e" : attested ? "synthetic-async-v4-incognito-Pi-session-e2e" : "synthetic-recipient-session-e2e", production_default_refused: true, cancelled_before_claim: true, useful_direct_response: true, provider_creates: 1, raw_key_in_child_environment: false, no_credential_persistence: true, broker_cleaned_up: true, issuer_verified_for_production: false, vpn_qualified: false }));
 } catch (e) { originalError(`Synthetic recipient-session fixture failed at ${stage}: ${e.message}`); throw e; }
 finally { console.error = originalError; for (const close of resources.reverse()) await close(); provider?.closeAllConnections(); if (provider) await new Promise((r) => provider.close(r)); fs.rmSync(dir, { recursive: true, force: true }); }

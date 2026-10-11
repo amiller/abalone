@@ -17,12 +17,13 @@ import * as nodekeys from "../lib/nodekeys.mjs";
 import * as gift from "../lib/gift.mjs";
 import * as canary from "../lib/canary.mjs";
 import { piArgv } from "../lib/sandbox.mjs";
+import { memoryRoot, OWNED_HOST_NOTICE } from "../lib/owned-host.mjs";
 
 const exact = (v, keys) => v && Object.getPrototypeOf(v) === Object.prototype && Object.keys(v).sort().join(",") === [...keys].sort().join(",");
 const hex = (v) => typeof v === "string" && /^[0-9a-f]{64}$/.test(v);
 const sha = (b) => crypto.createHash("sha256").update(b).digest("hex");
 const fail = (code, message) => Object.assign(new Error(message), { code });
-export const FIRST_USE_SOURCE_FILES = ["tools/coupon-first-use.mjs", "bin/abalone.mjs", "lib/coupon-attested.mjs", "lib/coupon-attested-session.mjs", "lib/coupon-near.mjs", "lib/near.mjs", "lib/coupon-staging.mjs", "lib/coupon-input.mjs", "lib/coupon-socket.mjs", "lib/config.mjs", "lib/welcome.mjs", "lib/status.mjs", "lib/sandbox.mjs", "lib/canary.mjs", "curated/abalone.ts", "curated/coupon-provider.ts", "curated/manifest.json", "package-lock.json", "pi/package-lock.json", "aci/package-lock.json", "pi/packages/coding-agent/dist/cli.js", "pi/packages/coding-agent/src/core/settings-manager.ts", "pi/packages/coding-agent/dist/core/settings-manager.js"];
+export const FIRST_USE_SOURCE_FILES = ["tools/coupon-first-use.mjs", "bin/abalone.mjs", "lib/coupon-attested.mjs", "lib/coupon-attested-session.mjs", "lib/coupon-near.mjs", "lib/near.mjs", "lib/coupon-staging.mjs", "lib/coupon-input.mjs", "lib/coupon-socket.mjs", "lib/config.mjs", "lib/welcome.mjs", "lib/status.mjs", "lib/sandbox.mjs", "lib/owned-host.mjs", "lib/canary.mjs", "curated/abalone.ts", "curated/coupon-provider.ts", "curated/manifest.json", "package-lock.json", "pi/package-lock.json", "aci/package-lock.json", "pi/packages/coding-agent/dist/cli.js", "pi/packages/coding-agent/src/core/settings-manager.ts", "pi/packages/coding-agent/dist/core/settings-manager.js"];
 function publicFile(base, name) {
   if (typeof name !== "string" || !name || path.isAbsolute(name) || name.split(/[\\/]/).includes("..")) throw fail("bundle_invalid", "Public artifact paths must be relative within the trial bundle.");
   const real = fs.realpathSync(path.resolve(base, name));
@@ -33,7 +34,7 @@ function publicFile(base, name) {
 }
 export function loadTrial(file) {
   const base = path.dirname(path.resolve(file)), b = JSON.parse(fs.readFileSync(file, "utf8"));
-  if (!exact(b, ["version", "profile", "platform", "issuer", "provider", "source", "vpn"]) || b.version !== 1 || !["debug-staging-incognito-synthetic-prompts", "debug-staging-synthetic-prompts"].includes(b.profile) || b.platform !== "linux-node24-bubblewrap") throw fail("bundle_invalid", "Use the exact Linux development trial manifest v1.");
+  if (!exact(b, ["version", "profile", "platform", "issuer", "provider", "source", "vpn"]) || b.version !== 1 || !["debug-staging-incognito-synthetic-prompts", "debug-staging-synthetic-prompts"].includes(b.profile) || !["linux-node24-bubblewrap", "linux-node24-owned-host"].includes(b.platform)) throw fail("bundle_invalid", "Use the exact Linux development trial manifest v1.");
   if (!exact(b.issuer, ["peer", "privateRoute", "pin", "approval", "approvalRoot"]) || typeof b.issuer.privateRoute !== "string" || !b.issuer.privateRoute.trim()) throw fail("issuer_inputs_missing", "Supply the approved private route, advertised issuer multiaddr, identity pin, signed approval and independent approval-root public key.");
   try { if (multiaddr(b.issuer.peer).getComponents().at(-1)?.name !== "p2p") throw new Error(); } catch { throw fail("issuer_inputs_missing", "Supply the actual advertised /p2p issuer multiaddr on the approved private route."); }
   const pin = JSON.parse(publicFile(base, b.issuer.pin));
@@ -64,9 +65,10 @@ export function inspectVpn(vpn, base, command = spawnSync) {
 
 // Preparation is local and precedes peer dial, hidden gift entry and CLAIM. Existing
 // canary records are checked, never silently replaced when their planted file changed.
-export function prepareWorkspace(cwd = process.cwd()) {
+export function prepareWorkspace(cwd = process.cwd(), { ownedHost = false } = {}) {
   if (!fs.existsSync(canary.record(cwd))) canary.init(cwd);
   canary.forSession(cwd, false);
+  if (ownedHost) { memoryRoot(); return; }
   const runtime = runtimeDir(), owner = fs.lstatSync(runtime);
   if (!owner.isDirectory() || owner.isSymbolicLink() || owner.uid !== process.getuid() || (owner.mode & 0o077)) throw fail("runtime_unavailable", "Use an owner-only runtime directory before gift entry.");
   const run = fs.mkdtempSync(path.join(runtime, "abalone-preflight-"));
@@ -84,9 +86,9 @@ export async function preflight(file, { keepTrace = false } = {}) {
   const trial = loadTrial(file), checks = [], missing = [];
   const check = (name, fn) => { try { checks.push({ name, result: fn() ?? "ready" }); } catch (e) { missing.push({ name, code: e.code ?? "preflight_failed", message: e.code ? e.message : `${name} is unavailable or invalid; repair it before gift entry.` }); } };
   check("issuer guard policy", () => couponStagingGuardNotice(trial.approval.guard) || "Legacy Ethereum Sepolia signed issuer policy; the recipient does not independently verify chain state.");
-  check("supported OS", () => { if (process.platform !== "linux" || Number(process.versions.node.split(".")[0]) !== 24) throw fail("unsupported_profile", "This trial requires Linux Node 24 and bubblewrap. Native macOS recipient parity is not qualified."); });
+  check("supported OS", () => { if (process.platform !== "linux" || Number(process.versions.node.split(".")[0]) !== 24) throw fail("unsupported_profile", "This trial requires Linux Node 24 and the explicitly selected local boundary. Native macOS recipient parity is not qualified."); });
   check("ambient configuration", () => { if ((process.env.ABALONE_CONFIG && path.resolve(process.env.ABALONE_CONFIG) !== ROOT) || process.env.NODE_OPTIONS || process.env.ABALONE_NO_CANARIES) throw fail("ambient_configuration_refused", "Remove alternate ABALONE_CONFIG/NODE_OPTIONS/ABALONE_NO_CANARIES before this pinned source trial."); });
-  check("sandbox", () => { if (spawnSync("bwrap", ["--unshare-all", "--ro-bind", "/", "/", "--", "/usr/bin/true"], { stdio: "pipe", timeout: 5000, env: { PATH: process.env.PATH } }).status !== 0) throw fail("sandbox_unavailable", "Establish a working bubblewrap user/network namespace before gift entry."); runtimeDir(); });
+  check("local boundary", () => { if (trial.bundle.platform === "linux-node24-owned-host") { memoryRoot(); return OWNED_HOST_NOTICE; } if (spawnSync("bwrap", ["--unshare-all", "--ro-bind", "/", "/", "--", "/usr/bin/true"], { stdio: "pipe", timeout: 5000, env: { PATH: process.env.PATH } }).status !== 0) throw fail("sandbox_unavailable", "Establish a working bubblewrap user/network namespace before gift entry."); runtimeDir(); });
   check("candidate source", () => checkSource(trial));
   check("curated Pi/ACI closure", () => { verified(); });
   if (keepTrace) check("trace key", () => { if (!keyInfo()) throw fail("trace_key_missing", "Run ./bin/abalone trace key init before gift entry."); });
@@ -101,7 +103,7 @@ export async function preflight(file, { keepTrace = false } = {}) {
 export const firstUseNotice = "Debug staging trial: use synthetic, non-sensitive prompts only. The operator may know, use or revoke the API key. Direct attested NEAR model transport is admitted separately; the issuer is not a prompt relay. Private issuer custody, rollback and settlement are unqualified. Incognito defaults to session-only conversation retention; --keep-trace explicitly retains an encrypted trace; it does not provide OS/VPN anonymity or erase workspace files.";
 export function recipientArgv(trial, { keepTrace = false } = {}) {
   const { bundle: b, base } = trial;
-  return [path.join(ROOT, "bin/abalone.mjs"), "coupon-session", "--attested", "--peer", b.issuer.peer, "--issuer-pin", path.resolve(base, b.issuer.pin), "--staging-approval", path.resolve(base, b.issuer.approval), "--approval-root", b.issuer.approvalRoot, "--model", `near/${b.provider.model}`, "--incognito", ...(keepTrace ? ["--keep-trace"] : []), ...(b.provider.policy.gatewayTcb === OUT_OF_DATE_TRIAL_POLICY ? ["--allow-out-of-date-trial"] : [])];
+  return [path.join(ROOT, "bin/abalone.mjs"), "coupon-session", "--attested", "--peer", b.issuer.peer, "--issuer-pin", path.resolve(base, b.issuer.pin), "--staging-approval", path.resolve(base, b.issuer.approval), "--approval-root", b.issuer.approvalRoot, "--model", `near/${b.provider.model}`, "--incognito", ...(b.platform === "linux-node24-owned-host" ? ["--owned-host"] : []), ...(keepTrace ? ["--keep-trace"] : []), ...(b.provider.policy.gatewayTcb === OUT_OF_DATE_TRIAL_POLICY ? ["--allow-out-of-date-trial"] : [])];
 }
 export function recipientStdio(env = process.env) {
   const stdio = ["inherit", "inherit", "inherit"], seen = new Set();
@@ -122,7 +124,7 @@ async function main(argv) {
   // Validate signed public inputs/source before creating any local workspace records.
   checkSource(loadTrial(argv[2]));
   if (argv[0] === "run") {
-    prepareWorkspace();
+    prepareWorkspace(process.cwd(), { ownedHost: loadTrial(argv[2]).bundle.platform === "linux-node24-owned-host" });
     if (keepTrace && !keyInfo()) {
       const init = spawn(process.execPath, [path.join(ROOT, "bin/abalone.mjs"), "trace", "key", "init"], { stdio: recipientStdio(), env: { ...process.env } });
       const code = await new Promise((resolve, reject) => { init.once("error", reject); init.once("exit", resolve); });

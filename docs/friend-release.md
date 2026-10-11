@@ -1,8 +1,25 @@
 # Prepare one friend release
 
+Use [the hidden-entry friend landing](../site/friend.html) for this release.
+`site/index.html` is a historical fragment/argument gift experiment and is not
+the supported friend-release entry. The legacy release script's generated
+`index.html` must be replaced with this separately reviewed landing asset before
+publication. Do not send coupons through its old URL/command interface.
+
 This is the packaging contract for [friend-URL acceptance](https://github.com/amiller/abalone/issues/4).
 It prepares files locally; it does not publish source, change visibility or
 authorize provider spending. Runtime/trace-choice changes need independent review.
+
+The friend entry is the outside [Abalone incognito skill](../skills/abalone-incognito/SKILL.md).
+Its setup agent prepares the reviewed helper, then hands an interactive terminal
+to the user and stops observing before hidden/private input. The helper remains
+the patched Pi/Abalone distribution; this is not stock Pi/Hermes integration.
+Milestone1 is the explicit trusted-owned-host profile without OS isolation;
+bubblewrap containment/setup is milestone2. Prior isolated helper checks do not
+qualify that changed profile. Current checks are separate from an agent's skill discovery and
+terminal handoff, which still need an actual no-secret rehearsal. Publish the
+skill and explain its host setup separately from the immutable runtime archive;
+do not regenerate that archive for instructions-only changes.
 
 1. Freeze/review the selected client. Run the required integration gate, including
    declared development fixtures, and record the actual result. Review synthetic/
@@ -41,7 +58,7 @@ authorize provider spending. Runtime/trace-choice changes need independent revie
    authentication and compare reviewed hashes. Only then update README status.
    A private repo/404 is not public acquisition.
 
-The first slice is bounded direct NEAR on the selected DSMACK public testnet
+The first slice is bounded direct NEAR on the selected Dsmack public testnet
 profile. Another provider, optimistic settlement, portable IP isolation and
 broader deposit settlement remain separate work. Candidate, reviewed integration,
 package qualification and actual user validation are distinct states.

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Abalone — use your gift</title>
+<style>
+  :root { color-scheme: light dark; font: 1rem/1.55 system-ui, sans-serif; }
+  body { max-width: 42rem; margin: 3rem auto; padding: 0 1.2rem; }
+  h1 { font-size: 2rem; line-height: 1.2; } h2 { font-size: 1.2rem; }
+  pre { padding: .9rem; border: 1px solid #8886; border-radius: .4rem; overflow-x: auto; }
+  .lead { font-size: 1.15rem; } small { opacity: .8; }
+</style>
+</head>
+<body><main>
+  <h1>Use your gift in an incognito AI session</h1>
+  <p class="lead">Use the Abalone skill to open an incognito session with your coupon.</p>
+  <p><strong>Preview being prepared:</strong> the public download and skill-first walkthrough are not yet qualified. Do not use an expired trial as a substitute.</p>
+  <p>For Linux x86_64 with compatible Node24, bash, curl, tar, sha256sum and an existing Linux tmpfs. Run as an ordinary user on a trusted owned host. No OS isolation: local tools have your account’s filesystem/network access; bubblewrap containment is milestone2. No VPN, provider account, manual API key or funded recipient wallet is needed.</p>
+  <h2>Start with the skill</h2>
+  <p>Ask your setup agent to use the <a href="https://github.com/amiller/abalone/blob/main/skills/abalone-incognito/SKILL.md">Abalone incognito skill</a>. It checks support and prepares the reviewed reference helper when needed, then hands the interactive terminal to you. Do not send it your coupon, passphrase or private prompts.</p>
+  <p>The helper distribution includes a patched Pi agent, Abalone launcher, extensions, verification and credential broker. The first release runs without OS isolation on your trusted owned host; bubblewrap is a later milestone. Installing a skill alone does not install this runtime or add verified support for stock Pi or Hermes. The setup agent must stop observing/recording before your private input; stepping aside is cooperation, not protection from a same-user agent or administrator.</p>
+  <p>The <a href="install.sh">installer</a> and its <a href="SHA256SUMS">checksums</a> are the skill's setup mechanism. If you prefer the manual entry, inspect the installer, verify its checksum, then run:</p>
+  <pre>sh install.sh --friend</pre>
+  <p>Enter your coupon at the hidden prompt, review the offer, then confirm it. Keep that window open while delivery is pending. Do not put your coupon in a URL, command argument, environment variable or AI message.</p>
+  <p>Session-only use needs no trace passphrase and keeps no durable prompt/response trace. To deliberately retain an encrypted trace instead:</p>
+  <pre>sh install.sh --friend --keep-trace</pre>
+  <p>Your passphrase protects that local trace, not the coupon. Keep it to open the trace later. Workspace files you create can remain after close.</p>
+  <h2>Know what you redeemed</h2>
+  <p>A gift provides a capped provider credential. A $1 cap is not a reserved purse or a verified remaining balance; the sponsor/provider can revoke access and caps can overshoot. Use <code>/coupon</code> for details. Closing the window loses its session keys; closed-session recovery is not qualified.</p>
+  <p>Public testnet describes the deployment; the current signed trust profile is debug staging. Use synthetic, non-sensitive prompts only. Your client verifies the issuer and provider and encrypts inference, while explicitly showing the trial's firmware exceptions. The issuer operator can read created API keys and control or revoke access. Ordinary IP connectivity does not hide your network address or protect against your host administrator. Base RPC-safe confirmation is not independent Ethereum L1 finality.</p>
+  <p>Check <a href="status/">current operator readiness</a> before beginning. This is an observation, not a claim guarantee; your signed offer's deadline still applies.</p>
+  <p><a href="https://github.com/amiller/abalone">Source and supported profile</a> · <a href="https://github.com/amiller/abalone/issues/4">Friend-preview acceptance</a></p>
+  <small>Use only the current reviewed version. The installer pins the client and signed public inputs; expired bundles are refused.</small>
+</main></body>
+</html>
