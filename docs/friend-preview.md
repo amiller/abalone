@@ -6,7 +6,8 @@ host. Public client/source qualification and service admission do not replace th
 owner's useful-document walkthrough acceptance.
 
 Public acquisition and fresh public-installed Mac admission passed in preview.2.
-**Redemption remains paused while provider authorization is restored or an alternative is qualified. Do not redeem yet.**
+**A bounded 25-cent owner trial is available until 20:43:12 UTC on 11 October 2026.**
+Obtain the coupon privately; no bearer is published here. Owner useful-document acceptance remains pending.
 
 ## Start with the skill
 

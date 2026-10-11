@@ -32,7 +32,8 @@ flowchart LR
 
 The [limited synthetic-text friend entry](docs/friend-preview.md) is public.
 Public acquisition and fresh public-installed Mac admission passed in preview.2.
-**Redemption remains paused while provider authorization is restored or an alternative is qualified. Do not redeem yet.**
+**A bounded 25-cent owner trial is available until 20:43:12 UTC on 11 October 2026.**
+Obtain the coupon privately; no bearer is published here.
 The owner's useful-document walkthrough is still pending. The
 [friend-URL acceptance issue](https://github.com/amiller/abalone/issues/4)
 tracks that outcome. Use the current entry and signed trial, not an expired or
@@ -99,8 +100,7 @@ local Apple Containerization ARM guest on the Mac mini, without a project cloud
 CVM. Mac admission verifies Apple App Attest code identity, exact compose and
 fresh issuer-key/policy bindings. It does not put the workload in Intel TDX or
 Secure Enclave custody: the host/operator and stand-in KMS can read issuer
-secrets. Genuine public-installed Mac admission passed. Redemption remains paused pending
-provider readiness; do not redeem yet. The owner walkthrough remains pending and is not established by
+secrets. Genuine public-installed Mac admission passed. The bounded owner trial is available through the stated expiry. The owner walkthrough remains pending and is not established by
 primitive or fixture checks.
 
 Use `/coupon` for session and trust details. Normal close clears the process's
