@@ -310,3 +310,63 @@ test("admission network/decode/verification refusals have static phase diagnosti
     finally { await adapter.close(); globalThis.fetch = original; }
   }
 });
+
+test("temporary DNS report GET retries once under the original admission deadline and preserves strict refusal", async () => {
+  const original = globalThis.fetch;
+  let adapter;
+  try {
+    let calls = 0, firstUrl;
+    globalThis.fetch = async (url, init) => {
+      assert.equal(init.method ?? 'GET', 'GET');
+      assert.equal(new URL(url).pathname, '/v1/attestation/report');
+      assert.equal(new Headers(init.headers).get('authorization'), `Bearer ${options().credential}`);
+      if (++calls === 1) { firstUrl = String(url); throw Object.assign(Error('PRIVATE-DNS'), { cause: { code: 'EAI_AGAIN' } }); }
+      assert.equal(String(url), firstUrl, 'same nonce/report GET, no regenerated request');
+      return Response.json({ private: 'PRIVATE-REPORT' });
+    };
+    adapter = openCouponNearAdapter(options());
+    await assert.rejects(adapter.admit(), error => {
+      assert.deepEqual(couponNearAdmissionDiagnostic(error), { stage: 'gateway-binding', errorCode: 'verification_refused', httpStatus: null });
+      return true;
+    });
+    assert.equal(calls, 2, 'retry obtains report but never bypasses genuine verification');
+    await adapter.close();
+
+    calls = 0;
+    globalThis.fetch = async () => { calls++; throw Object.assign(Error('PRIVATE-DNS'), { cause: { code: 'EAI_AGAIN' } }); };
+    adapter = openCouponNearAdapter(options());
+    await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request(body())), error => {
+      assert.deepEqual(couponNearAdmissionDiagnostic(error), { stage: 'attestation-report-request', errorCode: 'EAI_AGAIN', httpStatus: null });
+      assert.ok(!error.message.includes('PRIVATE-DNS')); return true;
+    });
+    assert.equal(calls, 2, 'one initial GET plus one retry; no inference POST');
+  } finally { await adapter?.close(); globalThis.fetch = original; }
+});
+
+test("DNS retry wait respects admission abort and original timeout without another fetch", async () => {
+  const original = globalThis.fetch;
+  try {
+    for (const cancel of ['abort', 'timeout']) {
+      let calls = 0;
+      const controller = new AbortController();
+      globalThis.fetch = async () => { calls++; throw Object.assign(Error('PRIVATE-DNS'), { cause: { code: 'EAI_AGAIN' } }); };
+      const adapter = openCouponNearAdapter({ ...options(), signal: controller.signal, timeoutMs: cancel === 'timeout' ? 20 : 60000 });
+      const attempt = adapter.admit();
+      const timer = cancel === 'abort' ? setTimeout(() => controller.abort(), 20) : null;
+      try { await assert.rejects(attempt, error => error.code === (cancel === 'abort' ? 'provider_closed' : 'provider_admission_refused')); }
+      finally { clearTimeout(timer); await adapter.close(); }
+      assert.equal(calls, 1, 'retry delay shares original cancellation/deadline');
+    }
+  } finally { globalThis.fetch = original; }
+});
+
+test("temporary DNS during inference transport is terminal and never replays the POST", async () => {
+  const state = { requests: 0 };
+  const supplied = verdict(state);
+  supplied.transport.fetch = async () => { state.requests++; throw Object.assign(Error('PRIVATE-POST'), { cause: { code: 'EAI_AGAIN' } }); };
+  const adapter = openCouponNearAdapterForTesting({ ...options(), verifiedForTesting: supplied });
+  try {
+    await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request(body())), { code: 'provider_unavailable' });
+    assert.equal(state.requests, 1);
+  } finally { await adapter.close(); }
+});
