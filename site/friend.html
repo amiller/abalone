@@ -21,7 +21,7 @@
   <h2>Start with the skill</h2>
   <p>Ask your setup agent to use the <a href="https://github.com/amiller/abalone/blob/main/skills/abalone-incognito/SKILL.md">Abalone incognito skill</a>. It checks support and prepares the reviewed reference helper when needed, then hands the interactive terminal to you. Do not send it your coupon, passphrase or private prompts.</p>
   <p>The helper distribution includes a patched Pi agent, Abalone launcher, extensions, verification and credential broker. The first release runs without OS isolation on your trusted owned host; bubblewrap is a later milestone. Installing a skill alone does not install this runtime or add verified support for stock Pi or Hermes. The setup agent must stop observing/recording before your private input; stepping aside is cooperation, not protection from a same-user agent or administrator.</p>
-  <p>The <a href="install.sh">installer</a> and its <a href="SHA256SUMS">checksums</a> are the skill's setup mechanism. If you prefer the manual entry, inspect the installer, verify its checksum, then run:</p>
+  <p>The <a href="install.sh">installer</a> and its <a href="FRIEND-SHA256SUMS">checksums</a> are the skill's setup mechanism. If you prefer the manual entry, inspect the installer, verify its checksum, then run:</p>
   <pre>sh install.sh --friend</pre>
   <p>Enter your coupon at the hidden prompt, review the offer, then confirm it. Keep that window open while delivery is pending. Do not put your coupon in a URL, command argument, environment variable or AI message.</p>
   <p>Session-only use needs no trace passphrase and keeps no durable prompt/response trace. To deliberately retain an encrypted trace instead:</p>

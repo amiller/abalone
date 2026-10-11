@@ -6,9 +6,10 @@ before coupon entry or private input. Dsmack handles redemption; the helper
 verifies the remote provider and encrypts inference directly to it.
 
 **Current preview: synthetic, non-sensitive prompts only.** The
-[friend entry](docs/friend-preview.md) is public. Public files, the local installer
-and direct Mac admission passed, but the fresh public-installed connection is
-currently failing. **Do not redeem until resolved.** The owner's useful-document
+[friend entry](docs/friend-preview.md) is public. Public acquisition and fresh
+public-installed Mac admission passed in preview.2.
+**A bounded 25-cent owner trial is available until 20:43:12 UTC on 11 October 2026.**
+Obtain the coupon privately; no bearer is published here. The owner's useful-document
 walkthrough remains under [qualification](https://github.com/amiller/abalone/issues/4).
 Use the current signed trial; expired or historical staging bundles are unusable.
 
