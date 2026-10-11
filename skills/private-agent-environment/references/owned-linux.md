@@ -16,7 +16,7 @@ run a weaker substitute. Offline fixture models prove exercised runtime
 behavior only; useful autonomous setup needs a separately available, frozen
 local model and harness. No real API keys or remote calls are required.
 
-The following are **existing command forms**, not commands executed in E0.
+The following are **existing command forms**, not commands executed in this proposed procedure.
 For a later lab run, define `environment_root` as a fresh directory in the
 prepared encrypted volume, `workspace` as its synthetic work folder and
 `local_model_id` as an already configured loopback model ID. Put `ABALONE_DIR`
@@ -30,7 +30,7 @@ export ABALONE_DIR="$environment_root/state"
 export ABALONE_CONFIG="$environment_root/config"
 bin/abalone trace key init
 bin/abalone canary init "$workspace"
-bin/abalone --incognito "$workspace" --model "$local_model_id"
+bin/abalone --incognito "$workspace" --model "$local_model_id" --keep-trace
 bin/abalone trace list "$workspace"
 bin/abalone trace open "$workspace" "$trace_id"
 bin/abalone --incognito "$workspace" --model "$local_model_id" --with-trace "$trace_id"
@@ -54,10 +54,9 @@ mode of 0600 is access control, not encryption.
 
 Inspect actual sandbox mounts, child processes, destination sinks and files
 with the independent probes in the
-[evaluation design](../../../docs/private-agent-environments-research.md).
+[security profile](../../../docs/security.md).
 Do not treat `/privacy`, `caps` or the model's explanation as an independent
-oracle. Known descriptor/contract drift must be resolved or carried as a failed
-understandable-state check before qualification.
+oracle. Report any discrepancy between descriptors and observations before qualification.
 
 ## Stop, lock, reopen and recover
 
@@ -71,7 +70,7 @@ fails, report “stopped, storage still unlocked”; do not say “locked.”
 Unlock through the same storage mechanism, rerun prerequisite checks and use
 the explicit reopen form above. This tests process restart, not host reboot.
 First lifecycle qualification also requires an actual host reboot explicitly
-authorized and performed by the lab operator; no reboot is performed in E0.
+authorized and performed by the lab operator; no reboot is performed in this proposed procedure.
 Until that check completes, report reboot continuity as untested.
 
 After reboot, an independent actor verifies a new boot occurred, the short

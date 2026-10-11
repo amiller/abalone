@@ -1,10 +1,4 @@
-# Prepare one friend release
-
-Use [the hidden-entry friend landing](../site/friend.html) for this release.
-`site/index.html` is a historical fragment/argument gift experiment and is not
-the supported friend-release entry. The legacy release script's generated
-`index.html` must be replaced with this separately reviewed landing asset before
-publication. Do not send coupons through its old URL/command interface.
+# Prepare an Abalone release
 
 This is the packaging contract for [friend-URL acceptance](https://github.com/amiller/abalone/issues/4).
 It prepares files locally; it does not publish source, change visibility or
@@ -14,8 +8,8 @@ The friend entry is the outside [Abalone incognito skill](../skills/abalone-inco
 Its setup agent prepares the reviewed helper, then hands an interactive terminal
 to the user and stops observing before hidden/private input. The helper remains
 the patched Pi/Abalone distribution; this is not stock Pi/Hermes integration.
-Milestone1 is the explicit trusted-owned-host profile without OS isolation;
-bubblewrap containment/setup is milestone2. Prior isolated helper checks do not
+Milestone 1 is the explicit trusted-owned-host profile without OS isolation;
+bubblewrap containment/setup is milestone 2. Prior isolated helper checks do not
 qualify that changed profile. Current checks are separate from an agent's skill discovery and
 terminal handoff, which still need an actual no-secret rehearsal. Publish the
 skill and explain its host setup separately from the immutable runtime archive;
@@ -25,7 +19,8 @@ do not regenerate that archive for instructions-only changes.
    declared development fixtures, and record the actual result. Review synthetic/
    recorded fixture provenance; omit private plans, logs, credentials, live traces,
    operator state and private history.
-2. Build once with `tools/release.sh REV`. Record source SHA/tree, locks/build
+2. Build once with `tools/release.sh REV`. It selects `site/friend.html` as the
+   generated landing; there is no separate legacy landing to replace. Record source SHA/tree, locks/build
    evidence, artifact SHA256, licenses/notices and security contact. Compare selected
    source bytes and safe archive members to the package. Reused evidence is not fresh.
 3. Assemble genuine four-file public inputs against that exact artifact:
@@ -45,7 +40,17 @@ do not regenerate that archive for instructions-only changes.
 
    Substitute real reviewed values in the prepared output. It pins the artifact
    and each public file. Without `--trial-dir`, `--friend` refuses before gift entry.
-   Serve the four files as sibling assets with these exact names.
+   Place the rendered output as `install.sh` beside the four public files, then
+   create the landing's checksum file from those exact reviewed bytes:
+
+   ```sh
+   sha256sum install.sh issuer-pin.json staging-approval.json trial.json readiness.json > FRIEND-SHA256SUMS
+   ```
+
+   Review that file and serve it with all five sibling assets. `tools/release.sh
+   REV BASE` alone emits a generic installer; it does not assemble a friend bundle
+   or this checksum file. Its prepared landing must not be published as a working
+   friend entry until this assembly, review and acquisition check are complete.
 5. Rehearse the actual installer on a clean supported Linux machine as nonroot.
    Verify no ambient account/operator credentials, pre-bearer readiness, human
    input, bounded redemption, first request, admission expiry, trace choices and
@@ -77,3 +82,21 @@ can support. An approval, issuance policy, coupon or staffing window can expire
 independently. A stable download URL is not perpetual coupon validity or service
 availability. Discovery must show fresh available/unavailable/unknown state and
 the actual supported claim deadline; a previously green observation is insufficient.
+
+
+## Supported landing and qualification scope
+
+`site/friend.html` is the single landing source. The build's `index.html` is a
+local prepared asset, not a hosted site. It uses hidden coupon input through the
+reviewed installer; no gift appears in a URL or shell command. Before publication,
+review the landing's availability message, installer/checksum links and actual
+supported host against the exact public bundle. Do not advertise readiness merely
+because packaging completed.
+
+The current debug-staging friend trial permits synthetic, non-sensitive content
+only, operator-readable issuer custody and explicit firmware warnings. Broader
+private use separately requires reviewed custody/configuration authority, provider
+owner powers, recovery/rollback behavior, retention and relevant settlement
+checks. Network anonymity needs its own selected routing/loss qualification.
+Keep these scope limits with [the security profile](security.md); do not turn a
+passing synthetic fixture into a production privacy or funding claim.

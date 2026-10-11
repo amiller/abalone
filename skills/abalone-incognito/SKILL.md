@@ -56,7 +56,7 @@ Obtain the coupon privately; no bearer is published here. Owner useful-document 
    replay a sent request, replace a coupon after ambiguity, or claim recovery of
    lost keys. Normal verified admission renewal uses the same live credential.
 
-The supporting [reference implementation](../../README.md#use-the-skill) includes
+The supporting [reference implementation](../../docs/architecture.md#runtime-path) includes
 patched Pi, Abalone launcher/extensions, verifiers and a credential broker;
 bubblewrap containment and its setup are milestone2 after public release.
 The initial profile trusts the host: local tools have ordinary filesystem/network

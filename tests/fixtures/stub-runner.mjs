@@ -5,7 +5,7 @@
 //   GET  runner.local/provider-quote?host=cloud-api.near.ai → the exact NEAR report bytes it fetched (model STUB_MODEL)
 //   CONNECT host:port         → raw TCP tunnel
 //   runner.local/task/{start,status,stop,collect} and CONNECT task-<id>.runner.local:1
-//                             → the task API of notes/contracts/runner-task-needs.md, with bin/task-guest.mjs run as a
+//                             → the task API of docs/protocols/runner-task.md, with bin/task-guest.mjs run as a
 //                               plain local process (no VM, no isolation, no receipts: guest/ holds only app-compose.json)
 //   anything else             → forwarded to https://<Host><path>; the NEAR key from the node keystore is injected
 //                               (chat requests reserve max_tokens from a per-boot budget of STUB_BUDGET tokens, default

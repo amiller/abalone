@@ -4,4 +4,8 @@ verify:
 verify-offline:
 	tests/verify.sh offline
 
-.PHONY: verify verify-offline
+verify-docs:
+	python3 tools/check-docs.py
+	git diff --check
+
+.PHONY: verify verify-offline verify-docs

@@ -8,11 +8,9 @@ runner-home/
 contracts/lib/
 node_modules/
 
-# Canonical private development
+# Local development outputs
 __pycache__/
 *.pyc
 .worktrees/
-design/**/*.zip
-design/*.zip
 pi/packages/*/dist/
 aci/*/dist/

@@ -1,143 +1,49 @@
 # Abalone
 
-Abalone is a curated skill that guides you into an incognito AI session.
-The [Abalone incognito skill](skills/abalone-incognito/SKILL.md) prepares the
-reviewed reference helper and hands its interactive terminal to you. Bring a
-gift, review its terms, and connect directly to an admitted inference provider.
-Dsmack handles redemption; Abalone guides first use and close.
+Abalone guides you into an incognito AI session with a gifted inference coupon.
+Your setup agent prepares the reference helper, then hands the terminal to you
+before coupon entry or private input. Dsmack handles redemption; the helper
+verifies the remote provider and encrypts inference directly to it.
 
-The skill is instructions for a setup agent, not the privacy mechanism. The
-current reference implementation downloads a distribution built around a
-patched Pi agent; adding this skill to stock Pi or Hermes does not supply it.
-
-| Component | What it does |
-| --- | --- |
-| Outside setup skill | Checks support, prepares the reviewed helper and hands the terminal to you |
-| Abalone reference helper | Launcher, patched Pi, curated extensions, verification and credential broker |
-| Local host | First release trusts the owned host; bubblewrap containment is milestone 2 |
-| Dsmack / remote NEAR | Coupon redemption / admitted encrypted inference |
-
-This remains a substantial runtime and dependency boundary; a skill entry does
-not reduce its trusted code or qualify other agent hosts.
-
-```mermaid
-flowchart LR
-    Gift[Your gift] --> Client[Abalone incognito session]
-    Client -->|Verify issuer, redeem once| Dsmack[Dsmack public testnet issuer]
-    Dsmack -->|Encrypted credential delivery| Client
-    Client -->|Attest provider, encrypted inference| NEAR[Remote NEAR model]
-```
-
-## Use the skill
-
-The [limited synthetic-text friend entry](docs/friend-preview.md) is public.
-Public acquisition and fresh public-installed Mac admission passed in preview.2.
+**Current preview: synthetic, non-sensitive prompts only.** The
+[friend entry](docs/friend-preview.md) is public. Public acquisition and fresh
+public-installed Mac admission passed in preview.2.
 **A bounded 25-cent owner trial is available until 20:43:12 UTC on 11 October 2026.**
-Obtain the coupon privately; no bearer is published here.
-The owner's useful-document walkthrough is still pending. The
-[friend-URL acceptance issue](https://github.com/amiller/abalone/issues/4)
-tracks that outcome. Use the current entry and signed trial, not an expired or
-historical staging bundle.
+Obtain the coupon privately; no bearer is published here. The owner's useful-document
+walkthrough remains under [qualification](https://github.com/amiller/abalone/issues/4).
+Use the current signed trial; expired or historical staging bundles are unusable.
 
-Supported recipient: **Linux x86_64, compatible Node 24, bash, curl, tar and
-sha256sum**, running as an ordinary user with an existing Linux tmpfs. The first
-release selects an explicit trusted-owned-host profile with **no OS isolation**;
-local tools have your ordinary account filesystem/network access. Bubblewrap
-containment and portable setup belong to milestone 2 after this release. macOS, Windows, Docker containers and USB/Tails are not
-qualified recipient profiles for this release. No VPN, provider account, manual
-API key or funded recipient wallet is required.
+## Start
 
-Ask your setup agent to use the linked skill and current friend entry.
-It prepares the exact helper if needed, then steps aside before hidden input;
-you operate the private session yourself. Do not send the agent your coupon,
-passphrase or private prompts. A same-user setup agent stepping aside supplies
-cooperation, not enforced privacy from that agent or your administrator.
+Ask your setup agent to read the
+[Abalone incognito skill](skills/abalone-incognito/SKILL.md).
+[Getting started](docs/getting-started.md) explains supported systems, hidden gift
+entry, selected-file questions and closing. Do not send the setup agent your
+coupon, passphrase or private prompts.
 
-The friend entry provides one reviewed `install.sh`, its SHA256 and the public
-trial files it pins. These are the implementation of the skill's setup step,
-not an additional service/account to sign up for. The equivalent manual entry
-after downloading, inspecting and verifying the installer is:
+The selected friend profile uses **Linux x86_64 and Node 24 on a trusted owned
+host, with no OS isolation**. Local tools have your ordinary account's filesystem
+and network access. The setup agent stepping aside is cooperative privacy;
+it does not exclude that agent or your administrator. The current trial admits
+explicit firmware warnings and allows issuer-operator access to issued keys.
+See [security profiles and limits](docs/security.md) before use.
 
-```sh
-sh install.sh --friend
-```
+Session-only conversation retention is the default; encrypted retained traces
+are optional. Workspace files and terminal captures can remain after close.
+Incognito provides no IP anonymity.
 
-This downloads the pinned reference distribution and creates a fresh private
-workspace/session. Compatible Node and the selected owned-host memory prerequisites are checked;
-the installer does not silently turn another agent into this runtime.
-Enter your gift at the hidden prompt, never in arguments, shell history,
-environment values or an AI message. Read the offer before claiming. Keep the
-same window open while delivery is pending; it holds the recipient keys needed
-for delivery. A terminal reconciliation error is not permission to redeem again.
+## Understand and contribute
 
-Session-only use is the default: no upfront trace passphrase and no durable
-managed prompt/response trace. To
-deliberately retain an encrypted trace:
+The helper includes patched Pi, Abalone extensions, verification and a credential
+broker. Installing the skill alone does not supply this runtime or qualify
+stock Pi or Hermes. [Architecture and repository layout](docs/architecture.md)
+explain each component and why it is public.
 
-```sh
-sh install.sh --friend --keep-trace
-```
+- [Build and contribute](CONTRIBUTING.md)
+- [Documentation guide](docs/README.md)
+- [Roadmap](docs/roadmap.md) and [issues](https://github.com/amiller/abalone/issues)
+- [Security reporting](SECURITY.md)
 
-The passphrase protects retained local traces, not the coupon. Enter it at the
-hidden prompt, never in chat, arguments or environment values. Keep it if you
-want to open the trace later: the passphrase is user-held, a lost one can leave
-the retained trace unreadable, and no recovery for it is qualified. Trace
-choice never disables inference encryption or provider verification. Workspace
-files you create can remain after close; session-only does not mean secure
-erasure. These release interfaces are candidates until acceptance passes.
-
-## Understand the session
-
-The first trial uses **remote NEAR inference**. A local credential broker does not make the model local. Redemption creates a provider-capped credential: a $1
-cap is not a segregated purse, wallet transfer or verified remaining balance.
-The sponsor/provider can revoke the credential and its model access, provider
-caps can overshoot, and remaining credit is unknown unless verified usage is
-available. Attestation and encryption on that inference connection are verified
-by the helper itself, not by this skill or your setup agent.
-
-The selected Dsmack issuer runs through the native Mac runner and an ordinary
-local Apple Containerization ARM guest on the Mac mini, without a project cloud
-CVM. Mac admission verifies Apple App Attest code identity, exact compose and
-fresh issuer-key/policy bindings. It does not put the workload in Intel TDX or
-Secure Enclave custody: the host/operator and stand-in KMS can read issuer
-secrets. Genuine public-installed Mac admission passed. The bounded owner trial is available through the stated expiry. The owner walkthrough remains pending and is not established by
-primitive or fixture checks.
-
-Use `/coupon` for session and trust details. Normal close clears the process's
-recipient key and credential references; it does not revoke the provider key or
-guarantee erasure against a privileged host. Admission renewal uses the same
-live credential through normal verification, never another coupon. Closed-session
-recovery is not qualified. Diagnostics are deliberate and metadata-only by
-default; never post a gift, key, private prompt or raw trace to an issue.
-
-Ask about a document from inside the session with an at-mention: type
-`Summarize @notes.txt`, or `@"meeting notes.txt"` when the name has spaces;
-trailing punctuation is not part of the name. Abalone reads the named file on
-your computer and puts its text into the encrypted model request, not
-setup-agent chat. Do not paste document contents into chat, arguments,
-environment values or logs yourself. If a selected file cannot be read or extracted, the request is refused before
-inference. PDF reading is not qualified in this preview; use
-plain text files.
-
-This trial permits **synthetic, non-sensitive prompts only**. Its explicit
-firmware-warning profile can admit verified `OutOfDate` gateway/model platforms;
-actual warnings precede effects. Encryption and attestation remain required, but
-this exception does not establish strong private guarantees. The issuer operator
-may know, use or revoke the key. Base `safe` confirmation trusts the configured
-RPC; it is not independent Ethereum L1 finality. Private issuer custody, rollback
-protection, anonymous funding and full production release are unqualified.
-Incognito does not provide IP anonymity or protection from your host administrator.
-
-## Develop or review
-
-- [Gift trial and exact public inputs](docs/coupon-first-use.md)
-- [Preparing the friend release](docs/friend-release.md)
-- [Contributing and building](CONTRIBUTING.md)
-- [Development workflow](docs/development.md)
-- [Roadmap](docs/roadmap.md) and [feedback tracker](https://github.com/amiller/dsmack/issues/47)
-- [Threat model](docs/threat-model.md) and [security reporting](SECURITY.md)
-
-First-party code is [MIT licensed](LICENSE); [component notices](THIRD_PARTY_NOTICES.md)
-remain applicable. Source publication, installable-release and live-service
-qualification are distinct. The issuer service and operator credentials are not
-part of the recipient package.
+First-party code is [MIT licensed](LICENSE); preserve
+[component notices](THIRD_PARTY_NOTICES.md). Source publication, release
+qualification and live-service availability are separate facts.

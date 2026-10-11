@@ -4,7 +4,7 @@ The gift release requires one explicitly tested OS/VPN profile. Abalone's
 loopback-only Pi sandbox and admitted-host egress do not establish that profile:
 the launcher opens upstream sockets using host routing. Peer TCP/WebSocket,
 relay/direct upgrades, provider verification, RPC and installer traffic must all
-be covered. See [release acceptance](gift-public-preview.md).
+be covered. See [release acceptance](release.md).
 
 ## Disposable route-loss fixture
 

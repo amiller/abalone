@@ -66,6 +66,9 @@ mkdir -p "$R/stub" && printf '#!/bin/sh\nexit 0\n' > "$R/stub/npm" && chmod +x "
 rev=$(git -C "$R/repo" rev-parse --short HEAD) rel="$R/repo/local-data/release"
 o=$(PATH="$R/stub:$PATH" "$R/repo/tools/release.sh" 2>&1)
 check "release.sh without a base URL writes the tarball and no install.sh, and says how to get one" '[[ -f $rel/$rev/abalone-$rev.tar.gz && ! -e $rel/$rev/install.sh && $o == *"no base URL given, so no install.sh"* ]]'
+check "release.sh emits the hidden-input friend landing and its friend checksum link" 'cmp -s "$rel/$rev/index.html" "$R/repo/site/friend.html" && grep -q "hidden prompt" "$rel/$rev/index.html" && ! grep -q "location.hash" "$rel/$rev/index.html" && grep -q "href=\"FRIEND-SHA256SUMS\"" "$rel/$rev/index.html"'
+tar -tzf "$rel/$rev/abalone-$rev.tar.gz" > "$R/archive-members"
+check "release source archive keeps maintained guides and protocols without historical notes or the legacy landing" 'grep -q "^abalone/docs/getting-started.md$" "$R/archive-members" && grep -q "^abalone/docs/protocols/coupon.md$" "$R/archive-members" && ! grep -qE "^abalone/(notes/|site/index.html$|evals/results/)" "$R/archive-members"'
 PATH="$R/stub:$PATH" "$R/repo/tools/release.sh" HEAD https://example.org/r > /dev/null 2>&1
 check "release.sh with a base URL pins it in install.sh" 'grep -q "curl -fsSL \"https://example.org/r/abalone-$rev.tar.gz\"" $rel/$rev/install.sh'
 rm -rf "$R"

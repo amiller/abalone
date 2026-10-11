@@ -1,4 +1,10 @@
-# Using abalone from Claude Code over MCP
+# Using Abalone from Claude Code over MCP
+
+This is the connected-session MCP interface, not the incognito friend entry.
+Read [security profiles](security.md) before applying approval or sandbox claims.
+Ordinary MCP outputs and approval state can contain plaintext; a same-user caller
+with shell/file access can bypass that state's permissions.
+
 
 You keep a private folder on this computer. Claude Code (the calling agent, ○ outside) works on your request but never reads the folder. It asks abalone's private agent, which reads the folder inside a sandbox with a ⌂ local or ◈ attested model. Nothing from the folder reaches Claude Code until you approve the exact text in your own terminal.
 
@@ -7,7 +13,7 @@ You keep a private folder on this computer. Claude Code (the calling agent, ○ 
 ## 1. Prepare the folder and the private model
 
 ```
-REPO=/path/to/sealed-agent
+REPO=/path/to/abalone
 $REPO/bin/abalone canary init ~/private/folder     # plants ref-<id>.txt, records its values in ~/.abalone/canaries/
 ```
 
@@ -23,7 +29,7 @@ Save as `abalone-mcp.json` anywhere outside the folder:
 
 ```json
 { "mcpServers": { "abalone": {
-    "command": "/path/to/sealed-agent/bin/abalone-mcp",
+    "command": "/path/to/abalone/bin/abalone-mcp",
     "args": ["--model", "nearai/z-ai/glm-5.3-flash"] } } }
 ```
 
@@ -49,7 +55,7 @@ Add `-p "<task>"` for a one-shot run, or leave it off to talk to it.
 In a second terminal:
 
 ```
-/path/to/sealed-agent/bin/abalone approvals
+/path/to/abalone/bin/abalone approvals
 ```
 
 It waits for pours. For each one it shows the destination (mcp-caller ○ outside), what the caller asked, the policy, the gate's verdict, residual sensitivity (what code checked, the policy wording that only the model was told, numbers and capitalized words in the text) and the exact payload. Then you choose:
@@ -78,10 +84,10 @@ Code still blocks canaries, control characters and schema violations under a sta
 ## Hardened mode: when the orchestrator keeps its shell
 
 ```
-/path/to/sealed-agent/bin/abalone setup --separate-user /srv/abalone/folder --model nearai/z-ai/glm-5.3-flash
+/path/to/abalone/bin/abalone setup --separate-user /srv/abalone/folder --model nearai/z-ai/glm-5.3-flash
 ```
 
-This prints one-time root commands. abalone does not run them. Read them, then run them yourself. They create an `abalone` user that owns the folder, the approvals store and a systemd-run abalone-mcp listening on `/run/abalone/mcp.sock`. Your agent connects with `{"command": "/path/to/sealed-agent/bin/abalone-connect", "args": ["/run/abalone/mcp.sock"]}`, and you approve with the printed `sudo -u abalone … abalone approvals`. The folder must be outside your home directory, which other users cannot traverse. Design and limits: [threat-model.md](threat-model.md#hardened-mode-abalone-as-a-separate-user).
+This prints one-time root commands. abalone does not run them. Read them, then run them yourself. They create an `abalone` user that owns the folder, the approvals store and a systemd-run abalone-mcp listening on `/run/abalone/mcp.sock`. Your agent connects with `{"command": "/path/to/abalone/bin/abalone-connect", "args": ["/run/abalone/mcp.sock"]}`, and you approve with the printed `sudo -u abalone … abalone approvals`. The folder must be outside your home directory, which other users cannot traverse. Design and limits: [threat-model.md](security.md#profiles-and-their-boundaries).
 
 ## What is logged
 
