@@ -5,7 +5,7 @@ import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { openCouponNearAdapter, openCouponNearAdapterForTesting, couponNearCredentialBroker, validateCouponNearProfile } from "../lib/coupon-near.mjs";
+import { openCouponNearAdapter, openCouponNearAdapterForTesting, couponNearCredentialBroker, validateCouponNearProfile, couponNearAdmissionDiagnostic } from "../lib/coupon-near.mjs";
 import { encrypt, decrypt } from "../lib/near.mjs";
 import { couponSocketFetch } from "../lib/coupon-socket.mjs";
 import { NEAR_COUPON_PI_COMPAT } from "../lib/coupon-attested-session.mjs";
@@ -62,9 +62,9 @@ test("direct report auth never redirects, failures are sanitized, close aborts a
   let adapter;
   try {
     adapter = openCouponNearAdapter(options());
-    await assert.rejects(adapter.admit(), { message: "coupon provider: provider_admission_refused" }); assert.equal(calls, 1);
+    await assert.rejects(adapter.admit(), { code: "provider_admission_refused" }); assert.equal(calls, 1);
     mode = "error";
-    await assert.rejects(adapter.admit(), { message: "coupon provider: provider_admission_refused" }); assert.equal(calls, 2);
+    await assert.rejects(adapter.admit(), { code: "provider_admission_refused" }); assert.equal(calls, 2);
     mode = "stall";
     const pending = assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request(body())), { code: "provider_closed" });
     await entered; await adapter.close(); await pending;
@@ -271,4 +271,42 @@ test("in-flight timeout never replays a request even when the admission lease ex
     assert.equal(state.chats, 1);
     assert.equal(state.closed, true);
   } finally { await adapter.close(); }
+});
+
+test("admission refusal retains only branded stage/code/status across broker response", async () => {
+  const original = globalThis.fetch, credential = options().credential;
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'near-diagnostic-')); fs.chmodSync(directory, 0o700);
+  let adapter, broker, calls = 0;
+  try {
+    globalThis.fetch = async (url) => { calls++; assert.equal(new URL(url).pathname, '/v1/attestation/report'); return new Response('PRIVATE-BODY-CANARY ' + credential, { status: 403 }); };
+    adapter = openCouponNearAdapter(options());
+    let failure; try { await adapter.admit(); } catch (e) { failure = e; }
+    assert.equal(failure.code, 'provider_admission_refused');
+    assert.deepEqual(couponNearAdmissionDiagnostic(failure), { stage: 'attestation-report-response', errorCode: 'http_status', httpStatus: 403 });
+    assert.ok(Object.isFrozen(failure.admissionDiagnostic));
+    const serialized = JSON.stringify({ message: failure.message, diagnostic: failure.admissionDiagnostic });
+    for (const secret of [credential, 'PRIVATE-BODY-CANARY', 'nonce=', '/v1/attestation/report']) assert.ok(!serialized.includes(secret));
+    assert.equal(couponNearAdmissionDiagnostic({ admissionDiagnostic: { stage: 'SECRET', errorCode: credential, httpStatus: 403 } }), null);
+    broker = await couponNearCredentialBroker({ socketPath: path.join(directory, 'broker.sock'), adapter });
+    const send = couponSocketFetch(broker.socketPath);
+    const response = await send('http://127.0.0.1:0/v1/chat/completions', request(body()));
+    const error = (await response.json()).error;
+    assert.equal(response.status, 502); assert.deepEqual(error.admissionDiagnostic, failure.admissionDiagnostic);
+    assert.match(error.message, /attestation-report-response; http_status; HTTP 403/);
+    assert.equal(calls, 2, 'one report GET per explicit admission attempt; zero inference POSTs');
+    for (const secret of [credential, 'PRIVATE-BODY-CANARY', 'nonce=']) assert.ok(!JSON.stringify(error).includes(secret));
+  } finally { await broker?.close(); await adapter?.close(); globalThis.fetch = original; fs.rmSync(directory, { recursive: true, force: true }); }
+});
+
+test("admission network/decode/verification refusals have static phase diagnostics without exception text", async () => {
+  const original = globalThis.fetch;
+  for (const [fetcher, expected] of [
+    [async () => { throw Object.assign(new Error('PRIVATE-TRANSPORT-CANARY'), { cause: { code: 'ENOTFOUND', token: options().credential } }); }, { stage: 'attestation-report-request', errorCode: 'ENOTFOUND', httpStatus: null }],
+    [async () => new Response('PRIVATE-JSON-CANARY', { status: 200 }), { stage: 'attestation-report-response', errorCode: 'response_decode', httpStatus: 200 }],
+    [async () => Response.json({ private: 'PRIVATE-REPORT-CANARY' }), { stage: 'gateway-binding', errorCode: 'verification_refused', httpStatus: null }],
+  ]) {
+    const adapter = openCouponNearAdapter(options());
+    try { globalThis.fetch = fetcher; await assert.rejects(adapter.admit(), e => { assert.deepEqual(couponNearAdmissionDiagnostic(e), expected); assert.ok(!JSON.stringify(e).includes('PRIVATE-')); assert.ok(!e.message.includes(options().credential)); return e.code === 'provider_admission_refused'; }); }
+    finally { await adapter.close(); globalThis.fetch = original; }
+  }
 });
