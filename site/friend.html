@@ -16,7 +16,7 @@
 <body><main>
   <h1>Use your gift in an incognito AI session</h1>
   <p class="lead">Use the Abalone skill to open an incognito session with your coupon.</p>
-  <p><strong>Preview being prepared:</strong> the public download and skill-first walkthrough are not yet qualified. Do not use an expired trial as a substitute.</p>
+  <p><strong>Availability changes:</strong> check the current friend entry and signed trial before redeeming. Public acquisition is qualified separately from an owner's useful-document walkthrough; do not use an expired trial as a substitute.</p>
   <p>For Linux x86_64 with compatible Node24, bash, curl, tar, sha256sum and an existing Linux tmpfs. Run as an ordinary user on a trusted owned host. No OS isolation: local tools have your account’s filesystem/network access; bubblewrap containment is milestone2. No VPN, provider account, manual API key or funded recipient wallet is needed.</p>
   <h2>Start with the skill</h2>
   <p>Ask your setup agent to use the <a href="https://github.com/amiller/abalone/blob/main/skills/abalone-incognito/SKILL.md">Abalone incognito skill</a>. It checks support and prepares the reviewed reference helper when needed, then hands the interactive terminal to you. Do not send it your coupon, passphrase or private prompts.</p>
@@ -28,8 +28,8 @@
   <pre>sh install.sh --friend --keep-trace</pre>
   <p>Your passphrase protects that local trace, not the coupon. Keep it to open the trace later. Workspace files you create can remain after close.</p>
   <h2>Know what you redeemed</h2>
-  <p>A gift provides a capped provider credential. A $1 cap is not a reserved purse or a verified remaining balance; the sponsor/provider can revoke access and caps can overshoot. Use <code>/coupon</code> for details. Closing the window loses its session keys; closed-session recovery is not qualified.</p>
-  <p>Public testnet describes the deployment; the current signed trust profile is debug staging. Use synthetic, non-sensitive prompts only. Your client verifies the issuer and provider and encrypts inference, while explicitly showing the trial's firmware exceptions. The issuer operator can read created API keys and control or revoke access. Ordinary IP connectivity does not hide your network address or protect against your host administrator. Base RPC-safe confirmation is not independent Ethereum L1 finality.</p>
+  <p>A gift provides a capped provider credential. Its nominal cap is not a reserved purse or a verified remaining balance; the sponsor/provider can revoke access and caps can overshoot. Use <code>/coupon</code> for details. Closing the window loses its session keys; closed-session recovery is not qualified.</p>
+  <p>The issuer runs on the operator's Mac mini. Apple App Attest verifies code identity, compose and fresh issuer-key/policy bindings; this is identity-only admission, not Secure Enclave custody. The signed trial is debug staging: use synthetic, non-sensitive prompts only. Your client separately verifies the remote inference provider and encrypts inference, while explicitly showing the trial's firmware exceptions. The issuer operator can read created API keys and control or revoke access. Ordinary IP connectivity does not hide your network address or protect against your host administrator. Base RPC-safe confirmation is not independent Ethereum L1 finality.</p>
   <p>Check the <a href="https://github.com/amiller/abalone/issues/4">current friend-preview availability</a> before beginning. A published file is not a claim guarantee; the signed bundle and offer deadlines still apply.</p>
   <p><a href="https://github.com/amiller/abalone">Source and supported profile</a> · <a href="https://github.com/amiller/abalone/issues/4">Friend-preview acceptance</a></p>
   <small>Use only the current reviewed version. The installer pins the client and signed public inputs; expired bundles are refused.</small>

@@ -40,7 +40,17 @@ do not regenerate that archive for instructions-only changes.
 
    Substitute real reviewed values in the prepared output. It pins the artifact
    and each public file. Without `--trial-dir`, `--friend` refuses before gift entry.
-   Serve the four files as sibling assets with these exact names.
+   Place the rendered output as `install.sh` beside the four public files, then
+   create the landing's checksum file from those exact reviewed bytes:
+
+   ```sh
+   sha256sum install.sh issuer-pin.json staging-approval.json trial.json readiness.json > FRIEND-SHA256SUMS
+   ```
+
+   Review that file and serve it with all five sibling assets. `tools/release.sh
+   REV BASE` alone emits a generic installer; it does not assemble a friend bundle
+   or this checksum file. Its prepared landing must not be published as a working
+   friend entry until this assembly, review and acquisition check are complete.
 5. Rehearse the actual installer on a clean supported Linux machine as nonroot.
    Verify no ambient account/operator credentials, pre-bearer readiness, human
    input, bounded redemption, first request, admission expiry, trace choices and
