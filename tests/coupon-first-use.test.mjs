@@ -152,3 +152,26 @@ test("owned-host is an explicit pinned boundary; unknown profiles and implicit f
     assert.throws(() => loadTrial(f.file), { code: "bundle_invalid" });
   } finally { fs.rmSync(f.directory, {recursive:true,force:true}); }
 });
+
+test("fresh owned-host preflight needs no legacy approvals or runner-home setup", () => {
+  const f = fixture(), work = path.join(f.directory,"work"), state = path.join(f.directory,"state"), runtime = path.join(f.directory,"runtime");
+  for (const dir of [work,state,runtime]) fs.mkdirSync(dir,{mode:0o700});
+  try {
+    f.bundle.platform = "linux-node24-owned-host"; f.save();
+    const script = `import fs from 'node:fs'; import {prepareWorkspace,preflight} from ${JSON.stringify(new URL("../tools/coupon-first-use.mjs",import.meta.url).href)};
+      prepareWorkspace(process.cwd(),{ownedHost:true});
+      if(fs.existsSync(process.env.ABALONE_DIR+'/approvals'))throw Error('unexpected legacy setup');
+      const result=await preflight(${JSON.stringify(f.file)});
+      const failure=result.missing.find(c=>c.name==='runtime directories');
+      if(failure)throw Error('fresh owned-host directories refused');
+      if(!result.ready)throw Error('fresh owned-host preflight refused');
+      console.log('fresh owned-host ready without legacy directories');`;
+    const result=spawnSync(process.execPath,['--input-type=module','-e',script],{cwd:work,env:{PATH:process.env.PATH,ABALONE_DIR:state,XDG_RUNTIME_DIR:runtime},encoding:'utf8',timeout:15000});
+    assert.equal(result.status,0,result.stderr);assert.equal(result.stdout.trim(),'fresh owned-host ready without legacy directories');
+    assert.equal(fs.existsSync(path.join(state,'approvals')),false);
+    f.bundle.platform='linux-node24-bubblewrap';f.save();
+    const strictScript=script.replace("if(failure)throw Error('fresh owned-host directories refused');", "if(!failure)throw Error('strict missing legacy directories accepted');").replace("if(!result.ready)throw Error('fresh owned-host preflight refused');",'');
+    const strict=spawnSync(process.execPath,['--input-type=module','-e',strictScript],{cwd:work,env:{PATH:process.env.PATH,ABALONE_DIR:state,XDG_RUNTIME_DIR:runtime},encoding:'utf8',timeout:15000});
+    assert.equal(strict.status,0,strict.stderr);
+  } finally {fs.rmSync(f.directory,{recursive:true,force:true});}
+});
