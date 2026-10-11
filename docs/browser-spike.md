@@ -56,7 +56,8 @@ bin/abalone browser-spike --model your-provider/your-model \
 ```
 
 The command pins `@playwright/mcp@0.0.83`, exposes only that server's tools and
-disables ambient extensions, skills and prompt templates. An explicitly loaded
+disables ambient extensions, skills and prompt templates. Before inference it waits
+up to two minutes for browser tools; startup failure exits without sending the task. An explicitly loaded
 provider extension is trusted code. The selected provider's auth/model entries
 and an optional literal Playwright token are copied into a temporary mode-0700
 configuration directory with mode-0600 files. The directory is removed on normal
