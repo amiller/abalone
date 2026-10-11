@@ -5,9 +5,9 @@ The issuer runs on the Mac mini; the reference client runs on your trusted Linux
 host. Public client/source qualification and service admission do not replace the
 owner's useful-document walkthrough acceptance.
 
-Public acquisition and fresh public-installed Mac admission passed in preview.2.
-**Redemption is paused while the owner’s failed issuance is reconciled. Do not retry or redeem another coupon.**
-No credential was installed during that failed attempt; its provider/chain outcome is being checked. Owner useful-document acceptance remains pending.
+Preview.4 passed the aggregate offline checks, installed runtime checks and fresh Mac issuer admission.
+**Redemption remains paused until the full coupon-to-document canary passes. Do not retry a failed claim.**
+A separate retained provider key produced a useful encrypted synthetic-document answer; that component proof does not establish the full coupon journey. Owner useful-document acceptance remains pending.
 
 ## Start with the skill
 
@@ -27,9 +27,9 @@ passphrase or private session input. Do not send those to its chat. A same-user
 agent stepping aside is cooperation, not isolation from that agent or administrator.
 
 Download and inspect the
-[installer](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.2/install.sh)
+[installer](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.4/install.sh)
 and verify it against
-[FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.2/FRIEND-SHA256SUMS).
+[FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.4/FRIEND-SHA256SUMS).
 The installer pins the package and all four public trial files by checksum; the
 helper verifies the signed issuer controls. In your interactive terminal, run:
 
@@ -85,6 +85,6 @@ entitlement. Keep session keys alive for pending delivery. Closed-session recove
 is not qualified. Use `/coupon` for details. Base RPC-safe confirmation is not
 independent Ethereum L1 finality.
 
-[Client preview and immutable provenance](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.2)
+[Client preview and immutable provenance](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.4)
 · [Dsmack source](https://github.com/amiller/dsmack)
 · [Friend acceptance](https://github.com/amiller/abalone/issues/4)

@@ -6,11 +6,9 @@ before coupon entry or private input. Dsmack handles redemption; the helper
 verifies the remote provider and encrypts inference directly to it.
 
 **Current preview: synthetic, non-sensitive prompts only.** The
-[friend entry](docs/friend-preview.md) is public. Public acquisition and fresh
-public-installed Mac admission passed in preview.2.
-**Redemption is paused while the owner’s failed issuance is reconciled. Do not retry or redeem another coupon.**
-No credential was installed during the failed attempt; its provider/chain outcome is being checked. The owner's useful-document
-walkthrough remains under [qualification](https://github.com/amiller/abalone/issues/4).
+[friend entry](docs/friend-preview.md) is public. Preview.4 passed the aggregate offline checks, installed runtime checks and fresh Mac issuer admission.
+**Redemption remains paused until the full coupon-to-document canary passes. Do not retry a failed claim.**
+A separate retained provider key produced a useful encrypted synthetic-document answer; that component proof does not establish the full coupon journey. Owner useful-document acceptance remains pending.
 Use the current signed trial; expired or historical staging bundles are unusable.
 
 ## Start

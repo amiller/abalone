@@ -10,9 +10,9 @@ Use this skill to prepare a session, then hand it to the human. Use the publishe
 profile. Do not invent a release or use an expired trial. The owner walkthrough
 remains pending; read the [current release status](../../README.md).
 
-Public acquisition and fresh public-installed Mac admission passed in preview.2.
-**Redemption is paused while the owner’s failed issuance is reconciled. Do not retry or redeem another coupon.**
-No credential was installed during that failed attempt; its provider/chain outcome is being checked. Owner useful-document acceptance remains pending.
+Preview.4 passed the aggregate offline checks, installed runtime checks and fresh Mac issuer admission.
+**Redemption remains paused until the full coupon-to-document canary passes. Do not retry a failed claim.**
+A separate retained provider key produced a useful encrypted synthetic-document answer; that component proof does not establish the full coupon journey. Owner useful-document acceptance remains pending.
 
 1. **Check support.** Initial profile: ordinary-user Linux x86_64, compatible
    Node24, bash, curl, tar and sha256sum, with an existing Linux tmpfs.
