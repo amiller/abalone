@@ -45,15 +45,40 @@ Current work is tracked in [Abalone issues](https://github.com/amiller/abalone/i
   understand through a real walkthrough.
 - Support deliberately authorized outside work and outward artifacts without
   silently falling back to subscription inference for private reasoning.
-- Develop user-selected browser integration with scoped grants and stop/control
-  behavior. The current [CDP interface](protocols/browser-grant.md) does not
-  establish an extension connected to an ordinary running browser profile.
+- After useful coupon-session acceptance, integrate the existing-browser research
+  through [draft PR #8](https://github.com/amiller/abalone/pull/8) and
+  [issue #7](https://github.com/amiller/abalone/issues/7), using the existing
+  [browser grant](protocols/browser-grant.md). The actual NEAR Flash selected-tab
+  recording exercised takeover, redirect refusal, Stop, disconnect, reconnect and
+  revoke; the subsequent extension lifecycle patch is in that PR. Offline results
+  are 49 passing suites and two unresolved failures. Gift-funded inference, fresh
+  installation/pairing and strict incognito were not qualified by that connected
+  browser demonstration.
 - Define and qualify stronger private issuer custody, recovery, rollback and
   settlement separately from the bounded debug-staging trial. Anonymous redemption,
   portable IP isolation, pooled funding and multi-provider routing need their own
   evidence and interfaces; they are not implied by accountless claiming.
 - Maintain reproducible releases, CI and documented Pi/ACI updates. Keep peer
   compatibility code together until a reviewed extraction is ready.
+
+## Connected-browser acceptance after the coupon milestone
+
+Use the existing signed-in browser profile with explicit selected-tab authority;
+this is a connected-browser profile, not strict incognito. Reuse the existing
+adapter and lifecycle repair. Before integration, independently review PR #8,
+reproduce a clean baseline, and fix or explicitly resolve its two outstanding
+verification failures. Pin the patched extension version, patch revision and
+protocol compatibility; the research adapter used Playwright extension
+0.4.0/protocol 2, an internal interface.
+
+Acceptance is a fresh installation and manual pairing, followed by one useful
+scoped-tab task using coupon-funded, admitted inference. Show human takeover,
+Stop during pending work, disconnect/reconnect, revoke, and refusal of an
+ungranted redirect. Publish an independently reviewed recording with exact
+source/extension/model revisions, setup time, interventions and actual outcomes.
+The existing research recording establishes its demonstrated transport/action
+behavior; it does not establish this fresh coupon journey or a stronger browser
+isolation boundary. Current coupon recovery remains the critical path.
 
 Source publication, installed-release qualification and a successful live user
 journey remain separate. Completing this cleanup does not qualify a service,
