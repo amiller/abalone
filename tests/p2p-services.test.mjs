@@ -3,6 +3,47 @@ import assert from "node:assert/strict";
 import { lpStream } from "@libp2p/utils";
 import { multiaddr } from "@multiformats/multiaddr";
 import { node, servePeer } from "../lib/p2p.mjs";
+import { autoNAT } from "@libp2p/autonat";
+
+test("AutoNAT can close a reused live connection; listenless coupon transport refuses that callback without losing its Noise streams", { timeout: 15000 }, async () => {
+  const host = await servePeer({ listen: ["/ip4/127.0.0.1/tcp/0"], evidence: () => () => ({ type: "dev" }), services: {
+    "/test/retained/1": async (_lp, send, recv) => send(await recv()),
+  } });
+  const legacy = await node(), coupon = await node([], {}, undefined, { autoNAT: false });
+  const echo = async (connection, value) => {
+    const signal = AbortSignal.timeout(2000), stream = await connection.newStream("/test/retained/1", { signal });
+    const lp = lpStream(stream); await lp.write(Buffer.from(JSON.stringify(value)), { signal });
+    const result = JSON.parse(Buffer.from((await lp.read({ signal })).subarray()));
+    await stream.close({ signal }); return result;
+  };
+  try {
+    assert.ok(legacy.services.autoNAT, "ordinary peer behavior remains unchanged");
+    assert.equal(coupon.services.autoNAT, undefined);
+    const old = await legacy.dial(host.getMultiaddrs()[0]);
+    assert.deepEqual(await echo(old, { info: 1 }), { info: 1 });
+    // The installed dependency's real callback is given controlled public address
+    // metadata, with its dial resolving to an EXISTING real Noise connection.
+    // No public IP is contacted. Its finally clause closes even an address mismatch.
+    const log = () => {}; log.error = log.trace = log;
+    const service = autoNAT()({ logger: { forComponent: () => log },
+      addressManager: { getAddresses: () => [] }, transportManager: { dialTransportForMultiaddr: () => ({}) },
+      connectionManager: { openConnection: async () => old } });
+    const publicAddr = multiaddr(`/ip4/8.8.8.8/tcp/443/p2p/${host.peerId}`);
+    await service.handleAutonatMessage({ dial: { peer: { id: host.peerId.toMultihash().bytes, addrs: [publicAddr.bytes] } } },
+      { remotePeer: host.peerId, remoteAddr: publicAddr }, { signal: AbortSignal.timeout(2000) });
+    assert.notEqual(old.status, "open", "real dependency closes the reused connection");
+    await assert.rejects(echo(old, { evidence: 2 }));
+    const retained = await coupon.dial(host.getMultiaddrs()[0]);
+    assert.equal(retained.encryption, "/noise");
+    assert.equal(retained.remotePeer.toString(), host.peerId.toString());
+    assert.deepEqual(await echo(retained, { info: 1 }), { info: 1 });
+    const inbound = host.getConnections(coupon.peerId)[0];
+    await assert.rejects(inbound.newStream("/libp2p/autonat/1.0.0", { signal: AbortSignal.timeout(2000) }));
+    assert.equal(retained.status, "open");
+    assert.deepEqual(await echo(retained, { evidence: 2 }), { evidence: 2 });
+    assert.equal(coupon.getConnections(host.peerId).length, 1, "no replacement connection or request replay");
+  } finally { await Promise.all([legacy.stop(), coupon.stop(), host.stop()]); }
+});
 
 test("framed services preserve JSON callbacks and authenticate each Noise peer independently", { timeout: 15_000 }, async () => {
   const peers = [await node(), await node()];

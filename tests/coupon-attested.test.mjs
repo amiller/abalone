@@ -195,6 +195,10 @@ test("expired identity refreshes on the retained connection; caller mutations an
   try {
     const supplied = { ...fixture.options, identityPolicy: structuredClone(fixture.policy) };
     client = await couponAttestedClientForTesting(String(host.getMultiaddrs()[0]), supplied);
+    // The actual coupon factory, rather than just a manually configured node,
+    // must refuse AutoNAT dial-back without losing its admission connection.
+    await assert.rejects(host.getConnections()[0].newStream("/libp2p/autonat/1.0.0", { signal: AbortSignal.timeout(2000) }));
+    assert.equal(host.getConnections()[0].status, "open");
     supplied.identityPolicy.approved_measurements[0].mr_td = "ff".repeat(48);
     supplied.expectedIssuancePolicySha256 = "ff".repeat(32);
     supplied.syntheticQuoteVerifier = () => { throw new Error("caller mutation must not run"); };
