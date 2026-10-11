@@ -141,3 +141,9 @@ First-party code is [MIT licensed](LICENSE); [component notices](THIRD_PARTY_NOT
 remain applicable. Source publication, installable-release and live-service
 qualification are distinct. The issuer service and operator credentials are not
 part of the recipient package.
+
+## Browser research
+
+The [browser extension spike](docs/browser-spike.md) runs Pi with Playwright in
+an explicit owned-host session outside incognito. It is a research entry, not
+a change to the private-session browser policy.

@@ -7,6 +7,7 @@
 set -uo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"; cd "$root"
 suites=(
+  "offline|browser-spike (explicit outside-session configuration)|node tests/browser-spike.mjs"
   "offline|lockdown|tests/lockdown.sh" "offline|egress|tests/egress.sh" "offline|local|tests/local.sh" "offline|mcp|tests/mcp.sh"
   "offline|mounts|tests/mounts.sh" "offline|canary|tests/canary.sh" "offline|private-work|tests/private-work.sh"
   "offline|state-modes|tests/state-modes.sh" "offline|session|tests/session.sh" "offline|notebook|tests/notebook.sh" "offline|tui|tests/tui.sh"

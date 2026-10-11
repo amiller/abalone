@@ -659,7 +659,8 @@ Reopen: abalone --incognito ${/\s/.test(here) ? JSON.stringify(here) : here} --w
 }
 
 try {
-  if (args[0] === "caps") await printCaps(args[1] === "--json");
+  if (args[0] === "browser-spike") { const { browserSpike } = await import("../lib/browser-spike.mjs"); process.exitCode = await browserSpike(args.slice(1)); }
+  else if (args[0] === "caps") await printCaps(args[1] === "--json");
   else if (args[0] === "node" && args[1] === "keys") await nodeKeys(args.slice(2));
   else if (args[0] === "node" && args[1] === "serve") await serveNode();
   else if (args[0] === "node" && args[1] === "relay") await relayNode();

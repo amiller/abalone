@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import { spikeOptions, spikeConfig } from '../lib/browser-spike.mjs';
+assert.throws(() => spikeOptions([]), /explicitly/);
+for (const option of ['--incognito', '--extension', '--resume', '--api-key', '--tools']) assert.throws(() => spikeOptions(['--model','test/model',option]), /Unsupported/);
+assert.throws(() => spikeOptions(['--model']), /needs a value/);
+const source = { auth: { selected: { type: 'api_key', key: 'fixture-only' }, unrelated: { key: 'do-not-copy' } }, models: { providers: { selected: { models: [] }, unrelated: { models: [] } } } };
+const config = spikeConfig(source, 'selected/model');
+assert.deepEqual(Object.keys(config.auth), ['selected']);
+assert.deepEqual(Object.keys(config.models.providers), ['selected']);
+assert.deepEqual(Object.keys(config.mcp.mcpServers), ['playwright']);
+assert.equal(config.mcp.mcpServers.playwright.env, undefined);
+assert.equal(spikeConfig(source, 'selected/model', 'fixture-token').mcp.mcpServers.playwright.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN, 'fixture-token');
+assert.equal(config.mcp.mcpServers.playwright.args[1], '@playwright/mcp@0.0.83');
+console.log('browser-spike: PASS explicit model, refused options, selected credentials only, approval default, pinned MCP');
