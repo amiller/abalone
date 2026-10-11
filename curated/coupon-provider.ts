@@ -19,13 +19,13 @@ export default async function (pi: ExtensionAPI) {
   const api = openAICompletionsApi();
   const near = providerId === "nearai";
   pi.registerProvider(createProvider({ id: p.provider, baseUrl: "http://127.0.0.1:0/v1",
-    name: near ? "NEAR coupon (debug staging: operator secret access, not private issuance)" : "Synthetic coupon fixture (unattested)",
+    name: near ? "NEAR coupon · trial" : "Synthetic coupon fixture",
     auth: { apiKey: { name: "session coupon socket", resolve: async () => ({ auth: { apiKey: "coupon-session" } }) } } as any,
-    models: [{ id: p.model, name: near ? `${p.model} (debug staging via the strict NEAR adapter; operator secret access; synthetic-only prompts)` : `${p.model} (synthetic fixture, not private issuance)`,
+    models: [{ id: p.model, name: near ? p.model : `${p.model} (fixture)`,
       api: "openai-completions", provider: p.provider, baseUrl: "http://127.0.0.1:0/v1", reasoning: false, input: ["text"],
       ...(near ? { compat: NEAR_COUPON_PI_COMPAT } : {}),
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 32768, maxTokens: near ? 512 : 4096 }],
-    api: { stream: (model: any, context: any, options: any) => api.stream(model, context, { ...options, fetch: send }),
-      streamSimple: (model: any, context: any, options: any) => api.streamSimple(model, context, { ...options, fetch: send }) },
+    api: { stream: (model: any, context: any, options: any) => api.stream(model, context, { ...options, fetch: send, maxRetries: 0 }),
+      streamSimple: (model: any, context: any, options: any) => api.streamSimple(model, context, { ...options, fetch: send, maxRetries: 0 }) },
   }));
 }

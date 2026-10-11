@@ -4,12 +4,12 @@
   {
    "kind": "provider",
    "path": "curated/coupon-provider.ts",
-   "sha256": "c73876d9807b70cbb156aa93ecd2924e26cc1eb44c709492deea100483f13367"
+   "sha256": "456f23e109a0e14330d62a6ea7b2a63f55a63530f83bc1e5559fd366f809beb9"
   },
   {
    "kind": "extension",
    "path": "curated/abalone.ts",
-   "sha256": "58f29f487641f7155c0fe158a84481fbc0e93cbf057097c7d2821095e00d52f8"
+   "sha256": "6d4015344d0b88b641b8a743cc2f6e11b025ce201e6b87a00c357c220425e5ca"
   },
   {
    "kind": "extension",
@@ -29,7 +29,7 @@
   {
    "kind": "tree",
    "path": "lib",
-   "sha256": "333db738887bd41d09ba096b99ac8495de24cbe4208ab01c598dc05754607d28"
+   "sha256": "448f27248c43267422518179c8bf4b3eff301d101b24ea30c65cacbf7a86aaee"
   },
   {
    "kind": "skill",

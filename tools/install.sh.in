@@ -1,7 +1,8 @@
 #!/bin/sh
 # abalone @REV@: installs exactly abalone-@REV@.tar.gz (sha256 @SHA256@), redeems the gift given as arguments (if any),
 # and can launch the approved /4 incognito trial with hidden gift entry.
-#   curl -fsSL @BASE@/install.sh | sh                                            install only
+#   sh install.sh --friend [--keep-trace]                                       guided Linux gift session
+#   sh install.sh                                                              install only
 #   sh install.sh --trial /ABS/trial.json                                        install and start incognito
 #   curl -fsSL @BASE@/install.sh | sh -s -- --peer <peer address> <code>.<grant>    install and redeem a gift
 # Needs: node 24, bwrap (bubblewrap), curl, tar. Installs into ~/.abalone-app/@REV@ and links ~/.local/bin/abalone.
@@ -9,6 +10,15 @@
 # verify do (node 24 or later).
 set -eu
 trial=
+friend=no
+keep_trace=no
+if [ "${1:-}" = --friend ]; then
+  friend=yes
+  shift
+  if [ "${1:-}" = --keep-trace ]; then keep_trace=yes; shift; fi
+  [ "$#" = 0 ] || { echo "Usage: install.sh --friend [--keep-trace]" >&2; exit 1; }
+  case '@TRIAL_SHA256@' in ''|@*) echo "This installer has no reviewed friend bundle. Nothing was started." >&2; exit 1 ;; esac
+fi
 if [ "${1:-}" = --trial ]; then
   [ "$#" = 2 ] || { echo "Usage: install.sh --trial /ABS/trial.json" >&2; exit 1; }
   case "$2" in /*) ;; *) echo "The public trial bundle path must be absolute." >&2; exit 1 ;; esac
@@ -17,7 +27,11 @@ if [ "${1:-}" = --trial ]; then
   set --
 fi
 os=$(uname -s)
-for c in node curl tar sha256sum $([ "$os" = Darwin ] || echo bwrap); do command -v "$c" >/dev/null 2>&1 || { echo "abalone needs $c, which is not installed on this computer." >&2; exit 1; }; done
+if [ "$friend" = yes ]; then
+  [ "$os:$(uname -m)" = Linux:x86_64 ] || { echo "The friend trial currently supports Linux x86_64 only." >&2; exit 1; }
+  [ "$(id -u)" != 0 ] || { echo "Run the friend session as your ordinary user, not root." >&2; exit 1; }
+fi
+for c in node curl tar sha256sum bash $([ "$os" = Darwin ] || echo bwrap); do command -v "$c" >/dev/null 2>&1 || { echo "abalone needs $c, which is not installed on this computer." >&2; exit 1; }; done
 case "$os:$(node -v)" in *:v24.*|Darwin:v2[5-9].*) ;; *) echo "abalone needs node 24 (this computer has $(node -v))." >&2; exit 1 ;; esac
 app="$HOME/.abalone-app/@REV@"
 if [ ! -x "$app/abalone/bin/abalone" ]; then
@@ -28,6 +42,36 @@ if [ ! -x "$app/abalone/bin/abalone" ]; then
 fi
 mkdir -p "$HOME/.local/bin" && ln -sf "$app/abalone/bin/abalone" "$HOME/.local/bin/abalone"
 echo "Installed abalone @REV@."
+if [ "$friend" = yes ]; then
+  # Fresh, private state: no existing account keys or operator profile are reused.
+  umask 077
+  mkdir -p "$app/abalone/runner-home"
+  mkdir -p "$HOME/.abalone-friend"
+  session=$(mktemp -d "$HOME/.abalone-friend/session.XXXXXX")
+  runtime=$(mktemp -d /tmp/abalone-friend.XXXXXX)
+  trap 'rmdir "$runtime" 2>/dev/null || true' EXIT
+  mkdir "$session/home" "$session/state" "$session/work" "$session/trial"
+  for name in trial.json issuer-pin.json staging-approval.json readiness.json; do
+    case "$name" in
+      trial.json) expected='@TRIAL_SHA256@' ;;
+      issuer-pin.json) expected='@PIN_SHA256@' ;;
+      staging-approval.json) expected='@APPROVAL_SHA256@' ;;
+      readiness.json) expected='@READINESS_SHA256@' ;;
+    esac
+    curl -fsSL "@BASE@/$name" -o "$session/trial/$name"
+    echo "$expected  $session/trial/$name" | sha256sum -c --quiet - || { echo "The public trial inputs do not match this installer. No gift was requested." >&2; exit 1; }
+  done
+  echo "Fresh session workspace: $session/work"
+  echo "Session-only by default. --keep-trace explicitly retains an encrypted trace."
+  cd "$session/work"
+  set -- run --bundle "$session/trial/trial.json"
+  [ "$keep_trace" = no ] || set -- "$@" --keep-trace
+  # Public bundle only; no ambient account key, NODE_OPTIONS or operator environment.
+  env -i PATH="$PATH" HOME="$session/home" USER="$(id -un)" TERM="${TERM:-dumb}" LANG="${LANG:-C.UTF-8}" \
+    ABALONE_DIR="$session/state" XDG_RUNTIME_DIR="$runtime" \
+    node "$app/abalone/tools/coupon-first-use.mjs" "$@"
+  exit $?
+fi
 if [ -n "$trial" ]; then
   [ "$os" = Linux ] || { echo "This incognito trial requires Linux and bubblewrap." >&2; exit 1; }
   exec node "$app/abalone/tools/coupon-first-use.mjs" run --bundle "$trial"

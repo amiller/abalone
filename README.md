@@ -1,42 +1,92 @@
 # Abalone
 
-Abalone is a curated guide and a minimally patched Pi agent for private work:
-admitted inference providers, selected skills, and deliberate disclosure and
-retention. Its introductory experience is an incognito session. Incognito is
-optional, not a requirement for every session or a claim about the most common use.
+Abalone is a curated guide to an incognito AI session, built around a minimally
+patched Pi agent. Bring a gift, review its terms, and connect directly to an
+admitted inference provider. DSMACK handles redemption; Abalone guides first use
+and close.
 
-Point your existing coding agent at this repository. It helps inspect and set up
-Abalone, rehearses with synthetic material, then steps aside so you can do useful
-private work. This is the shortest intended path to a satisfying first use.
-See the [first-session roadmap](docs/roadmap.md), [handoff
-requirements](notes/private-room-handoff.md) and [acquisition journey](notes/journey-0-audit-to-private-session.md).
+```mermaid
+flowchart LR
+    Gift[Your gift] --> Client[Abalone incognito session]
+    Client -->|Verify issuer, redeem once| DSMACK[DSMACK public testnet issuer]
+    DSMACK -->|Encrypted credential delivery| Client
+    Client -->|Attest provider, encrypted inference| NEAR[Remote NEAR model]
+```
 
-Abalone owns the client experience. The [gift first-use trial](docs/coupon-first-use.md)
-joins authenticated `/4` redemption, encrypted credential delivery and a direct
-attested NEAR model connection to an incognito session. The operator provisions
-the Linux environment and public trial inputs; the recipient enters the gift
-and reviews consent. Debug staging uses synthetic, non-sensitive prompts and
-does not establish private issuer custody. The issuer service can remain closed
-source for this initial trial. Portable-agent and node-provided VPN support are
-separate later milestones; ProtonVPN is not required for incognito.
+## Try a gift
 
-## Status and entry points
+The friend release is **being prepared**. There is no qualified public download
+yet. The [friend-URL acceptance issue](https://github.com/amiller/abalone/issues/4)
+tracks the reviewed artifact, public acquisition and actual walkthrough. Do not
+use an old trial bundle merely because it appears on a release page.
 
-This is a development source candidate, not a qualified installable release.
-Linux private sessions use Node 24 and bubblewrap. macOS support is narrower;
-do not assume Linux isolation or portable USB/Tails support there. Incognito
-currently retains an encrypted recoverable trace. An outside agent stepping
-aside is cooperation unless the environment enforces a separate access boundary.
+Supported recipient: **Linux x86_64, Node 24, bash, bubblewrap, curl, tar and
+sha256sum**, running as an ordinary user. Bubblewrap needs working user and
+network namespaces. macOS, Windows, Docker containers and USB/Tails are not
+qualified recipient profiles for this release. No VPN, provider account, manual
+API key or funded recipient wallet is required.
 
+The prepared release will provide one reviewed `install.sh`, its SHA256 and the
+public trial files it pins. Download and inspect it, verify its published
+checksum, then run:
+
+```sh
+sh install.sh --friend
+```
+
+This installs the pinned client and creates a fresh private workspace/session.
+Enter your gift at the hidden prompt, never in arguments, shell history,
+environment values or an AI message. Read the offer before claiming. Keep the
+same window open while delivery is pending; it holds the recipient keys needed
+for delivery. A terminal reconciliation error is not permission to redeem again.
+
+Session-only use is the planned default: no upfront trace passphrase and no
+durable prompt/response trace. To deliberately retain an encrypted trace:
+
+```sh
+sh install.sh --friend --keep-trace
+```
+
+The passphrase protects retained local traces, not the coupon. Keep it if you
+want to open the trace later; losing it can make the trace unreadable. Trace
+choice never disables inference encryption or provider verification. Workspace
+files you create can remain after close; session-only does not mean secure
+erasure. These release interfaces are candidates until acceptance passes.
+
+## Understand the session
+
+The first trial uses **remote NEAR inference**. A local broker/tool sandbox does
+not make the model local. Redemption creates a provider-capped credential: a $1
+cap is not a segregated purse, wallet transfer or verified remaining balance.
+The sponsor/provider can revoke access, provider caps can overshoot, and
+remaining credit is unknown unless verified usage is available.
+
+Use `/coupon` for session and trust details. Normal close clears the process's
+recipient key and credential references; it does not revoke the provider key or
+guarantee erasure against a privileged host. Admission renewal uses the same
+live credential through normal verification, never another coupon. Closed-session
+recovery is not qualified. Diagnostics are deliberate and metadata-only by
+default; never post a gift, key, private prompt or raw trace to an issue.
+
+This trial permits **synthetic, non-sensitive prompts only**. Its explicit
+firmware-warning profile can admit verified `OutOfDate` gateway/model platforms;
+actual warnings precede effects. Encryption and attestation remain required, but
+this exception does not establish strong private guarantees. The issuer operator
+may know, use or revoke the key. Base `safe` confirmation trusts the configured
+RPC; it is not independent Ethereum L1 finality. Private issuer custody, rollback
+protection, anonymous funding and full production release are unqualified.
+Incognito does not provide IP anonymity or protection from your host administrator.
+
+## Develop or review
+
+- [Gift trial and exact public inputs](docs/coupon-first-use.md)
+- [Preparing the friend release](docs/friend-release.md)
 - [Contributing and building](CONTRIBUTING.md)
-- [Gift redemption to incognito first use](docs/coupon-first-use.md)
 - [Development workflow](docs/development.md)
-- [GitHub backlog](https://github.com/amiller/abalone/issues)
-- [Threat model and enforcement limits](docs/threat-model.md)
-- [MCP delegated-work integration](docs/mcp-quickstart.md)
-- [Task contract](notes/contracts/task-v1.md)
+- [Roadmap](docs/roadmap.md) and [feedback tracker](https://github.com/amiller/dsmack/issues/47)
+- [Threat model](docs/threat-model.md) and [security reporting](SECURITY.md)
 
-First-party code is [MIT licensed](LICENSE). Existing component copyrights and
-licenses are preserved in [third-party notices](THIRD_PARTY_NOTICES.md).
-See [security reporting](SECURITY.md). Source publication does not establish
-live issuer/provider admission or completion of the funded private-preview gates.
+First-party code is [MIT licensed](LICENSE); [component notices](THIRD_PARTY_NOTICES.md)
+remain applicable. Source publication, installable-release and live-service
+qualification are distinct. The issuer service and operator credentials are not
+part of the recipient package.

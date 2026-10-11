@@ -32,21 +32,16 @@ test("selected NEAR profile is immutable and wrong model/auth/endpoint/pre-abort
     await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, { ...request(body()), signal: AbortSignal.abort() }), /request_refused/);
     assert.equal(calls, 0);
     await adapter.close(); await assert.rejects(adapter.admit(), /provider_closed/); assert.equal(calls, 0);
-    adapter = openCouponNearAdapter({ ...options(), sessionLifetimeMs: 5 });
+    // An unopened adapter has no admission lease yet; its bounded verification has
+    // its own timeout, independent of the window for issuing future requests.
+    adapter = openCouponNearAdapter({ ...options(), sessionLifetimeMs: 5, timeoutMs: 20 });
     await new Promise((resolve) => setTimeout(resolve, 15));
-    await assert.rejects(adapter.admit(), /provider_admission_expired/);
-    await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request(body())), /provider_admission_expired/);
-    assert.equal(calls, 0, "expired session cannot use any cached admission or issue a new request");
-    // Expiry during a live verification keeps its own code for a direct admit() caller.
     globalThis.fetch = (_url, init = {}) => new Promise((_resolve, reject) => {
-      if (init.signal?.aborted) { reject(new Error("stalled")); return; }
-      init.signal?.addEventListener("abort", () => reject(new Error("stalled")), { once: true });
+      init.signal.addEventListener("abort", () => reject(new Error("stalled")), { once: true });
     });
-    adapter = openCouponNearAdapter({ ...options(), sessionLifetimeMs: 20 });
-    const stalling = assert.rejects(adapter.admit(), { code: "provider_admission_expired" });
+    const stalling = assert.rejects(adapter.admit(), { code: "provider_admission_refused" });
     await new Promise((resolve) => setTimeout(resolve, 40));
     await stalling;
-    await assert.rejects(adapter.admit(), { code: "provider_admission_expired" });
   } finally { await adapter?.close(); globalThis.fetch = originalFetch; }
 });
 
@@ -250,4 +245,30 @@ test("explicit paired OutOfDate trial adds only that verified status and warns e
   assert.throws(() => validateCouponNearProfile({ ...options(), maxTokens: 513, policy: trialPolicy }));
   const upToDate = { ...verified, gateway_tcb_status: "UpToDate", model_tcb_statuses: ["UpToDate"], model_tcb_advisory_ids: [[]] };
   assert.equal(couponNearAdmissionWarning(upToDate, options().policy), null);
+});
+
+// Synthetic verdict only; real transport/encryption/deadlines exercise the lifecycle.
+test("lease starts on admission and an already sent response drains without paid replay", async () => {
+  const state = { chats: 0, closed: false };
+  const supplied = verdict(state), original = supplied.transport.fetch;
+  supplied.transport.fetch = async (...args) => { await new Promise((r) => setTimeout(r, 35)); return original(...args); };
+  const adapter = openCouponNearAdapterForTesting({ ...options(), sessionLifetimeMs: 10, timeoutMs: 100, verifiedForTesting: supplied });
+  try {
+    await new Promise((r) => setTimeout(r, 20)); // constructor time does not consume admission
+    const response = await adapter.fetch(`${options().baseUrl}/chat/completions`, request(body()));
+    assert.match(await response.text(), /useful synthetic answer/);
+    assert.equal(state.chats, 1);
+    await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request(body())), { code: "provider_admission_expired" });
+    assert.equal(state.chats, 1, "expired admission cannot send another paid request");
+  } finally { await adapter.close(); }
+});
+test("in-flight timeout never replays a request even when the admission lease expires", async () => {
+  const state = { chats: 0, closed: false, mode: "stall" };
+  const adapter = openCouponNearAdapterForTesting({ ...options(), sessionLifetimeMs: 5, timeoutMs: 30, verifiedForTesting: verdict(state) });
+  try {
+    const pending = assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request(body())), { code: "provider_unavailable" });
+    await new Promise((r) => setTimeout(r, 50)); await pending;
+    assert.equal(state.chats, 1);
+    assert.equal(state.closed, true);
+  } finally { await adapter.close(); }
 });

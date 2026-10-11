@@ -4,9 +4,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { loadTrial, preflight, inspectVpn, recipientArgv, recipientStdio, firstUseNotice, FIRST_USE_SOURCE_FILES } from "../tools/coupon-first-use.mjs";
 import { syntheticIssuerIdentity } from "./fixtures/coupon/issuer-v2.mjs";
-import { syntheticStagingSigner } from "./fixtures/coupon/staging-signer.mjs";
+import { syntheticStagingSigner, syntheticBaseGuard } from "./fixtures/coupon/staging-signer.mjs";
 
 const sha = (v) => crypto.createHash("sha256").update(v).digest("hex");
 const root = path.resolve(import.meta.dirname, "..");
@@ -32,6 +33,8 @@ test("public bundle pins exact staging and NEAR profiles; invocation selects /4 
     f.save(); const trial = loadTrial(f.file), argv = recipientArgv(trial);
     assert.ok(argv.includes("--attested") && argv.includes("--incognito"));
     assert.ok(argv.includes("near/selected/model"));
+    assert.ok(!argv.includes("--keep-trace"));
+    assert.ok(recipientArgv(trial, { keepTrace: true }).includes("--keep-trace"));
     assert.ok(!argv.includes("--experimental-local") && !argv.includes("--fixture-local"));
     assert.equal(trial.approval.promptPolicy, "synthetic-only");
     assert.ok(firstUseNotice.includes("issuer is not a prompt relay"));
@@ -101,4 +104,37 @@ test("signed $5 trial explicitly carries the paired firmware exception to the re
     f.bundle.provider.policy.gatewayTcb = f.bundle.provider.policy.modelTcb = "UpToDate";
     f.save(); assert.ok(loadTrial(f.file), "larger approvals retain their original strict policy");
   } finally { fs.rmSync(f.directory, { recursive: true, force: true }); }
+});
+
+test("Base RPC-safe signed admission is disclosed before gift entry without changing model governance", async () => {
+  const f = fixture();
+  try {
+    const pin = JSON.parse(fs.readFileSync(path.join(f.directory, "issuer-pin.json"))), signer = syntheticStagingSigner();
+    const approval = signer.sign({ identityPolicySha256: pin.expectedIdentityPolicySha256, issuancePolicySha256: pin.expectedIssuancePolicySha256,
+      issuerPublicKeySha256: pin.expectedIssuerPublicKeySha256, providerScopeCommitment: "cd".repeat(32), guard: syntheticBaseGuard() });
+    f.bundle.issuer.approvalRoot = signer.rootHex;
+    fs.writeFileSync(path.join(f.directory, "approval.json"), approval.bytes);
+    f.save();
+    const trial = await preflight(f.file);
+    assert.match(trial.checks.find((c) => c.name === "issuer guard policy").result, /Ethereum L1 finality is not independently verified/);
+    assert.deepEqual(trial.bundle.provider.policy.composeRegistry, { rpc: "https://mainnet.base.org", chainId: 8453 });
+    assert.ok(!recipientArgv(trial).includes("--allow-out-of-date-trial"), "guard confirmation does not relax provider attestation");
+  } finally { fs.rmSync(f.directory, { recursive: true, force: true }); }
+});
+
+test("pre-bearer workspace setup checks normal canaries and refuses tampering instead of resetting", () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "friend-readiness-"));
+  const work = path.join(directory, "work"), state = path.join(directory, "state"), runtime = path.join(directory, "run");
+  for (const dir of [work, state, runtime]) fs.mkdirSync(dir, { mode: 0o700 });
+  const script = `import fs from "node:fs"; import {prepareWorkspace} from ${JSON.stringify(new URL("../tools/coupon-first-use.mjs", import.meta.url).href)}; import * as canary from ${JSON.stringify(new URL("../lib/canary.mjs", import.meta.url).href)};
+    prepareWorkspace(); const file = JSON.parse(fs.readFileSync(canary.record(process.cwd()))).canaries[0].file;
+    prepareWorkspace(); fs.writeFileSync(file, "changed planted file");
+    try { prepareWorkspace(); process.exit(7); } catch { console.log("tamper refused"); }`;
+  try {
+    const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], { cwd: work, env: { PATH: process.env.PATH, ABALONE_DIR: state, XDG_RUNTIME_DIR: runtime }, encoding: "utf8", timeout: 15_000 });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout.trim(), "tamper refused");
+    assert.deepEqual(fs.readdirSync(runtime), [], "preflight sockets and DNS scratch are removed");
+    assert.ok(!fs.existsSync(path.join(state, "keys", "trace-active")), "default setup needs no trace passphrase");
+  } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });

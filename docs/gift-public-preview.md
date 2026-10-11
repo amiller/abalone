@@ -13,19 +13,76 @@ Current public work belongs in the [Abalone backlog](https://github.com/amiller/
 The prior Abalone/dsmack milestone and issue numbers belong to historical private
 planning; they are not public acquisition links or friend setup requirements.
 
-## Success for the recipient
+## First milestone: one bounded usable $1 route
 
-Andrew sends a funded gift code or link. A friend starts with a supported machine
-and an operator-provisioned incognito environment, follows public instructions,
-claims a private provider
-credential and completes a useful inference task. No existing account, prior
-pairing, funded wallet, gas purchase, private setup material or maintainer rescue
-is required. Coupon possession authorizes the first claim; locally generated
-recipient keys become atomically bound to it. Subsequent use authenticates that
-identity. A copied gift cannot be rebound after claim; pre-claim theft/forwarding
-risk must be explicit. Accountless entry does not remove service authentication.
+Abalone is the curated skill that guides private inference into an incognito
+window; its CLI is a reference implementation. DSMACK owns peer-to-peer private
+inference routing, coupon redemption and API-key routing.
 
-## Required gates
+A friend receives a coupon, follows a simple guide in a supported,
+operator-provisioned environment, redeems one bounded $1 entitlement and starts
+incognito inference. The guide shows the actual provider/model, delivery mode,
+privacy boundary, amount and units, expiry, caps and retained authority before
+redemption. The recipient needs no node, provider-management credentials or VPN.
+Prepare with synthetic material and hand over before private input; debug staging
+continues to require synthetic, non-sensitive content under its signed limits.
+
+Prioritize on-chain-only coupon entry with a locally generated fresh spending
+secret and no existing account, email, card or manually supplied API key. Fully
+anonymous redemption is the target; a fresh public wallet alone does not prove
+unlinkability. Record the observers, funding/spend links and transport metadata
+and qualify that claim separately. Current debug NEAR evidence does not close
+this target. The standalone incognito milestone still has no IP-hiding requirement.
+
+Qualify either direct provider access or a DSMACK routed balance first. Both use
+the same guided experience; backend provisioning and credentials remain operator
+responsibilities. Direct
+access may use native credit, a capped key or a recipient wallet only where the
+provider demonstrably accepts it. A wallet is not automatically API credit;
+instant NEAR wallet-to-API credit is not an available qualified route. A routed
+balance may use contributed provider keys, with their authority and shared caps
+disclosed. A capped key draws shared account funds; it is not a reserved credit
+purse. Funding from pool-owned stake/assets versus retained-owner account
+allowance is orthogonal to this delivery choice. Native credit, a key and a wallet
+are delivery instruments. The same coupon must not fund both modes or gain a second full
+entitlement on fallback or retry.
+
+Privacy, model eligibility and budget requirements precede latency selection.
+The existing NEAR adapter encrypts/decrypts in its host, currently the recipient
+host broker. Hosting it at a remote DSMACK router would expose plaintext
+requests/responses there before provider E2EE transport. This remote router is
+new work; recipient-side encryption through an opaque relay needs a new qualified
+protocol. Direct NEAR
+credential delivery and its existing reviewed evidence remain a separate candidate,
+not proof of native wallet payment or router privacy.
+
+Accept this first milestone through one public, guided start-to-close journey:
+redeem the stated entitlement, make a useful request, inspect its destinations and
+limits, demonstrate an applicable disclosure refusal, and close with retention and
+cleanup explained. Record actual credit use, elapsed time, intervention and scope.
+Show understandable refusal/recovery for expired or unavailable access and preserve
+original keys and entitlement when a claim is ambiguous. A smoke test uses a
+separate coupon; the user's coupon remains unclaimed until their redemption.
+
+Incognito retains an encrypted recoverable trace; workspace outputs may remain.
+It does not hide the home IP or protect against a privileged host. Portable network
+isolation is a separate milestone. The second delivery route and a latency
+comparison within a declared privacy/model/cap tier follow the first usable route.
+All providers, pooled staking, withdrawals, deposit settlement and independent pool
+operation are not prerequisites for this first user journey.
+
+## Broader funded/private recipient acceptance
+
+The full funded/private preview below has stronger guarantees than the initial
+$1 milestone or disclosed debug trial. A friend claims a private provider credential
+and completes a useful inference task without an existing account, prior pairing,
+funded wallet, gas purchase, private setup material or maintainer rescue. Coupon
+possession authorizes the first claim; locally generated recipient keys become
+atomically bound to it. Subsequent use authenticates that identity. A copied gift
+cannot be rebound after claim; pre-claim theft/forwarding risk must be explicit.
+Accountless entry does not remove service authentication.
+
+## Broader funded/private release gates
 
 1. **Public acquisition:** reviewed source, licensing, security/contribution contacts
    and versioned installation instructions for both components. Qualify one declared
@@ -76,7 +133,7 @@ RPC/gas, attestation retrieval and inference through its declared route, includi
 DNS, IPv4/IPv6, libp2p and fallback paths. VPN loss must fail closed. Historical
 VPN experiment reports remain evidence for their original scope only.
 
-## Final acceptance and deployment decision
+## Broader release acceptance and deployment decision
 
 Use one pinned candidate and declared bounded funds. An independent friend with
 no project account or funded wallet completes the journey from public instructions
@@ -89,13 +146,16 @@ form one release packet. Andrew reviews the actual experience and accepts it;
 agents cannot infer satisfaction from test counts or concept screenshots. If
 intervention is needed, fix its cause and rerun the affected scope.
 
-Both repository milestones must show required gates complete, independent review
-and linked evidence before closing. The packet must identify exactly what Andrew
+Close the broader funded/private release only when its required gates have
+independent review and linked evidence. The first $1 milestone can close
+independently with its stated narrower outcome and limits. The packet must identify exactly what Andrew
 can deploy, its supported scope, verification and recovery steps. Public visibility,
 release publication and deployment are explicit release actions; this planning
 change performs none of them. Staging qualification is distinct from a public launch.
 
-One provider/profile is sufficient. A general market, all providers, Tails/USB
-packaging, inference routing and development bounties are not dependencies.
+One provider/profile is sufficient for each selected route. A general market,
+all providers, Tails/USB packaging, pooled funding and development bounties
+are not dependencies of the first $1 journey. Routed delivery is an alternative
+first route, not a requirement to implement alongside direct access.
 The introductory gift session uses incognito by default. Portable-agent and
 node-provided VPN support are separate later milestones.

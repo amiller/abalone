@@ -15,7 +15,7 @@ import { issuerPolicyHash } from "../lib/vendor/dstack-issuer/dstack_issuer.mjs"
 import { encrypt } from "../lib/near.mjs";
 import { admitAttestedCouponIssuerPin, admitAttestedCouponSessionIssuer, openAttestedCouponSession, ATTESTED_COUPON_WAIT, ATTESTED_COUPON_RECOVER } from "../lib/coupon-attested-session.mjs";
 import { syntheticIssuerIdentity } from "./fixtures/coupon/issuer-v2.mjs";
-import { syntheticStagingSigner } from "./fixtures/coupon/staging-signer.mjs";
+import { syntheticStagingSigner, syntheticBaseGuard } from "./fixtures/coupon/staging-signer.mjs";
 import { couponSocketFetch } from "../lib/coupon-socket.mjs";
 
 const coupon = "a".repeat(43), sha = (v) => crypto.createHash("sha256").update(v).digest("hex");
@@ -254,9 +254,23 @@ test("cancelling a pending round keeps the original keys pending; reconciliation
         other.state.claim = "in_progress"; other.state.status = status; other.state.claimExpired = claimExpired;
         pendingSession = await fixtureSession(other);
         const offer = await pendingSession.inspect(coupon);
-        await assert.rejects(pendingSession.claim({ offerHash: offer.offerHash, consent: "CLAIM SESSION ONLY" }), { code: code });
+        await assert.rejects(pendingSession.claim({ offerHash: offer.offerHash, consent: "CLAIM SESSION ONLY" }), (error) => {
+          assert.equal(error.code, code);
+          if (code === "reconciliation_required") {
+            assert.match(error.message, /Nothing was installed; an earlier provider effect may still exist/);
+            assert.match(error.message, /Automatic retry and recipient recovery are disabled/);
+            assert.doesNotMatch(error.message, /[Pp]reserve.*keys|[Kk]eep.*session open|WAIT SAME KEYS|RETRY SAME KEYS/);
+          }
+          return true;
+        });
         assert.equal(other.claims.length, 1, "a terminal status is reported, never retried into a claim");
         await assert.rejects(pendingSession.resume({ consent: ATTESTED_COUPON_WAIT }), { code: "resume_refused" });
+        await assert.rejects(pendingSession.recover({ consent: ATTESTED_COUPON_RECOVER }), { code: "recovery_refused" });
+        await assert.rejects(pendingSession.claim({ offerHash: offer.offerHash, consent: "CLAIM SESSION ONLY" }), { code: "consent_required" });
+        assert.equal(other.claims.length, 1, "terminal resume, recovery and claim attempts cannot reissue");
+        await pendingSession.close();
+        assert.equal(pendingSession.state, "closed");
+        await assert.rejects(pendingSession.recover({ consent: ATTESTED_COUPON_RECOVER }), { code: "session_closed" });
       } finally { await pendingSession?.close(); await other.host.stop(); }
     }
   } finally { await session?.close(); await server.host.stop(); }
@@ -332,6 +346,16 @@ test("signed debug-staging policy: exact consent line, scope commitment and budg
     assert.equal(session.stagingAdmission.settlementApproval, false);
     await assert.rejects(session.claim({ offerHash: preview.offerHash, consent: "CLAIM SESSION ONLY" }), { code: "consent_required" });
     assert.equal(server.claims.length, 0, "the debug-staging consent line is required before any claim");
+    await pace();
+    const baseSession = await open(approvalFor({ guard: syntheticBaseGuard() }));
+    try {
+      const baseOffer = await baseSession.inspect(coupon);
+      assert.match(baseOffer.text, /Base mainnet issuance trusts the configured RPC/);
+      assert.match(baseOffer.text, /Ethereum L1 finality is not independently verified/);
+      assert.equal(baseSession.stagingAdmission.guard.chain_id, 8453);
+      await assert.rejects(baseSession.claim({ offerHash: baseOffer.offerHash, consent: "CLAIM SESSION ONLY" }), { code: "consent_required" });
+      assert.equal(server.claims.length, 0, "the Base disclosure and exact debug consent precede any claim");
+    } finally { await baseSession.close(); }
     // A budget beyond the approval's bound, a wrong scope commitment and a silently downgraded
     // synthetic provider are all refused at the offer, before consent or any claim.
     for (const [offer, approval] of [
@@ -400,7 +424,7 @@ const nearTransport = (state, credential) => ({
   },
 });
 
-test("near broker: bounded admission windows re-admit the same delivered credential; expiry mid-request explains itself; close clears everything", { timeout: 30_000 }, async () => {
+test("near broker: bounded admission windows re-admit the same delivered credential; bounded in-flight timeout is surfaced without replay; close clears everything", { timeout: 30_000 }, async () => {
   const signer = syntheticStagingSigner();
   const server = await issuerServer({ offerTerms: terms("placeholder", { provider: "near", scope: "ab".repeat(32) }), credential: nearCredential });
   const admissions = [], states = [];
@@ -415,7 +439,7 @@ test("near broker: bounded admission windows re-admit the same delivered credent
       connect: (addr, options) => couponAttestedClientForTesting(addr, { ...options, syntheticQuoteVerifier: quote }),
       nearAdapterFactory: (options) => { admissions.push({ credential: options.credential, transport: { chats: 0, closed: false, mode: "ok" } });
         const state = admissions.at(-1).transport;
-        return openCouponNearAdapterForTesting({ ...options, sessionLifetimeMs: 700, timeoutMs: 3000, verifiedForTesting: { signingPublicKey: modelKey.getPublicKey("hex"),
+        return openCouponNearAdapterForTesting({ ...options, sessionLifetimeMs: 700, timeoutMs: 1200, verifiedForTesting: { signingPublicKey: modelKey.getPublicKey("hex"),
           profile: { gateway_tcb: "synthetic-only-not-hardware", model_tcb: ["synthetic-only-not-hardware"], gpu: "GPU: NVIDIA verdict (synthetic-only-not-hardware)" },
           transport: nearTransport(state, nearCredential) } }); },
       pollRoundMs: 300, pollIntervalMs: 50 });
@@ -440,14 +464,15 @@ test("near broker: bounded admission windows re-admit the same delivered credent
     assert.deepEqual(admissions.map((a) => a.credential), [nearCredential, nearCredential], "the same delivered credential is reused, never re-claimed");
     assert.ok(states.includes("provider_readmitted"));
     assert.equal(server.claims.length, claimsAtDelivery, "provider use never claims again");
-    // Expiry mid-request surfaces its own bounded explanation; the next request self-heals.
+    // A started request has its own bounded timeout; admission expiry does not
+    // replay it. An explicitly new request obtains a fresh admission.
     admissions.at(-1).transport.mode = "stall";
     const aborted = await send("ignored", { body });
-    assert.equal(aborted.status, 503);
+    assert.equal(aborted.status, 502);
     const text = await aborted.text();
-    assert.ok(text.includes("fresh adapter admission") && text.includes("do not create another coupon or recipient key"));
+    assert.ok(text.includes("provider_unavailable"));
     assert.ok(!text.includes(nearCredential));
-    assert.ok(states.includes("provider_admission_expired"));
+    assert.ok(states.includes("provider_unavailable"));
     const healed = await send("ignored", { body });
     assert.ok((await healed.text()).includes("useful near answer"));
     assert.equal(admissions.length, 3);

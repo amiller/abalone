@@ -803,6 +803,9 @@ export class SettingsManager {
 	}
 
 	getCompactionEnabled(): boolean {
+		// Coupon requests can have paid effects even when their response is lost.
+		// Project settings and runtime toggles must not enable automatic resubmission.
+		if (process.env.ABALONE_COUPON_SOCKET) return false;
 		return this.settings.compaction?.enabled ?? SETTINGS_DEFAULTS.compaction.enabled;
 	}
 
@@ -876,6 +879,7 @@ export class SettingsManager {
 	}
 
 	getRetryEnabled(): boolean {
+		if (process.env.ABALONE_COUPON_SOCKET) return false;
 		return this.settings.retry?.enabled ?? SETTINGS_DEFAULTS.retry.enabled;
 	}
 
@@ -891,7 +895,7 @@ export class SettingsManager {
 	getRetrySettings(): { enabled: boolean; maxRetries: number; baseDelayMs: number; maxAgentDelayMs: number } {
 		return {
 			enabled: this.getRetryEnabled(),
-			maxRetries: this.settings.retry?.maxRetries ?? SETTINGS_DEFAULTS.retry.maxRetries,
+			maxRetries: process.env.ABALONE_COUPON_SOCKET ? 0 : (this.settings.retry?.maxRetries ?? SETTINGS_DEFAULTS.retry.maxRetries),
 			baseDelayMs: this.settings.retry?.baseDelayMs ?? SETTINGS_DEFAULTS.retry.baseDelayMs,
 			maxAgentDelayMs: this.settings.retry?.maxAgentDelayMs ?? SETTINGS_DEFAULTS.retry.maxAgentDelayMs,
 		};
@@ -912,6 +916,7 @@ export class SettingsManager {
 
 	/** Read from global settings only because warming costs money. */
 	getCacheWarmingMode(): CacheWarmingMode {
+		if (process.env.ABALONE_COUPON_SOCKET) return "off";
 		const mode = this.globalSettings.cacheWarming;
 		return mode !== undefined && CACHE_WARMING_MODES.includes(mode) ? mode : SETTINGS_DEFAULTS.cacheWarming;
 	}
@@ -925,7 +930,7 @@ export class SettingsManager {
 	getProviderRetrySettings(): { timeoutMs?: number; maxRetries?: number; maxRetryDelayMs: number } {
 		return {
 			timeoutMs: this.settings.retry?.provider?.timeoutMs,
-			maxRetries: this.settings.retry?.provider?.maxRetries,
+			maxRetries: process.env.ABALONE_COUPON_SOCKET ? 0 : this.settings.retry?.provider?.maxRetries,
 			maxRetryDelayMs:
 				this.settings.retry?.provider?.maxRetryDelayMs ?? SETTINGS_DEFAULTS.retry.provider.maxRetryDelayMs,
 		};

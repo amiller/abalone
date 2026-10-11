@@ -11,14 +11,18 @@ fail=0
 check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fail=1; fi; }
 ab() { "$root/bin/abalone" "$@"; }
 pw() { ABALONE_PASSPHRASE_FD=3 "$root/bin/abalone" "$@" 3<<<"${PW:-correct horse}"; }
-drive() { node "$root/tests/incognito-drive.mjs" stub-e2ee/script "$@"; }
+drive() { node "$root/tests/incognito-drive.mjs" stub-e2ee/script "$@" --keep-trace; }
 M="MARK-$(head -c6 /dev/urandom | od -An -tx1 | tr -d ' \n' | tr a-f A-F)"
 W="$ABALONE_DIR/work"; mkdir -p "$W"; cd "$W"
 O=$(mktemp -d) # the test's own captures of the session's terminal output (plaintext by design: the terminal limit)
 echo "client codename $M owes 4410" > secret.txt; printf 'grep -q MARK secret.txt && echo TESTS PASS\n' > test.sh
 start="$ABALONE_DIR/.start"; touch "$start"
 
-out=$(ab --incognito "$W" 2>&1); check "no trace key: incognito refuses to start" '[[ $out == *"abalone trace key init"* ]]'
+out=$(ab --incognito "$W" --keep-trace </dev/null 2>&1); check "retained trace requires deliberate key setup before launch" '[[ $out == *"no terminal to ask for the trace key passphrase"* ]]'
+# Default session-only uses the same real sandbox but no key or transcript writer.
+node "$root/tests/incognito-drive.mjs" stub-e2ee/script "please check secret.txt and run the tests" > "$O/ephemeral-events" 2> "$O/ephemeral-error"
+check "default incognito does useful work without key or retained transcript" 'grep -q TESTS\ PASS "$O/ephemeral-events" && [[ ! -d .abalone/traces && ! -f $ABALONE_DIR/keys/trace-active ]] && grep -q "No conversation trace retained" "$O/ephemeral-error"'
+check "default keeps no Pi history or plaintext marker in state/runtime" '[[ ! -d $ABALONE_DIR/agent/sessions && ! -d $ABALONE_DIR/notebook ]] && ! grep -rlF "$M" "$ABALONE_DIR" --exclude=secret.txt --exclude-dir=work'
 pw trace key init > /dev/null
 check "key files are outside the folder; the identity is age-encrypted" '[[ -f $(ls "$ABALONE_DIR"/keys/trace-*.pub) ]] && head -c 40 "$ABALONE_DIR"/keys/trace-*.age | grep -q "age-encryption.org/v1" && ! grep -rq AGE-SECRET-KEY "$ABALONE_DIR/keys"'
 out=$(ab --incognito "$W" --model runner/claude 2>&1); check "an outside model is refused at entry" '[[ $out == *"not a ⌂ local or ◈ admitted provider"* ]]'
@@ -63,7 +67,7 @@ cp -r "$W" "$ABALONE_DIR/t6"; mv "$ABALONE_DIR/t6/$T" "$ABALONE_DIR/t6/.abalone/
 o=$(pw trace open "$ABALONE_DIR/t6" 0000000000000000 2>&1); check "a file renamed to another id is refused" '[[ $o == *"the header names trace $id"* ]]'
 
 # Interrupted close: the launcher is killed (SIGKILL) after the turn; Pi dies with it (bwrap --die-with-parent).
-mkfifo "$ABALONE_DIR/in"; "$root/bin/abalone" --mode rpc --incognito --model stub-e2ee/script < "$ABALONE_DIR/in" > $O/ev2 2>$O/err2 & lp=$!
+mkfifo "$ABALONE_DIR/in"; "$root/bin/abalone" --mode rpc --incognito --keep-trace --model stub-e2ee/script < "$ABALONE_DIR/in" > $O/ev2 2>$O/err2 & lp=$!
 exec 4> "$ABALONE_DIR/in"; echo '{"id":"p1","type":"prompt","message":"please check secret.txt and run the tests"}' >&4
 for i in $(seq 100); do grep -q agent_settled $O/ev2 && break; sleep 0.2; done
 kill -9 $lp; exec 4>&-; wait $lp 2>/dev/null

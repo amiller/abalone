@@ -161,3 +161,10 @@ stays `claim_pending` with no provider-key creation, grant delivering through th
 original keys with exactly one provider create, delivered replay, and restart with an
 unresolved job requiring reconciliation. These are local synthetic results with
 no hardware, custody, live-provider, chain, gas, VPN or deposit qualification.
+
+Coupon sessions disable SDK and agent automatic retries, automatic compaction,
+and background cache warming. Project settings and runtime toggles cannot
+re-enable those automatic requests while the coupon socket is active. A failed
+request may already have been charged; a later explicit user request is a new
+request, not proof that repeating the earlier one is safe. Tool continuations
+requested by the model remain part of normal work and may make further requests.

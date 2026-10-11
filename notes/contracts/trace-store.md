@@ -4,7 +4,7 @@ Owner: Track A (`agent/incognito`). Status: pinned 2026-10-08; revised the same 
 
 ## Entry and mode
 
-`abalone --incognito <folder>` starts a strict-incognito session in `<folder>`. Nothing else turns the mode on: the launcher deletes any inherited `ABALONE_INCOGNITO` and sets it itself. The session refuses to start without a trace key (`abalone trace key init`), refuses `--resume`/`--continue`/`--session`, and refuses a `--model` whose provider is not ⌂ local or ◈ admitted.
+`abalone --incognito <folder>` starts a strict-incognito session in `<folder>`. Nothing else turns the mode on: the launcher deletes any inherited `ABALONE_INCOGNITO` and sets it itself. By default no conversation trace is retained and no trace key or passphrase is needed. `--keep-trace` explicitly retains an encrypted trace, creating a passphrase-protected key before any gift entry if absent. The session refuses `--resume`/`--continue`/`--session`, and refuses a `--model` whose provider is not ⌂ local or ◈ admitted.
 
 Inside the mode:
 
@@ -12,7 +12,7 @@ Inside the mode:
 - **Network**: the existing egress allows admitted TEE hosts, their verifier hosts and loopback model ports, with no runner CONNECT hosts. There is no `/fetch`, no Tor and no public shell. Bash has no network.
 - **Browser**: the launcher's browser bridge refuses `tabs` and `grant` (`/browser grant`), and the capability table has no `browse` row. A page is a destination outside ⌂/◈, and the page's content would carry the session's context there.
 - **Launcher control socket**: only `trace-append` and `trace-context`. `folder`, `fetch`, `runner`, `redeem`, `gift` and `report` are refused.
-- **Harness state**: the Pi sandbox sees `$ABALONE_DIR` as an empty tmpfs. Only `canaries/` and `approvals/` are bound in, read-only. Pi runs with `--no-session`, and its agent dir (settings, crash log, debug log) is `$run/agent` in the per-user runtime dir, removed at exit. Every harness write inside the sandbox stays in memory and vanishes at exit: notebook, `agents.jsonl`, `folders.json`, evidence cache, extraction scratch. The launcher (outside the sandbox) appends `egress.jsonl` (host names only) and the trace high-water mark (below).
+- **Harness state**: the Pi sandbox sees `$ABALONE_DIR` as an empty tmpfs. Only `canaries/` and `approvals/` are bound in, read-only. Pi runs with `--no-session`, and its agent dir (settings, crash log, debug log) is `$run/agent` in the per-user runtime dir, removed at exit. Every harness write inside the sandbox stays in memory and vanishes at exit: notebook, `agents.jsonl`, `folders.json`, evidence cache, extraction scratch. The launcher (outside the sandbox) appends `egress.jsonl` (host names only) and, only with `--keep-trace`, the trace high-water mark (below).
 
 ## Files
 
@@ -26,7 +26,7 @@ $ABALONE_DIR/trace-hwm/<id>.json                           high-water mark {id, 
 
 `$ABALONE_DIR` defaults to `~/.abalone`. Neither key file is under the folder, so copying the folder does not copy them. Every sandbox hides `$ABALONE_DIR/keys`: Pi gets a tmpfs over it in every mode, and bash gets a tmpfs over all of `$ABALONE_DIR`.
 
-**The writer is the launcher, outside the sandbox.** Pi's extension sends each new session entry over the launcher's control socket (`trace-append`, a unix socket in the run dir, which bash cannot see). The launcher encrypts the entry and appends it. The stream key exists only in the launcher's memory, and each session draws a fresh one. No code path reopens an existing trace for writing, so a resumed or continued session (`--with-trace`) always starts a new trace under a new key. The sandbox never holds a key that decrypts any trace, its own included. The launcher writes the final frame after Pi exits, whatever the exit code, so a Pi crash still closes the trace. Only a launcher killed without a chance to run (SIGKILL, power loss) leaves it unclosed.
+**With explicit `--keep-trace`, the writer is the launcher, outside the sandbox.** In default session-only mode `trace-append` is acknowledged and discarded; no transcript is written or indexed. Pi's extension sends each new session entry over the launcher's control socket (`trace-append`, a unix socket in the run dir, which bash cannot see). The launcher encrypts the entry and appends it. The stream key exists only in the launcher's memory, and each session draws a fresh one. No code path reopens an existing trace for writing, so a resumed or continued session (`--with-trace`) writes a new trace under a new stream key only if `--keep-trace` is also selected. The sandbox never holds a key that decrypts any trace, its own included. The launcher writes the final frame after Pi exits, whatever the exit code, so a Pi crash still closes the trace. Only a launcher killed without a chance to run (SIGKILL, power loss) leaves it unclosed.
 
 Model tools treat `<folder>/.abalone/` as outside the workspace: the folder listing omits it, in-content `list`/`read`/`grep`/`write` and `@` mentions refuse or skip it, native `read`/`write`/`edit` lack the capability for it, and bash sees it read-only.
 
@@ -68,8 +68,9 @@ Recovery: `abalone trace key export` prints the `AGE-SECRET-KEY-1…` identity f
 
 ```
 abalone trace key init | export | import           create (passphrase) / print identity / store an identity
-abalone --incognito <folder>                       strict-incognito session; on exit prints what remains and how to reopen
-abalone --incognito <folder> --with-trace <id>     new incognito session (new trace, new key) that starts with that trace's conversation in context
+abalone --incognito <folder>                       session-only; no retained conversation trace
+abalone --incognito <folder> --keep-trace          encrypted retained trace; on exit prints what remains and how to reopen
+abalone --incognito <folder> --with-trace <id>     session-only incognito session that starts with that trace's conversation in context
 abalone trace list <folder>                        traces, sizes, record counts, closed or not; no key needed
 abalone trace open <folder> <id>                   unlock and print to this terminal; adds nothing to any session
 abalone trace delete <folder> <id>|--all           leave no trace: delete trace files and their high-water marks
@@ -90,7 +91,7 @@ On exit, the launcher writes the FINAL frame and then prints:
 
 The launcher decrypts nothing at close.
 
-Reopening is always a separate, explicit command that asks for the passphrase. `trace open` prints to the terminal and adds nothing to any session. `--with-trace` works only together with `--incognito`. The launcher decrypts before Pi starts and keeps the transcript in its own memory. The extension fetches it once over the control socket (`trace-context`) and shows it as a message, so the user sees what was added. It goes to the session's ⌂/◈ model with the next prompt and is recorded in the new session's own trace. Nothing indexes traces: the notebook never reads `.abalone/`, and in incognito the notebook is not written.
+Reopening is always a separate, explicit command that asks for the passphrase. `trace open` prints to the terminal and adds nothing to any session. `--with-trace` works only together with `--incognito`. The launcher decrypts before Pi starts and keeps the transcript in its own memory. The extension fetches it once over the control socket (`trace-context`) and shows it as a message, so the user sees what was added. It goes to the session's ⌂/◈ model with the next prompt and is recorded in the new session's trace only if `--keep-trace` is also selected. Nothing indexes traces: the notebook never reads `.abalone/`, and in incognito the notebook is not written.
 
 `trace delete` removes trace files from `<folder>/.abalone/traces/` and their high-water marks. It does not reach:
 
@@ -108,6 +109,8 @@ The launcher writes `$run/session.json` (0400, path in `ABALONE_SESSION_DESCRIPT
 
 ```
 { version: 1, mode: "strict-incognito", workspace, inference, network: { shell: "none", public_web: false, egress },
+  // Default: retention: { kind: "session-only", session_can_read_back: false, other_harness_writes, reopened }
+  // Explicit --keep-trace:
   retention: { kind: "encrypted-trace", format: "abalone-trace/2", trace: <path>, key_id: <kid>, key_file: <path>,
                encrypted: true, session_can_read_back: false, other_harness_writes: "tmpfs (memory), gone at exit", reopened: <id>|null } }
 ```

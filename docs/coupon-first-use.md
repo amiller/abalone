@@ -12,7 +12,7 @@ revoke the API key. The issuer is not a prompt relay: the launcher separately
 admits fresh NEAR gateway/model quotes, signed NVIDIA evidence and Base compose
 admission, then encrypts directly to the admitted model through pinned transport.
 Private issuer custody, rollback safety and settlement remain unqualified.
-Incognito keeps an encrypted trace; it does not establish VPN anonymity, erase
+Incognito defaults to session-only conversation retention; `--keep-trace` explicitly retains an encrypted trace; it does not establish VPN anonymity, erase
 workspace files or prevent a privileged host from reading process memory.
 
 ## The user command
@@ -28,14 +28,12 @@ the directory can be moved without private sibling paths.
 
 ```sh
 node tools/coupon-first-use.mjs preflight --bundle /ABS/trial.json
-./bin/abalone trace key init
 node tools/coupon-first-use.mjs run --bundle /ABS/trial.json
 ```
 
-The operator provisions the Linux sandbox, trace key and public trial bundle
+The operator provisions the Linux sandbox and public trial bundle
 before handing over the environment. The recipient enters only the gift and
-reviews its consent. The trace-key initialization command is an operator setup
-step; its passphrase is not needed to write a new encrypted session trace.
+reviews its consent. No trace key or passphrase is needed by default. Selecting `--keep-trace` explicitly initializes an encrypted key with a hidden passphrase before gift entry if no key exists; writing later traces uses only its public recipient.
 Preflight checks the local candidate/build,
 curated Pi/ACI closure, Linux sandbox, state conflicts, public issuer/approval
 pins. If the operator selects an optional VPN profile, preflight also checks
@@ -77,7 +75,7 @@ sh /ABS/reviewed-install.sh --trial /ABS/trial.json
 This installs the pinned artifact and starts the same `/4` incognito wrapper.
 Gift entry remains hidden. The legacy `redeem` installer option is a separate
 historical path and does not implement this trial. The operator must provision
-the trace key and source/build pins for the actual artifact before handing it
+the selected retention mode and source/build pins for the actual artifact before handing it
 to a recipient. No published artifact URL is asserted by these source instructions.
 
 ## Exact public inputs
@@ -182,11 +180,25 @@ must prepare:
 
 - The reviewed image/compose and captured old compose/environment/state for rollback.
 - Actual guest SDK bootstrap app/compose/issuer/peer/scope observations, then authority-signed approvals/config and NEAR account credentials through the protected pipe.
-- Bounded coupon/aggregate allowance and expiry; guard address, code/issuer pins, finality checkpoint, courier/gas inputs and authorization for required transactions.
+- Bounded coupon/aggregate allowance and expiry; guard address, code/issuer pins, the signed confirmation profile and its required checker inputs, courier/gas inputs and authorization for required transactions.
 - The reachable private listener/tunnel route and exact advertised multiaddr.
 - The approved explicit NEAR model, independently pinned public trial bundle, and operator-provisioned Linux incognito environment. A qualified VPN profile/report belongs to the separate later VPN milestone.
 
-A guarded create still requires its guard/finality inputs. A funded settlement
+A signed Base mainnet trial uses chain 8453 and the exact
+`base-mainnet-rpc-safe-debug-v1` confirmation descriptor. It trusts
+`https://mainnet.base.org` to report a `safe` block and relies on the operator's
+host clock for freshness. The recipient verifies the signed profile and issuer
+identity; it does not independently verify chain state or Ethereum L1 finality.
+RPC dishonesty or an Ethereum reorganization can invalidate the report, and a
+provider effect cannot be undone afterward. Ambiguous issuance is quarantined
+without automatic retry. This profile remains synthetic-only, at most $5 per
+coupon and in aggregate, with rollback qualification false. Its warning appears
+before gift entry and in the offer before consent. NEAR model governance on Base
+is a separate, unchanged verification step. The legacy Ethereum Sepolia signed
+guard profile remains separate and unchanged; Base `safe` is not a substitute
+claim of independently verified finalized state.
+
+A guarded create still requires the inputs of its signed confirmation profile. A funded settlement
 reader is not a prerequisite for this unfunded intermediate trial. Keep deployment changes within the operator's authorized scope and keep
 development staging private. The full
 [friend gift public-preview acceptance](gift-public-preview.md) remains open.

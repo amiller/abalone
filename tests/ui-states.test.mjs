@@ -11,7 +11,7 @@ const home = fs.mkdtempSync(path.join(os.tmpdir(), "abalone-ui-")); process.env.
 const folder = path.join(home, "clinic-billing"); fs.mkdirSync(folder); for (const f of ["copay.py", "patients.md", "test_copay.py"]) fs.writeFileSync(path.join(folder, f), "x");
 const { withoutToolProtocol, toolDisplay } = await import("../lib/ui/tool-display.mjs");
 const { header, systemPrompt } = await import("../lib/welcome.mjs");
-const { footerLine, sentTo } = await import("../lib/status.mjs");
+const { footerLine, sentTo, segments } = await import("../lib/status.mjs");
 const { themes } = await import("../lib/ui/layout.mjs");
 const dir = path.join(import.meta.dirname, "fixtures", "snapshots");
 const snap = (name, text) => {
@@ -73,4 +73,26 @@ test("7. a turn that reads no new file says the conversation still holds the ear
   assert.equal(line([], ["patients.md"]), "no new files; the conversation already holds patients.md");
   assert.equal(line(["copay.py"], ["patients.md"]), "files read into it: copay.py; the conversation already holds patients.md");
   assert.equal(line([], []), "files read into it: none beyond the folder's file names and sizes");
+});
+
+test("8. coupon footer shows an unknown credit balance and a compact trial warning", () => {
+  const base = { model: { provider: "nearai", id: "Qwen/Qwen3.8-27B" }, entries: [], session: "test", coupon: null, couponSession: true, incognito: true };
+  const segs = segments(base), wide = footerLine(segs, 80, themes.plain);
+  assert.equal(wide, "incognito · NEAR Qwen3.8-27B · session · credit unknown · ⚠ trial (/coupon)");
+  assert.doesNotMatch(wide, /\$|left|spent|secret access|synthetic-only|checked|verified/);
+  assert.match(footerLine(segs, 40, themes.plain), /⚠ trial/);
+  assert.doesNotMatch(footerLine(segments({ ...base, incognito: false }), 80, themes.plain), /incognito/);
+  assert.match(footerLine(segments({ ...base, model: { provider: "synthetic-near", id: "fixture" } }), 80, themes.plain), /⚠ fixture/);
+});
+
+test("remote NEAR coupon is not classified as a model running on this computer", async () => {
+  const old = process.env.ABALONE_COUPON_SOCKET;
+  process.env.ABALONE_COUPON_SOCKET = "/synthetic-unit/coupon.sock";
+  try {
+    const { place } = await import("../lib/config.mjs");
+    assert.equal(place("nearai"), "◈ attested");
+    assert.equal(place("synthetic-near"), "⌂ local");
+    const text = sentTo({ provider: "nearai", model: "Qwen/Qwen3.8-27B", files: [], traces: [], pages: [] });
+    assert.ok(!text.includes("a local model") && !text.includes("this computer ("));
+  } finally { if (old === undefined) delete process.env.ABALONE_COUPON_SOCKET; else process.env.ABALONE_COUPON_SOCKET = old; }
 });

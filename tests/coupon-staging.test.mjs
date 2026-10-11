@@ -6,8 +6,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import fs from "node:fs";
-import { verifyCouponStagingAdmission, couponStagingApprovalHash, COUPON_STAGING_APPROVAL_DOMAIN } from "../lib/coupon-staging.mjs";
+import { verifyCouponStagingAdmission, couponStagingApprovalHash, COUPON_STAGING_APPROVAL_DOMAIN, couponStagingGuardNotice } from "../lib/coupon-staging.mjs";
 import { canonicalCouponJson } from "../lib/coupon-offer.mjs";
+import { syntheticBaseGuard } from "./fixtures/coupon/staging-signer.mjs";
 
 const dir = new URL("fixtures/coupon/staging/", import.meta.url);
 const meta = JSON.parse(fs.readFileSync(new URL("meta.json", dir), "utf8"));
@@ -86,4 +87,32 @@ test("tampered bytes, wrong roots and non-canonical encodings refuse", () => {
   for (const bad of [undefined, "not-hex", Buffer.from("00")]) assert.throws(() => verifyCouponStagingAdmission(approval("valid"), { approvalRoot: bad }), /staging_admission_refused/);
   assert.throws(() => verifyCouponStagingAdmission(Buffer.from([0xff, 0xfe])), /staging_admission_refused/);
   assert.throws(() => verifyCouponStagingAdmission(approval("valid"), { approvalRoot: root, now: Date.parse("2100-01-01T00:00:00Z") }), { code: "staging_approval_expired" });
+});
+
+test("Base mainnet requires the exact signed RPC-safe debug profile and $5 bounds; legacy stays unchanged", () => {
+  const guard = syntheticBaseGuard();
+  const verdict = verifyCouponStagingAdmission(signedApproval({ guard }), { approvalRoot: root });
+  assert.deepEqual(verdict.guard, guard);
+  assert.equal(verdict.rollbackQualified, false);
+  assert.ok(Object.isFrozen(verdict.guard.confirmation));
+  const notice = couponStagingGuardNotice(verdict.guard);
+  assert.match(notice, /configured RPC.*safe block/);
+  assert.match(notice, /recipient does not independently verify chain state/);
+  assert.match(notice, /Ethereum L1 finality is not independently verified/);
+  assert.match(notice, /earlier provider effect cannot be undone/);
+  assert.match(notice, /host clock/);
+  assert.equal(couponStagingGuardNotice(verifyCouponStagingAdmission(approval("valid"), { approvalRoot: root }).guard), "");
+  const invalid = [
+    { ...guard, chain_id: 84532 }, { ...guard, chain_id: "8453" }, { ...guard, chain_id: 11155111 },
+    Object.fromEntries(Object.entries(guard).filter(([k]) => k !== "confirmation")), { ...guard, extra: true },
+    ...Object.keys(guard.confirmation).map((field) => ({ ...guard, confirmation: Object.fromEntries(Object.entries(guard.confirmation).filter(([k]) => k !== field)) })),
+    ...Object.entries({ version: 2, profile: "base-mainnet-finalized", block_tag: "latest", rpc_url: "https://evil.invalid",
+      trust: "independent-proof", l1_finality_verified: true, reorg_action: "retry" }).map(([field, value]) => ({ ...guard, confirmation: { ...guard.confirmation, [field]: value } })),
+    { ...guard, confirmation: { ...guard.confirmation, extra: true } },
+  ];
+  for (const changed of invalid) assert.throws(() => verifyCouponStagingAdmission(signedApproval({ guard: changed }), { approvalRoot: root }), { code: "staging_admission_refused" });
+  for (const budgets of [{ max_coupon_nano_usd: "5000000001", max_total_nano_usd: "5000000001" }, { max_total_nano_usd: "5000000001" }])
+    assert.throws(() => verifyCouponStagingAdmission(signedApproval({ guard, ...budgets }), { approvalRoot: root }), { code: "staging_admission_refused" });
+  const unsignedChange = JSON.parse(approval("valid")); unsignedChange.payload.guard = guard;
+  assert.throws(() => verifyCouponStagingAdmission(Buffer.from(canonicalCouponJson(unsignedChange)), { approvalRoot: root }), { code: "staging_admission_refused" });
 });

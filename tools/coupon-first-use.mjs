@@ -7,20 +7,22 @@ import { spawn, spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import net from "node:net";
 import { multiaddr } from "@multiformats/multiaddr";
-import { ROOT, providers, runtimeDir } from "../lib/config.mjs";
+import { ROOT, STATE, APPROVALS, RUNNER_HOME, providers, runtimeDir } from "../lib/config.mjs";
 import { verified } from "../lib/manifest.mjs";
 import { issuerPolicyHash } from "../lib/vendor/dstack-issuer/dstack_issuer.mjs";
 import { validateCouponNearProfile, OUT_OF_DATE_TRIAL_POLICY, OUT_OF_DATE_TRIAL_NOTICE } from "../lib/coupon-near.mjs";
-import { verifyCouponStagingAdmission } from "../lib/coupon-staging.mjs";
+import { verifyCouponStagingAdmission, couponStagingGuardNotice } from "../lib/coupon-staging.mjs";
 import { keyInfo } from "../lib/trace.mjs";
 import * as nodekeys from "../lib/nodekeys.mjs";
 import * as gift from "../lib/gift.mjs";
+import * as canary from "../lib/canary.mjs";
+import { piArgv } from "../lib/sandbox.mjs";
 
 const exact = (v, keys) => v && Object.getPrototypeOf(v) === Object.prototype && Object.keys(v).sort().join(",") === [...keys].sort().join(",");
 const hex = (v) => typeof v === "string" && /^[0-9a-f]{64}$/.test(v);
 const sha = (b) => crypto.createHash("sha256").update(b).digest("hex");
 const fail = (code, message) => Object.assign(new Error(message), { code });
-export const FIRST_USE_SOURCE_FILES = ["tools/coupon-first-use.mjs", "bin/abalone.mjs", "lib/coupon-attested.mjs", "lib/coupon-attested-session.mjs", "lib/coupon-near.mjs", "lib/near.mjs", "lib/coupon-staging.mjs", "curated/coupon-provider.ts", "curated/manifest.json", "package-lock.json", "pi/package-lock.json", "aci/package-lock.json", "pi/packages/coding-agent/dist/cli.js"];
+export const FIRST_USE_SOURCE_FILES = ["tools/coupon-first-use.mjs", "bin/abalone.mjs", "lib/coupon-attested.mjs", "lib/coupon-attested-session.mjs", "lib/coupon-near.mjs", "lib/near.mjs", "lib/coupon-staging.mjs", "lib/coupon-input.mjs", "lib/coupon-socket.mjs", "lib/config.mjs", "lib/welcome.mjs", "lib/status.mjs", "lib/sandbox.mjs", "lib/canary.mjs", "curated/abalone.ts", "curated/coupon-provider.ts", "curated/manifest.json", "package-lock.json", "pi/package-lock.json", "aci/package-lock.json", "pi/packages/coding-agent/dist/cli.js", "pi/packages/coding-agent/src/core/settings-manager.ts", "pi/packages/coding-agent/dist/core/settings-manager.js"];
 function publicFile(base, name) {
   if (typeof name !== "string" || !name || path.isAbsolute(name) || name.split(/[\\/]/).includes("..")) throw fail("bundle_invalid", "Public artifact paths must be relative within the trial bundle.");
   const real = fs.realpathSync(path.resolve(base, name));
@@ -60,25 +62,46 @@ export function inspectVpn(vpn, base, command = spawnSync) {
   return "Pinned host observations match the supplied qualification report; this check does not repeat a real VPN loss test.";
 }
 
-export async function preflight(file) {
+// Preparation is local and precedes peer dial, hidden gift entry and CLAIM. Existing
+// canary records are checked, never silently replaced when their planted file changed.
+export function prepareWorkspace(cwd = process.cwd()) {
+  if (!fs.existsSync(canary.record(cwd))) canary.init(cwd);
+  canary.forSession(cwd, false);
+  const runtime = runtimeDir(), owner = fs.lstatSync(runtime);
+  if (!owner.isDirectory() || owner.isSymbolicLink() || owner.uid !== process.getuid() || (owner.mode & 0o077)) throw fail("runtime_unavailable", "Use an owner-only runtime directory before gift entry.");
+  const run = fs.mkdtempSync(path.join(runtime, "abalone-preflight-"));
+  try {
+    const argv = piArgv(run, [], cwd, { incognito: true });
+    const result = spawnSync("bwrap", [...argv, "--", process.execPath, "-e", "process.exit(0)"], { stdio: "pipe", timeout: 5000 });
+    if (result.status !== 0) throw fail("sandbox_unavailable", "The complete incognito mount and runtime preparation failed before gift entry.");
+  } finally { fs.rmSync(run, { recursive: true, force: true }); }
+}
+function checkSource(trial) {
+  for (const [name, hash] of Object.entries(trial.bundle.source.files)) if (sha(fs.readFileSync(path.join(ROOT, name))) !== hash) throw fail("source_mismatch", `Reviewed candidate hash mismatch: ${name}`);
+  verified();
+}
+export async function preflight(file, { keepTrace = false } = {}) {
   const trial = loadTrial(file), checks = [], missing = [];
   const check = (name, fn) => { try { checks.push({ name, result: fn() ?? "ready" }); } catch (e) { missing.push({ name, code: e.code ?? "preflight_failed", message: e.code ? e.message : `${name} is unavailable or invalid; repair it before gift entry.` }); } };
+  check("issuer guard policy", () => couponStagingGuardNotice(trial.approval.guard) || "Legacy Ethereum Sepolia signed issuer policy; the recipient does not independently verify chain state.");
   check("supported OS", () => { if (process.platform !== "linux" || Number(process.versions.node.split(".")[0]) !== 24) throw fail("unsupported_profile", "This trial requires Linux Node 24 and bubblewrap. Native macOS recipient parity is not qualified."); });
-  check("ambient configuration", () => { if ((process.env.ABALONE_CONFIG && path.resolve(process.env.ABALONE_CONFIG) !== ROOT) || process.env.NODE_OPTIONS) throw fail("ambient_configuration_refused", "Remove alternate ABALONE_CONFIG/NODE_OPTIONS before this pinned source trial."); });
+  check("ambient configuration", () => { if ((process.env.ABALONE_CONFIG && path.resolve(process.env.ABALONE_CONFIG) !== ROOT) || process.env.NODE_OPTIONS || process.env.ABALONE_NO_CANARIES) throw fail("ambient_configuration_refused", "Remove alternate ABALONE_CONFIG/NODE_OPTIONS/ABALONE_NO_CANARIES before this pinned source trial."); });
   check("sandbox", () => { if (spawnSync("bwrap", ["--unshare-all", "--ro-bind", "/", "/", "--", "/usr/bin/true"], { stdio: "pipe", timeout: 5000, env: { PATH: process.env.PATH } }).status !== 0) throw fail("sandbox_unavailable", "Establish a working bubblewrap user/network namespace before gift entry."); runtimeDir(); });
-  check("candidate source", () => { for (const [name, hash] of Object.entries(trial.bundle.source.files)) if (sha(fs.readFileSync(path.join(ROOT, name))) !== hash) throw fail("source_mismatch", `Reviewed candidate hash mismatch: ${name}`); const cli = fs.readFileSync(path.join(ROOT, "bin/abalone.mjs"), "utf8"); if (!cli.includes("openAttestedCouponSession") || !cli.includes("--attested")) throw fail("entrypoint_unavailable", "The actual /4 recipient command is required; the synthetic /3 command cannot be used."); });
+  check("candidate source", () => checkSource(trial));
   check("curated Pi/ACI closure", () => { verified(); });
-  check("trace key", () => { if (!keyInfo()) throw fail("trace_key_missing", "Run ./bin/abalone trace key init before gift entry."); });
+  if (keepTrace) check("trace key", () => { if (!keyInfo()) throw fail("trace_key_missing", "Run ./bin/abalone trace key init before gift entry."); });
+  check("local workspace", () => { canary.forSession(process.cwd(), false); });
+  check("runtime directories", () => { for (const dir of [STATE, APPROVALS, RUNNER_HOME, runtimeDir()]) if (!fs.statSync(dir).isDirectory()) throw fail("runtime_unavailable", "Prepare local runtime directories before gift entry."); });
   check("credential slot", () => { const p = providers(); if (gift.coupon() || nodekeys.load().keys.some((k) => ["near", "nearai"].includes(k.provider)) || Object.keys(process.env).some((k) => /^(NEAR.*(?:KEY|TOKEN)|ABALONE_COUPON_(?:SOCKET|MODEL))$/.test(k) && process.env[k]) || p.admitted.some((a) => ["near", "nearai"].includes(a.id) && process.env[a.keyEnv])) throw fail("credential_slot_occupied", "Use a fresh session profile without an existing gift, NEAR credential or coupon socket."); });
   check("VPN", () => trial.bundle.profile === "debug-staging-incognito-synthetic-prompts" && trial.bundle.vpn === null
     ? "Not selected for standalone incognito; no VPN privacy or qualification is claimed."
     : inspectVpn(trial.bundle.vpn, trial.base));
   return { ...trial, checks, missing, ready: missing.length === 0 };
 }
-export const firstUseNotice = "Debug staging trial: use synthetic, non-sensitive prompts only. The operator may know, use or revoke the API key. Direct attested NEAR model transport is admitted separately; the issuer is not a prompt relay. Private issuer custody, rollback and settlement are unqualified. Incognito keeps an encrypted trace; it does not provide OS/VPN anonymity or erase workspace files.";
-export function recipientArgv(trial) {
+export const firstUseNotice = "Debug staging trial: use synthetic, non-sensitive prompts only. The operator may know, use or revoke the API key. Direct attested NEAR model transport is admitted separately; the issuer is not a prompt relay. Private issuer custody, rollback and settlement are unqualified. Incognito defaults to session-only conversation retention; --keep-trace explicitly retains an encrypted trace; it does not provide OS/VPN anonymity or erase workspace files.";
+export function recipientArgv(trial, { keepTrace = false } = {}) {
   const { bundle: b, base } = trial;
-  return [path.join(ROOT, "bin/abalone.mjs"), "coupon-session", "--attested", "--peer", b.issuer.peer, "--issuer-pin", path.resolve(base, b.issuer.pin), "--staging-approval", path.resolve(base, b.issuer.approval), "--approval-root", b.issuer.approvalRoot, "--model", `near/${b.provider.model}`, "--incognito", ...(b.provider.policy.gatewayTcb === OUT_OF_DATE_TRIAL_POLICY ? ["--allow-out-of-date-trial"] : [])];
+  return [path.join(ROOT, "bin/abalone.mjs"), "coupon-session", "--attested", "--peer", b.issuer.peer, "--issuer-pin", path.resolve(base, b.issuer.pin), "--staging-approval", path.resolve(base, b.issuer.approval), "--approval-root", b.issuer.approvalRoot, "--model", `near/${b.provider.model}`, "--incognito", ...(keepTrace ? ["--keep-trace"] : []), ...(b.provider.policy.gatewayTcb === OUT_OF_DATE_TRIAL_POLICY ? ["--allow-out-of-date-trial"] : [])];
 }
 export function recipientStdio(env = process.env) {
   const stdio = ["inherit", "inherit", "inherit"], seen = new Set();
@@ -93,8 +116,20 @@ export function recipientStdio(env = process.env) {
   return stdio;
 }
 async function main(argv) {
-  if (argv.length !== 3 || !["preflight", "run"].includes(argv[0]) || argv[1] !== "--bundle" || !path.isAbsolute(argv[2])) throw fail("usage", "Usage: node tools/coupon-first-use.mjs {preflight|run} --bundle /ABS/trial.json");
-  const trial = await preflight(argv[2]);
+  const keepTrace = argv.at(-1) === "--keep-trace";
+  if (keepTrace) argv = argv.slice(0, -1);
+  if (argv.length !== 3 || !["preflight", "run"].includes(argv[0]) || argv[1] !== "--bundle" || !path.isAbsolute(argv[2])) throw fail("usage", "Usage: node tools/coupon-first-use.mjs {preflight|run} --bundle /ABS/trial.json [--keep-trace]");
+  // Validate signed public inputs/source before creating any local workspace records.
+  checkSource(loadTrial(argv[2]));
+  if (argv[0] === "run") {
+    prepareWorkspace();
+    if (keepTrace && !keyInfo()) {
+      const init = spawn(process.execPath, [path.join(ROOT, "bin/abalone.mjs"), "trace", "key", "init"], { stdio: recipientStdio(), env: { ...process.env } });
+      const code = await new Promise((resolve, reject) => { init.once("error", reject); init.once("exit", resolve); });
+      if (code !== 0) throw fail("trace_key_missing", "Encrypted trace setup was not completed; no gift was read.");
+    }
+  }
+  const trial = await preflight(argv[2], { keepTrace });
   for (const c of trial.checks) process.stderr.write(`${c.name}: ${c.result}\n`);
   for (const c of trial.missing) process.stderr.write(`${c.code}: ${c.message}\n`);
   if (!trial.ready) { process.exitCode = 2; return; }
@@ -102,7 +137,7 @@ async function main(argv) {
   if (trial.bundle.provider.policy.gatewayTcb === OUT_OF_DATE_TRIAL_POLICY) process.stderr.write(`${OUT_OF_DATE_TRIAL_NOTICE}\n`);
   if (argv[0] === "preflight") return;
   // The public profile is pinned to the recipient defaults; bearer entry remains hidden.
-  const child = spawn(process.execPath, recipientArgv(trial), { stdio: recipientStdio(), env: { ...process.env } });
+  const child = spawn(process.execPath, recipientArgv(trial, { keepTrace }), { stdio: recipientStdio(), env: { ...process.env } });
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(signal, () => child.kill(signal));
   process.exitCode = await new Promise((resolve, reject) => { child.once("error", reject); child.once("exit", (code) => resolve(code ?? 1)); });
 }
