@@ -12,7 +12,7 @@ cat > "$R/build/abalone/tools/coupon-first-use.mjs" <<'JS'
 console.log("synthetic first-use entry " + JSON.stringify({ args: process.argv.slice(2), cwd: process.cwd(), state: process.env.ABALONE_DIR, home: process.env.HOME, ambientKey: Boolean(process.env.NEAR_API_KEY), ambientOptions: Boolean(process.env.NODE_OPTIONS) }));
 JS
 tar -C "$R/build" -czf "$R/abalone-test.tar.gz" abalone
-sed -e "s|@REV@|test|g" -e "s|@SHA256@|$(sha256sum "$R/abalone-test.tar.gz" | cut -d' ' -f1)|g" -e "s|@BASE@|file://$R|g" "$root/tools/install.sh.in" > "$R/install.sh"
+sed -e "s|@REV@|test|g" -e "s|@SHA256@|$(sha256sum "$R/abalone-test.tar.gz" | cut -d' ' -f1)|g" -e "s|@BASE@|file://$R|g" -e "s|@ARTIFACT_BASE@|file://$R|g" "$root/tools/install.sh.in" > "$R/install.sh"
 mkdir -p "$R/h1" "$R/h2"
 out1=$(cd "$R/h1" && HOME="$R/h1" ABALONE_PLANT_CANARIES=no sh "$R/install.sh" 2>&1); code1=$?
 echo "$out1" | sed 's/^/  /'
@@ -31,7 +31,7 @@ for name in issuer-pin.json staging-approval.json readiness.json; do printf '{}'
 python3 "$root/tools/render-installer.py" --rev aaaaaaa --artifact-sha256 "$(sha256sum "$R/abalone-test.tar.gz" | cut -d' ' -f1)" --base https://example.org/friend --trial-dir "$R/public" --out "$R/friend-install.sh"
 cp "$R/abalone-test.tar.gz" "$R/public/abalone-aaaaaaa.tar.gz"
 mkdir -p "$R/curl-stub"
-printf '#!/bin/sh\nexec "%s" -fsSL "file://%s/${2##*/}" -o "$4"\n' "$(command -v curl)" "$R/public" > "$R/curl-stub/curl"
+printf '#!/bin/sh\nprintf "%%s\\n" "$2" >> "%s"\nexec "%s" -fsSL "file://%s/${2##*/}" -o "$4"\n' "$R/requested-urls" "$(command -v curl)" "$R/public" > "$R/curl-stub/curl"
 chmod +x "$R/curl-stub/curl"
 out5=$(HOME="$R/h4" PATH="$R/curl-stub:$PATH" NEAR_API_KEY=SECRET_FIXTURE sh "$R/friend-install.sh" --friend --keep-trace 2>&1); code5=$?
 check "friend pins public inputs, opens fresh workspace and strips ambient key before normal wrapper" '[[ $code5 == 0 && $out5 == *"synthetic first-use entry"* && $out5 == *"--keep-trace"* && $out5 == *"\"ambientKey\":false"* && $out5 == *"session."* && $out5 != *"SECRET_FIXTURE"* ]]'
@@ -50,6 +50,14 @@ for cmd in node tar gzip sha256sum bash sh uname id mkdir mktemp rmdir ln env rm
 cp "$R/curl-stub/curl" "$R/owned-path/curl"
 out8=$(HOME="$R/h6" PATH="$R/owned-path" sh "$R/owned-install.sh" --friend 2>&1); code8=$?
 check "explicit owned-host friend runs without bubblewrap and discloses ordinary-account access" '[[ $code8 == 0 && $out8 == *"no OS isolation"* && $out8 == *"synthetic first-use entry"* && $out8 != *"SECRET_FIXTURE"* ]]'
+# A new bundle can reuse the exact archive from an older immutable release.
+python3 "$root/tools/render-installer.py" --rev bbbbbbb --artifact-sha256 "$(sha256sum "$R/abalone-test.tar.gz" | cut -d' ' -f1)" --base https://example.org/new-bundle --artifact-base https://example.org/existing-runtime --trial-dir "$R/public" --out "$R/split-install.sh"
+mkdir "$R/h9"
+: > "$R/requested-urls"
+split_out=$(HOME="$R/h9" PATH="$R/owned-path" sh "$R/split-install.sh" --friend 2>&1); split_code=$?
+check "separate artifact base acquires the pinned old archive and all new bundle inputs" '[[ $split_code == 0 && $split_out == *"synthetic first-use entry"* ]] && [[ $(head -n 1 "$R/requested-urls") == https://example.org/existing-runtime/abalone-bbbbbbb.tar.gz ]] && [[ $(tail -n +2 "$R/requested-urls" | wc -l) == 4 ]] && ! tail -n +2 "$R/requested-urls" | grep -v "^https://example.org/new-bundle/"'
+python3 "$root/tools/render-installer.py" --rev bbbbbbb --artifact-sha256 "$(sha256sum "$R/abalone-test.tar.gz" | cut -d' ' -f1)" --base https://example.org/new-bundle --artifact-base 'https://example.org/old?token=secret' --out "$R/refused-artifact-base.sh" > "$R/artifact-base-refusal" 2>&1; artifact_base_code=$?
+check "separate artifact base rejects query credentials before writing an installer" '[[ $artifact_base_code != 0 && ! -e $R/refused-artifact-base.sh ]]'
 mkdir "$R/h7"
 out9=$(HOME="$R/h7" PATH="$R/owned-path" sh "$R/friend-install.sh" --friend 2>&1); code9=$?
 check "isolated friend still refuses absent bubblewrap without fallback" '[[ $code9 != 0 && $out9 == *"requires bubblewrap"* && $out9 != *"synthetic first-use entry"* ]]'

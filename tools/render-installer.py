@@ -14,16 +14,19 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--rev', required=True)
 parser.add_argument('--artifact-sha256', required=True)
 parser.add_argument('--base', required=True)
+parser.add_argument('--artifact-base', help='Reuse an existing immutable client archive; public trial inputs still use --base.')
 parser.add_argument('--trial-dir', type=Path)
 parser.add_argument('--template', type=Path, default=Path(__file__).with_name('install.sh.in'))
 parser.add_argument('--out', type=Path, required=True)
 args = parser.parse_args()
 if not re.fullmatch(r'[0-9a-f]{7,40}', args.rev) or not re.fullmatch(r'[0-9a-f]{64}', args.artifact_sha256):
     parser.error('Use a Git revision and exact artifact SHA256.')
-base = urlparse(args.base)
-if base.scheme != 'https' or not base.hostname or base.username or base.password or base.query or base.fragment or not re.fullmatch(r'https://[A-Za-z0-9./_:-]+', args.base):
-    parser.error('Use a credential-free HTTPS release base without query or fragment.')
-values = {'REV': args.rev, 'SHA256': args.artifact_sha256, 'BASE': args.base.rstrip('/'), 'TRIAL_PLATFORM': 'linux-node24-bubblewrap'}
+artifact_base = args.artifact_base if args.artifact_base is not None else args.base
+for value in (args.base, artifact_base):
+    base = urlparse(value)
+    if base.scheme != 'https' or not base.hostname or base.username or base.password or base.query or base.fragment or not re.fullmatch(r'https://[A-Za-z0-9./_:-]+', value):
+        parser.error('Use credential-free HTTPS release bases without query or fragment.')
+values = {'REV': args.rev, 'SHA256': args.artifact_sha256, 'BASE': args.base.rstrip('/'), 'ARTIFACT_BASE': artifact_base.rstrip('/'), 'TRIAL_PLATFORM': 'linux-node24-bubblewrap'}
 names = {'TRIAL_SHA256': 'trial.json', 'PIN_SHA256': 'issuer-pin.json', 'APPROVAL_SHA256': 'staging-approval.json', 'READINESS_SHA256': 'readiness.json'}
 values.update({key: '' for key in names})
 if args.trial_dir:
