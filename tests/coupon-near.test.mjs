@@ -56,7 +56,7 @@ test("direct report auth never redirects, failures are sanitized, close aborts a
     assert.ok(new Headers(init.headers).get("authorization") === `Bearer ${options().credential}`);
     assert.equal(init.redirect, "manual");
     if (mode === "redirect") return new Response(null, { status: 302, headers: { location: "https://example.invalid/steal" } });
-    if (mode === "error") return new Response(options().credential, { status: 401 });
+    if (mode === "error") return new Response(options().credential, { status: 403 });
     seen(); return new Promise((_resolve, reject) => init.signal.addEventListener("abort", () => { aborted = true; reject(new Error(options().credential)); }, { once: true }));
   };
   let adapter;
@@ -369,4 +369,107 @@ test("temporary DNS during inference transport is terminal and never replays the
     await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request(body())), { code: 'provider_unavailable' });
     assert.equal(state.requests, 1);
   } finally { await adapter.close(); }
+});
+
+// This scoped module mock supplies only a synthetic verifier in this one unit
+// instance. The ordinary factory/module and all genuine verification stay intact.
+// It checks that activation returns its report to verification, never around it.
+test("activation report 401 then 200 reaches verification; a substituted report still refuses", async () => {
+  const { registerHooks } = await import('node:module');
+  const realNear = new URL('../lib/near.mjs', import.meta.url).href;
+  const source = `export {encrypt,decrypt,OUT_OF_DATE_TRIAL_POLICY} from ${JSON.stringify(realNear)};
+    export async function verifyNearModel(base,model,getReport,policy,http,onStage) {
+      const nonce='fixture-fresh-nonce';
+      const response=await getReport('/v1/attestation/report?model='+encodeURIComponent(model)+'&nonce='+nonce);
+      onStage('attestation-report-response',response.status);
+      if(response.status!==200) throw Error('report refused');
+      const report=await response.json(); onStage('gateway-binding');
+      if(report.nonce!==nonce || report.model!==model) throw Error('binding refused');
+      return {signingPublicKey:'test-only',profile:{gateway_tcb_status:'UpToDate',gateway_tcb_advisory_ids:[],model_tcb_statuses:['UpToDate'],model_tcb_advisory_ids:[[]],gpu:'GPU: NVIDIA verdict (signature checked)'},transport:{close:async()=>{}}};
+    }`;
+  const mockUrl='data:text/javascript,'+encodeURIComponent(source);
+  const hook=registerHooks({resolve(specifier,context,next) {
+    if(specifier==='./near.mjs' && context.parentURL?.endsWith('?activation-unit')) return {url:mockUrl,shortCircuit:true};
+    return next(specifier,context);
+  }});
+  let isolated;
+  try { isolated=await import(new URL('../lib/coupon-near.mjs' + '?activation-unit', import.meta.url).href); } finally { hook.deregister(); }
+  const original=globalThis.fetch;
+  try {
+    for(const substituted of [false,true]) {
+      let calls=0,reportUrl,auth;
+      globalThis.fetch=async(url,init)=>{
+        assert.equal(init.method??'GET','GET'); assert.equal(init.redirect,'manual');
+        assert.equal(new URL(url).pathname,'/v1/attestation/report');
+        if(++calls===1) { reportUrl=String(url);auth=new Headers(init.headers).get('authorization');return new Response('PRIVATE-BODY', {status:401}); }
+        assert.equal(String(url),reportUrl);assert.equal(new Headers(init.headers).get('authorization'),auth);
+        return Response.json({nonce:substituted?'other-nonce':'fixture-fresh-nonce',model:options().model});
+      };
+      const adapter=isolated.openCouponNearAdapter(options());
+      try {
+        if(substituted) await assert.rejects(adapter.admit(),e=>e.code==='provider_admission_refused' && isolated.couponNearAdmissionDiagnostic(e).stage==='gateway-binding');
+        else assert.equal((await adapter.admit()).gateway_tcb_status,'UpToDate');
+        assert.equal(calls,2,'same report and credential retried once; never inference');
+      } finally { await adapter.close(); }
+    }
+  } finally { globalThis.fetch=original; }
+});
+
+test("permanent report 401 has one shared five-retry budget, including concurrent and later admits", async () => {
+  const original=globalThis.fetch;let calls=0,adapter;
+  globalThis.fetch=async(url,init)=>{
+    calls++;assert.equal(new URL(url).pathname,'/v1/attestation/report');assert.equal(init.method??'GET','GET');
+    return new Response('PRIVATE-ACTIVATION-BODY '+options().credential,{status:401});
+  };
+  try {
+    adapter=openCouponNearAdapter(options());const began=performance.now();
+    const results=await Promise.allSettled([adapter.admit(),adapter.admit()]);
+    assert.equal(calls,6,'one original GET plus exactly five retries shared by both callers');
+    assert.ok(performance.now()-began<30000,'absolute activation budget');
+    for(const result of results) {
+      assert.equal(result.status,'rejected');assert.deepEqual(couponNearAdmissionDiagnostic(result.reason),{stage:'attestation-report-response',errorCode:'http_status',httpStatus:401});
+      assert.ok(!JSON.stringify(result.reason).includes('PRIVATE-ACTIVATION'));
+    }
+    await assert.rejects(adapter.admit(),{code:'provider_admission_refused'});
+    assert.equal(calls,7,'later explicit admit makes one GET and cannot renew the retry budget');
+  } finally { await adapter?.close();globalThis.fetch=original; }
+});
+
+test("activation wait respects close, abort and original shorter deadline without another report", async () => {
+  const original=globalThis.fetch;
+  try {
+    for(const cancellation of ['close','abort','timeout']) {
+      let calls=0;const controller=new AbortController();
+      globalThis.fetch=async()=>{calls++;return new Response('PRIVATE',{status:401});};
+      const adapter=openCouponNearAdapter({...options(),signal:controller.signal,timeoutMs:cancellation==='timeout'?20:60000});
+      const pending=adapter.admit();
+      const timer=cancellation==='timeout'?null:setTimeout(()=>cancellation==='close'?void adapter.close():controller.abort(),20);
+      try { await assert.rejects(pending,e=>e.code===(cancellation==='timeout'?'provider_admission_refused':'provider_closed'));assert.equal(calls,1); }
+      finally {clearTimeout(timer);await adapter.close();}
+    }
+  } finally {globalThis.fetch=original;}
+});
+
+test("a non401 report ends activation eligibility; inference 401 remains one terminal POST", async () => {
+  const original=globalThis.fetch;let calls=0,adapter;
+  try {
+    globalThis.fetch=async()=>{calls++;return calls===1?Response.json({invalid:'report'}):new Response('PRIVATE',{status:401});};
+    adapter=openCouponNearAdapter(options());
+    await assert.rejects(adapter.admit(),e=>couponNearAdmissionDiagnostic(e).stage==='gateway-binding');
+    await assert.rejects(adapter.admit(),e=>couponNearAdmissionDiagnostic(e).httpStatus===401);
+    assert.equal(calls,2,'an earlier non401 response permanently ends activation retries');
+  } finally {await adapter?.close();globalThis.fetch=original;}
+  const state={chats:0,closed:false,mode:'revoked'};
+  adapter=openCouponNearAdapterForTesting({...options(),verifiedForTesting:verdict(state)});
+  try { await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`,request(body())),{code:'access_revoked_or_expired'});assert.equal(state.chats,1,'no inference POST replay'); }
+  finally {await adapter.close();}
+});
+
+
+test("ordinary genuine factory still refuses an invalid 200 report after activation retry", async () => {
+  const original=globalThis.fetch;let calls=0;
+  globalThis.fetch=async()=>++calls===1?new Response('PRIVATE',{status:401}):Response.json({invalid:'NOT-HARDWARE-EVIDENCE'});
+  const adapter=openCouponNearAdapter(options());
+  try {await assert.rejects(adapter.admit(),e=>e.code==='provider_admission_refused' && couponNearAdmissionDiagnostic(e).stage==='gateway-binding');assert.equal(calls,2);}
+  finally {await adapter.close();globalThis.fetch=original;}
 });
