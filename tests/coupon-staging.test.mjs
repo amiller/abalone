@@ -116,3 +116,19 @@ test("Base mainnet requires the exact signed RPC-safe debug profile and $5 bound
   const unsignedChange = JSON.parse(approval("valid")); unsignedChange.payload.guard = guard;
   assert.throws(() => verifyCouponStagingAdmission(Buffer.from(canonicalCouponJson(unsignedChange)), { approvalRoot: root }), { code: "staging_admission_refused" });
 });
+
+// Separate Mac approval cannot be interpreted as a TDX approval under either signature domain.
+test("Mac approval binds runtime app/CDHash and retains all debug caps and guard disclosure", async () => {
+  const { MAC_COUPON_APPROVAL_DOMAIN } = await import("../lib/coupon-staging.mjs");
+  const original = JSON.parse(approval("valid")).payload;
+  const payload = { ...original, version: 2, issuer_profile: "mac-appattest-coupon-v1", app_id: "SYNTHETIC-runtime-app", cdhash: "ab".repeat(32), guard: syntheticBaseGuard() };
+  const sign = (p, domain = MAC_COUPON_APPROVAL_DOMAIN) => Buffer.from(canonicalCouponJson({ domain, payload: p, signature_hex: crypto.sign(null, Buffer.concat([Buffer.from(domain + "\0"), Buffer.from(canonicalCouponJson(p))]), seedKey).toString("hex") }));
+  const verdict = verifyCouponStagingAdmission(sign(payload), { approvalRoot: root });
+  assert.equal(verdict.appId, payload.app_id); assert.equal(verdict.cdhash, payload.cdhash);
+  assert.equal(verdict.issuerProfile, payload.issuer_profile); assert.equal(verdict.privateIssuanceQualified, false);
+  assert.equal(verdict.approval_sha256, couponStagingApprovalHash(payload));
+  for (const change of [{ version: 1 }, { issuer_profile: "dstack-tdx-coupon-v1" }, { cdhash: "00" }, { app_id: "bad app" }, { max_total_nano_usd: "5000000001" }, { powers: [] }])
+    assert.throws(() => verifyCouponStagingAdmission(sign({ ...payload, ...change }), { approvalRoot: root }));
+  assert.throws(() => verifyCouponStagingAdmission(sign(payload, COUPON_STAGING_APPROVAL_DOMAIN), { approvalRoot: root }));
+  assert.throws(() => verifyCouponStagingAdmission(sign(original), { approvalRoot: root }));
+});

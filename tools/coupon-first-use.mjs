@@ -9,7 +9,7 @@ import net from "node:net";
 import { multiaddr } from "@multiformats/multiaddr";
 import { ROOT, STATE, APPROVALS, RUNNER_HOME, providers, runtimeDir } from "../lib/config.mjs";
 import { verified } from "../lib/manifest.mjs";
-import { issuerPolicyHash } from "../lib/vendor/dstack-issuer/dstack_issuer.mjs";
+import { couponIssuerPolicyHash } from "../lib/coupon-attested.mjs";
 import { validateCouponNearProfile, OUT_OF_DATE_TRIAL_POLICY, OUT_OF_DATE_TRIAL_NOTICE } from "../lib/coupon-near.mjs";
 import { verifyCouponStagingAdmission, couponStagingGuardNotice } from "../lib/coupon-staging.mjs";
 import { keyInfo } from "../lib/trace.mjs";
@@ -23,7 +23,7 @@ const exact = (v, keys) => v && Object.getPrototypeOf(v) === Object.prototype &&
 const hex = (v) => typeof v === "string" && /^[0-9a-f]{64}$/.test(v);
 const sha = (b) => crypto.createHash("sha256").update(b).digest("hex");
 const fail = (code, message) => Object.assign(new Error(message), { code });
-export const FIRST_USE_SOURCE_FILES = ["tools/coupon-first-use.mjs", "bin/abalone.mjs", "lib/coupon-attested.mjs", "lib/coupon-attested-session.mjs", "lib/coupon-near.mjs", "lib/near.mjs", "lib/coupon-staging.mjs", "lib/coupon-input.mjs", "lib/coupon-socket.mjs", "lib/config.mjs", "lib/welcome.mjs", "lib/status.mjs", "lib/sandbox.mjs", "lib/owned-host.mjs", "lib/canary.mjs", "lib/private-work.mjs", "lib/mediate.mjs", "curated/abalone.ts", "curated/coupon-provider.ts", "curated/manifest.json", "package-lock.json", "pi/package-lock.json", "aci/package-lock.json", "pi/packages/coding-agent/dist/cli.js", "pi/packages/coding-agent/src/core/settings-manager.ts", "pi/packages/coding-agent/dist/core/settings-manager.js"];
+export const FIRST_USE_SOURCE_FILES = ["tools/coupon-first-use.mjs", "bin/abalone.mjs", "lib/coupon-attested.mjs", "lib/mac-coupon-issuer.mjs", "lib/vendor/macrunner.mjs", "lib/appattest.mjs", "anchors/apple-app-attestation-root.pem", "lib/coupon-attested-session.mjs", "lib/coupon-near.mjs", "lib/near.mjs", "lib/coupon-staging.mjs", "lib/coupon-input.mjs", "lib/coupon-socket.mjs", "lib/config.mjs", "lib/welcome.mjs", "lib/status.mjs", "lib/sandbox.mjs", "lib/owned-host.mjs", "lib/canary.mjs", "lib/private-work.mjs", "lib/mediate.mjs", "curated/abalone.ts", "curated/coupon-provider.ts", "curated/manifest.json", "package-lock.json", "pi/package-lock.json", "aci/package-lock.json", "pi/packages/coding-agent/dist/cli.js", "pi/packages/coding-agent/src/core/settings-manager.ts", "pi/packages/coding-agent/dist/core/settings-manager.js"];
 function publicFile(base, name) {
   if (typeof name !== "string" || !name || path.isAbsolute(name) || name.split(/[\\/]/).includes("..")) throw fail("bundle_invalid", "Public artifact paths must be relative within the trial bundle.");
   const real = fs.realpathSync(path.resolve(base, name));
@@ -38,7 +38,7 @@ export function loadTrial(file) {
   if (!exact(b.issuer, ["peer", "privateRoute", "pin", "approval", "approvalRoot"]) || typeof b.issuer.privateRoute !== "string" || !b.issuer.privateRoute.trim()) throw fail("issuer_inputs_missing", "Supply the approved private route, advertised issuer multiaddr, identity pin, signed approval and independent approval-root public key.");
   try { if (multiaddr(b.issuer.peer).getComponents().at(-1)?.name !== "p2p") throw new Error(); } catch { throw fail("issuer_inputs_missing", "Supply the actual advertised /p2p issuer multiaddr on the approved private route."); }
   const pin = JSON.parse(publicFile(base, b.issuer.pin));
-  if (!exact(pin, ["identityPolicy", "expectedIdentityPolicySha256", "expectedIssuancePolicySha256", "expectedIssuerPublicKeySha256"]) || ![pin.expectedIdentityPolicySha256, pin.expectedIssuancePolicySha256, pin.expectedIssuerPublicKeySha256, b.issuer.approvalRoot].every(hex) || issuerPolicyHash(pin.identityPolicy) !== pin.expectedIdentityPolicySha256) throw fail("issuer_pin_refused", "Issuer policy bytes must match the independently supplied exact public pin.");
+  if (!exact(pin, ["identityPolicy", "expectedIdentityPolicySha256", "expectedIssuancePolicySha256", "expectedIssuerPublicKeySha256"]) || ![pin.expectedIdentityPolicySha256, pin.expectedIssuancePolicySha256, pin.expectedIssuerPublicKeySha256, b.issuer.approvalRoot].every(hex) || couponIssuerPolicyHash(pin.identityPolicy) !== pin.expectedIdentityPolicySha256) throw fail("issuer_pin_refused", "Issuer policy bytes must match the independently supplied exact public pin.");
   const approval = verifyCouponStagingAdmission(publicFile(base, b.issuer.approval), { approvalRoot: b.issuer.approvalRoot, identityPolicySha256: pin.expectedIdentityPolicySha256, issuancePolicySha256: pin.expectedIssuancePolicySha256, issuerPublicKeySha256: pin.expectedIssuerPublicKeySha256 });
   if (!exact(b.provider, ["baseUrl", "model", "policy", "maxTokens"])) throw fail("provider_not_admitted", "Supply the exact strict direct NEAR profile and explicit model.");
   validateCouponNearProfile(b.provider);

@@ -67,15 +67,18 @@ environment values or an AI message. Read the offer before claiming. Keep the
 same window open while delivery is pending; it holds the recipient keys needed
 for delivery. A terminal reconciliation error is not permission to redeem again.
 
-Session-only use is the planned default: no upfront trace passphrase and no
-durable prompt/response trace. To deliberately retain an encrypted trace:
+Session-only use is the default: no upfront trace passphrase and no durable
+managed prompt/response trace. To
+deliberately retain an encrypted trace:
 
 ```sh
 sh install.sh --friend --keep-trace
 ```
 
-The passphrase protects retained local traces, not the coupon. Keep it if you
-want to open the trace later; losing it can make the trace unreadable. Trace
+The passphrase protects retained local traces, not the coupon. Enter it at the
+hidden prompt, never in chat, arguments or environment values. Keep it if you
+want to open the trace later: the passphrase is user-held, a lost one can leave
+the retained trace unreadable, and no recovery for it is qualified. Trace
 choice never disables inference encryption or provider verification. Workspace
 files you create can remain after close; session-only does not mean secure
 erasure. These release interfaces are candidates until acceptance passes.
@@ -84,8 +87,18 @@ erasure. These release interfaces are candidates until acceptance passes.
 
 The first trial uses **remote NEAR inference**. A local credential broker does not make the model local. Redemption creates a provider-capped credential: a $1
 cap is not a segregated purse, wallet transfer or verified remaining balance.
-The sponsor/provider can revoke access, provider caps can overshoot, and
-remaining credit is unknown unless verified usage is available.
+The sponsor/provider can revoke the credential and its model access, provider
+caps can overshoot, and remaining credit is unknown unless verified usage is
+available. Attestation and encryption on that inference connection are verified
+by the helper itself, not by this skill or your setup agent.
+
+The selected Dsmack issuer runs through the native Mac runner and an ordinary
+local Apple Containerization ARM guest on the Mac mini, without a project cloud
+CVM. Mac admission verifies Apple App Attest code identity, exact compose and
+fresh issuer-key/policy bindings. It does not put the workload in Intel TDX or
+Secure Enclave custody: the host/operator and stand-in KMS can read issuer
+secrets. The new Mac workload integration and public friend URL remain pending;
+existing Apple primitive and Linux-client checks do not establish that journey.
 
 Use `/coupon` for session and trust details. Normal close clears the process's
 recipient key and credential references; it does not revoke the provider key or
@@ -93,6 +106,15 @@ guarantee erasure against a privileged host. Admission renewal uses the same
 live credential through normal verification, never another coupon. Closed-session
 recovery is not qualified. Diagnostics are deliberate and metadata-only by
 default; never post a gift, key, private prompt or raw trace to an issue.
+
+Ask about a document from inside the session with an at-mention: type
+`Summarize @notes.txt`, or `@"meeting notes.txt"` when the name has spaces;
+trailing punctuation is not part of the name. Abalone reads the named file on
+your computer and puts its text into the encrypted model request, not
+setup-agent chat. Do not paste document contents into chat, arguments,
+environment values or logs yourself. If a selected file cannot be read or extracted, the request is refused before
+inference. PDF reading is not qualified in this preview; use
+plain text files.
 
 This trial permits **synthetic, non-sensitive prompts only**. Its explicit
 firmware-warning profile can admit verified `OutOfDate` gateway/model platforms;

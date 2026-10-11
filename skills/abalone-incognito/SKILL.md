@@ -21,9 +21,11 @@ working release or use an expired trial. Read the [current release status](../..
    checks, or introduce operator/provider credentials. The exact owned-host
    launch is pending qualification; do not ask a friend to repair its environment.
 3. **Choose retention.** Default session-only use needs no trace passphrase and
-   keeps no durable prompt/response trace. Use `--keep-trace` only if requested:
-   it retains encrypted traces and needs a user-held passphrase to reopen them.
-   This protects traces, not the coupon. Workspace files can remain after close.
+   writes no durable managed prompt/response trace. Use `--keep-trace` only if
+   requested: it retains encrypted traces and needs a user-held passphrase to
+   reopen them; a lost one can leave them unreadable and no recovery is
+   qualified. This protects traces, not the coupon. Workspace files can remain
+   after close.
 4. **Hand off.** The current helper entry after verified acquisition is
    `sh install.sh --friend` (optionally `--keep-trace`). Open a separate interactive
    terminal controlled by the user if supported. Otherwise give that launch
@@ -34,10 +36,16 @@ working release or use an expired trial. Read the [current release status](../..
    confirms CLAIM; keep the same window open during delivery. No automatic consent.
 5. **Explain the boundary briefly.** Current NEAR debug trial: synthetic,
    non-sensitive documents only; attestation/E2EE required, explicit firmware
-   exceptions shown. Issuer operator can read created keys/control access. A cap
-   is not a reserved purse or verified balance. `/coupon` provides details. There
-   is no VPN/IP anonymity or confidentiality from the host administrator. A same-
-   user setup agent stepping aside is cooperation, not enforced isolation.
+   exceptions shown. The coupon comes from Dsmack's testnet issuer on the
+   operator's Mac mini (Apple Containerization ARM guest, Apple identity-only
+   admission, operator-readable custody); its new workload admission and public journey remain
+   pending. Apple identity does not establish operator-resistant key custody. The
+   operator can read created keys/control access. A cap is not a reserved purse
+   or verified balance. `/coupon` provides details. Inside the session a document
+   is named with `@filename.txt` or `@"name with spaces.txt"`; its text goes into
+   the encrypted model request, not to you, and PDF reading is not qualified.
+   There is no VPN/IP anonymity or confidentiality from the host administrator. A
+   same-user setup agent stepping aside is cooperation, not enforced isolation.
 6. **Close normally.** Closing loses live delivery/credential keys; closed-session
    recovery is not qualified and does not revoke the provider key. Do not read
    private traces to debug setup. Use deliberate metadata-only diagnostics. Never

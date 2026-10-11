@@ -31,6 +31,7 @@ suites=(
   "offline|coupon replay boundary (real SDK and Pi synthetic request counts)|node --test tests/coupon-no-replay.test.mjs"
   "offline|coupon-near (strict real NEAR recipient adapter and credential broker)|node --test tests/coupon-near.test.mjs"
   "offline|coupon NEAR @file (actual curated context and encrypted adapter)|node tests/coupon-near-atfile.mjs"
+  "offline|mac-coupon-issuer (Apple issuer binding, synthetic contract only)|node --test tests/mac-coupon-issuer.test.mjs"
   "offline|coupon-staging (signed service staging admission, exact schema)|node --test tests/coupon-staging.test.mjs"
   "offline|regress (tests/regress fixtures replayed)|tests/regress/run.sh" "offline|report (/report, abalone report)|tests/report.sh"
   "offline|fetch (/fetch routes, stub arXiv)|tests/fetch.sh" "offline|tor (built-in Tor transport, stub client)|node --test tests/tor.test.mjs"

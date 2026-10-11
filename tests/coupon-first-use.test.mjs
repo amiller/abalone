@@ -175,3 +175,25 @@ test("fresh owned-host preflight needs no legacy approvals or runner-home setup"
     assert.equal(strict.status,0,strict.stderr);
   } finally {fs.rmSync(f.directory,{recursive:true,force:true});}
 });
+
+test("first-use public inputs dispatch an independently pinned Mac policy and distinct signed approval", async () => {
+  const { macIssuerPolicyHash } = await import("../lib/mac-coupon-issuer.mjs");
+  const { MAC_COUPON_APPROVAL_DOMAIN } = await import("../lib/coupon-staging.mjs");
+  const { canonicalCouponJson } = await import("../lib/coupon-offer.mjs");
+  const f = fixture();
+  try {
+    const oldPin = JSON.parse(fs.readFileSync(path.join(f.directory, "issuer-pin.json"))), rootPair = crypto.generateKeyPairSync("ed25519");
+    const policy = { version: 1, profile: "mac-appattest-coupon-v1", app_id: "DC9JH5DRMY.dev.dsmack.provider", challenge_ttl_ms: 30000,
+      max_enrollment_age_seconds: 43200, approved_measurements: [{ cdhash: "ab".repeat(32), compose_sha256: "cd".repeat(32) }], custody: "operator-kms-readable" };
+    const pin = { ...oldPin, identityPolicy: policy, expectedIdentityPolicySha256: macIssuerPolicyHash(policy) };
+    const payload = { ...JSON.parse(fs.readFileSync(path.join(f.directory, "approval.json"))).payload, version: 2, issuer_profile: policy.profile,
+      app_id: "SYNTHETIC-Mac-runtime", cdhash: "ab".repeat(32), compose_hash: "cd".repeat(32), identity_policy_sha256: pin.expectedIdentityPolicySha256 };
+    const domain = MAC_COUPON_APPROVAL_DOMAIN;
+    fs.writeFileSync(path.join(f.directory, "approval.json"), canonicalCouponJson({ domain, payload, signature_hex: crypto.sign(null, Buffer.from(domain + "\0" + canonicalCouponJson(payload)), rootPair.privateKey).toString("hex") }));
+    fs.writeFileSync(path.join(f.directory, "issuer-pin.json"), JSON.stringify(pin));
+    f.bundle.issuer.approvalRoot = rootPair.publicKey.export({ format: "der", type: "spki" }).subarray(-32).toString("hex"); f.save();
+    const loaded = loadTrial(f.file); assert.equal(loaded.approval.issuerProfile, policy.profile);
+    assert.ok(recipientArgv(loaded).includes("--attested"));
+    pin.identityPolicy.custody = "private-enclave"; fs.writeFileSync(path.join(f.directory, "issuer-pin.json"), JSON.stringify(pin)); assert.throws(() => loadTrial(f.file));
+  } finally { fs.rmSync(f.directory, { recursive: true, force: true }); }
+});
