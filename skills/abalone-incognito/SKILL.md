@@ -5,21 +5,25 @@ description: Open an Abalone incognito inference session from a Dsmack coupon on
 
 # Abalone incognito
 
-Use this skill to prepare a session, then hand it to the human. The public friend
-URL and explicit trusted-owned-host baseline are still being qualified; do not invent a
-working release or use an expired trial. Read the [current release status](../../README.md).
+Use this skill to prepare a session, then hand it to the human. Use the published
+[current friend entry](../../docs/friend-preview.md) and explicit trusted-owned-host
+profile. Do not invent a release or use an expired trial. The owner walkthrough
+remains pending; read the [current release status](../../README.md).
+
+Public files/local installer/direct Mac admission passed; fresh public-installed
+connection is currently failing. **Do not redeem until resolved.**
 
 1. **Check support.** Initial profile: ordinary-user Linux x86_64, compatible
    Node24, bash, curl, tar and sha256sum, with an existing Linux tmpfs.
    Check Node rather than assume an agent host includes it. If a prerequisite is
    missing, name the gap before private input. The first release explicitly trusts
    the owned host and has no OS isolation; never silently substitute profiles.
-2. **Prepare the pinned helper.** Once the release is public, use its current
+2. **Prepare the pinned helper.** Use the current
    reviewed landing and expected checksums. The installer pins the artifact and
    all four public files by checksum. The helper verifies the signed issuer controls. Reuse an exact matching installation or prepare
    it through the reviewed setup path; do not build a private checkout, bypass
-   checks, or introduce operator/provider credentials. The exact owned-host
-   launch is pending qualification; do not ask a friend to repair its environment.
+   checks, or introduce operator/provider credentials. Public files and local installer checks passed; the fresh public-installed
+   connection is currently failing. Do not redeem until resolved. Do not ask a friend to repair its environment.
 3. **Choose retention.** Default session-only use needs no trace passphrase and
    writes no durable managed prompt/response trace. Use `--keep-trace` only if
    requested: it retains encrypted traces and needs a user-held passphrase to
@@ -38,8 +42,9 @@ working release or use an expired trial. Read the [current release status](../..
    non-sensitive documents only; attestation/E2EE required, explicit firmware
    exceptions shown. The coupon comes from Dsmack's testnet issuer on the
    operator's Mac mini (Apple Containerization ARM guest, Apple identity-only
-   admission, operator-readable custody); its new workload admission and public journey remain
-   pending. Apple identity does not establish operator-resistant key custody. The
+   admission, operator-readable custody); an earlier genuine issuer probe passed, but the fresh public-installed connection
+   is currently failing. Do not redeem until resolved; the owner useful-document
+   walkthrough remains pending. Apple identity does not establish operator-resistant key custody. The
    operator can read created keys/control access. A cap is not a reserved purse
    or verified balance. `/coupon` provides details. Inside the session a document
    is named with `@filename.txt` or `@"name with spaces.txt"`; its text goes into

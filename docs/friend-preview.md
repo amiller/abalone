@@ -5,6 +5,9 @@ The issuer runs on the Mac mini; the reference client runs on your trusted Linux
 host. Public client/source qualification and service admission do not replace the
 owner's useful-document walkthrough acceptance.
 
+Public files/local installer/direct Mac admission passed; fresh public-installed
+connection is currently failing. **Do not redeem until resolved.**
+
 ## Start with the skill
 
 Ask your setup agent to use the [Abalone incognito skill](../skills/abalone-incognito/SKILL.md).

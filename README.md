@@ -30,11 +30,13 @@ flowchart LR
 
 ## Use the skill
 
-The friend release is **being prepared**. There is no qualified public download
-yet, and the new skill-first handoff is not yet rehearsed. The
+The [limited synthetic-text friend entry](docs/friend-preview.md) is public.
+Public files/local installer/direct Mac admission passed; fresh public-installed
+connection is currently failing. **Do not redeem until resolved.**
+The owner's useful-document walkthrough is still pending. The
 [friend-URL acceptance issue](https://github.com/amiller/abalone/issues/4)
-tracks the reviewed artifact, public acquisition and actual walkthrough. Do not
-use an old trial bundle merely because it appears on a release page.
+tracks that outcome. Use the current entry and signed trial, not an expired or
+historical staging bundle.
 
 Supported recipient: **Linux x86_64, compatible Node 24, bash, curl, tar and
 sha256sum**, running as an ordinary user with an existing Linux tmpfs. The first
@@ -44,13 +46,13 @@ containment and portable setup belong to milestone 2 after this release. macOS, 
 qualified recipient profiles for this release. No VPN, provider account, manual
 API key or funded recipient wallet is required.
 
-Once the public entry is ready, ask your setup agent to use the linked skill.
+Ask your setup agent to use the linked skill and current friend entry.
 It prepares the exact helper if needed, then steps aside before hidden input;
 you operate the private session yourself. Do not send the agent your coupon,
 passphrase or private prompts. A same-user setup agent stepping aside supplies
 cooperation, not enforced privacy from that agent or your administrator.
 
-The release will provide one reviewed `install.sh`, its SHA256 and the public
+The friend entry provides one reviewed `install.sh`, its SHA256 and the public
 trial files it pins. These are the implementation of the skill's setup step,
 not an additional service/account to sign up for. The equivalent manual entry
 after downloading, inspecting and verifying the installer is:
@@ -97,8 +99,9 @@ local Apple Containerization ARM guest on the Mac mini, without a project cloud
 CVM. Mac admission verifies Apple App Attest code identity, exact compose and
 fresh issuer-key/policy bindings. It does not put the workload in Intel TDX or
 Secure Enclave custody: the host/operator and stand-in KMS can read issuer
-secrets. The new Mac workload integration and public friend URL remain pending;
-existing Apple primitive and Linux-client checks do not establish that journey.
+secrets. An earlier genuine Mac issuer probe passed; the fresh public-installed connection
+is currently failing. Do not redeem until resolved. The owner walkthrough remains pending and is not established by
+primitive or fixture checks.
 
 Use `/coupon` for session and trust details. Normal close clears the process's
 recipient key and credential references; it does not revoke the provider key or
