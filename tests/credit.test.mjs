@@ -439,7 +439,10 @@ test("credit CLI names each argument mistake and what to do next, never echoing 
       [["inspect", "--trial", "/x/t.json", "--stdin", "--input-file", "/x/i"], "Give the gift code exactly one way"], [["inspect", "--stdin"], "credit inspect needs --trial /abs/trial.json"],
       [["redeem", "--trial", "/x/t.json", "--stdin"], "credit redeem needs --accept-offer <offerHash>; run credit inspect first"], [["status", "--credit", secret], "--credit needs a 64-character credit id"],
       [["status", "--credit", id, "--credit", id], "--credit was given twice"], [["status", "--credit"], "--credit needs a value."], [["recover"], "credit recover needs --credit <id>"],
-      [["claim"], "abalone credit takes one of: inspect, redeem, recover, status, session. Usage: abalone credit"], [["session", "--credit", id, "--mode", "tui"], "--mode accepts only rpc"]]) {
+      [["claim"], "abalone credit takes one of: inspect, redeem, recover, status, session. Usage: abalone credit"], [["session", "--credit", id, "--mode", "tui"], "--mode accepts only rpc"],
+      [["redeem", `--code=${secret}`], "Unexpected argument (not shown: it looks like a gift code"], [["inspect", "--trial", "/x/t.json", "--stdin", `${secret}.`], "Unexpected argument (not shown: it looks like a gift code"],
+      [["inspect", "--trial", `gifts/${secret}`, "--stdin"], "--trial needs the full path to trial.json, as printed by the installer, not the gift code itself"],
+      [["inspect", "--trial", "/x/t.json", "--input-file", `./${secret}`], "--input-file needs the full path to the private 0600 file holding your gift code or link, not the gift code itself"]]) {
     const r = spawnSync(process.execPath, [path.join(root, "bin/abalone.mjs"), "credit", ...argv], { encoding: "utf8", timeout: 20_000, cwd: root, env: { ...process.env, ABALONE_DIR: path.join(home, "state") }, input: "" });
     assert.equal(r.status, 1, argv.join(" "));
     assert.ok(r.stderr.includes(says), `${argv.join(" ")}: ${r.stderr}`);
@@ -473,10 +476,10 @@ test("plain abalone without saved credit points to the redeem page; help prints 
     assert.equal(r.status, 0); assert.equal(r.stderr, "");
     for (const text of ["abalone credit inspect", "abalone credit redeem", "abalone credit status", "abalone credit recover", "abalone credit session", "abalone sandbox [folder]"]) assert.ok(r.stdout.includes(text), `${flag}: ${text}`);
   }
-  for (const argv of [["status"], ["--model", "stub/script"], ["s".repeat(43)]]) {
+  for (const argv of [["status"], ["--model", "stub/script"], ["s".repeat(43)], [`--code=${"s".repeat(43)}`], [`${"s".repeat(43)}.`]]) {
     const r = run(...argv);
     assert.equal(r.status, 2, argv.join(" "));
-    assert.ok(r.stderr.startsWith(`Unknown command ${argv[0].length === 43 ? "(not shown" : JSON.stringify(argv[0])}`), r.stderr);
+    assert.ok(r.stderr.startsWith(`Unknown command ${argv[0].includes("s".repeat(43)) ? "(not shown" : JSON.stringify(argv[0])}`), r.stderr);
     assert.ok(r.stderr.includes("abalone sandbox [folder]") && r.stderr.includes("abalone credit session --credit <id>"));
     assert.ok(!r.stderr.includes("s".repeat(43)) && !r.stderr.includes("no canaries"), "never the legacy session");
   }

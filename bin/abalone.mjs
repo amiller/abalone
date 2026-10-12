@@ -46,8 +46,8 @@ let couponSlot = null;
 
 const CREDIT_OPTIONS = { inspect: ["--trial", "--stdin", "--input-file"], redeem: ["--trial", "--stdin", "--input-file", "--accept-offer"],
   recover: ["--credit"], status: ["--credit"], session: ["--credit", "--mode"] };
-// Never echo an argument that may be a gift code.
-const giftLike = (v) => /^[A-Za-z0-9_-]{43}$/.test(v) || v.includes("#code=");
+// Never echo an argument that may hold a gift code: any 43+ character base64url run, or a gift link.
+const giftLike = (v) => /[A-Za-z0-9_-]{43}/.test(v) || v.includes("#code=");
 const shown = (v) => giftLike(v) ? "(not shown: it looks like a gift code, and gift codes never belong in command arguments)" : JSON.stringify(v);
 const absolute = (key, what) => (v) => path.isAbsolute(v) ? null : giftLike(v) ? `${key} needs the full path to ${what}, not the gift code itself; gift codes never belong in command arguments.`
   : `${key} path must be absolute: ${v}. Give the full path to ${what}, for example ${key} ${JSON.stringify(path.resolve(v))}.`;
@@ -454,14 +454,14 @@ async function tasksCmd() {
     }
     return;
   }
-  if (!id) throw new Error(`usage: abalone tasks ${sub} <task id>`);
+  if (!id) throw new Error(`usage: abalone tasks ${shown(sub)} <task id>`);
   await viaWorker(task.record(id).peer, async (g) => {
     if (sub === "attach") return attachTask(g, id);
     if (sub === "watch") { const c = await task.watch(g, id); return c && console.log(task.summary(c)); }
     if (sub === "status") { const s = await task.call(g, "status", id); return console.log(s.completion ? task.summary(s.completion) : `${s.state}, control ${s.control}, ${s.seq} events, charged ${gift.fmt(s.usage.charged)} of ${gift.fmt(s.usage.cap)} (execution ${gift.fmt(s.usage.execution.charge)}, inference ${gift.fmt(s.usage.inference.charge)})`); }
     if (sub === "stop") { const s = await task.call(g, "stop", id, { reason: "stopped by the client" }, `stop:${id}`); return console.log(`Stop sent; the task is ${s.state}. abalone tasks collect ${id} once it has ended.`); }
     if (sub === "collect") { const b = await task.collect(g, id); return console.log(task.summary(b.completion, b.dir)); }
-    throw new Error(`unknown: abalone tasks ${sub}`);
+    throw new Error(`unknown: abalone tasks ${shown(sub)}`);
   });
 }
 
@@ -511,7 +511,7 @@ the passphrase and the traces are gone. Keep a copy in your password manager: ab
     for (const f of trace.remove(a, b)) console.log(`deleted ${f}`);
     return console.log(`Not covered: copies made elsewhere (backups, a copied folder, sync), blocks an SSD or copy-on-write disk keeps, what the TEE provider processed, files the agent wrote, and host names in ${path.join(STATE, "egress.jsonl")}. Deleting the trace key makes every copy unreadable.`);
   }
-  throw new Error(`unknown: abalone trace ${cmd}`);
+  throw new Error(`unknown: abalone trace ${shown(cmd)}`);
 }
 
 // caps.mjs resolves paths as Pi does, so it imports pi/: loaded only here, never on the node serve/relay path,
@@ -626,7 +626,7 @@ async function session() {
     // The gift peer qualifies only when its handshake showed attested evidence (a dev peer only where config admits dev peers, i.e. tests).
     const giftOk = m === GIFT && g && (g.verdict.place.startsWith("◈ attested") || p.peers.admit.dev === true);
     const couponOk = couponSlot && m === couponSlot.provider.provider;
-    if (!giftOk && !couponOk && (m === GIFT || (place(m) !== "⌂ local" && !p.admitted.some((a) => a.id === m)))) throw new Error(`✗ refused: ${m} is not a ⌂ local or ◈ admitted provider; strict incognito sends nothing elsewhere`);
+    if (!giftOk && !couponOk && (m === GIFT || (place(m) !== "⌂ local" && !p.admitted.some((a) => a.id === m)))) throw new Error(`✗ refused: ${shown(m)} is not a ⌂ local or ◈ admitted provider; strict incognito sends nothing elsewhere`);
     user.push("--no-session"); // Pi keeps its session in memory only; the launcher writes the encrypted trace
   }
   const env = { ...process.env, PI_RESUME_HINT: `Resume with: abalone sandbox ${/\s/.test(process.cwd()) ? JSON.stringify(process.cwd()) : process.cwd()} --resume {id}`, PI_QUIET_MANAGED_TOOLS: "1", ABALONE_DIR: STATE, PI_CODING_AGENT_DIR: AGENT_DIR, PI_ADMITTED_HOSTS: [...hosts, ...LOOPBACK].join(","), ABALONE_SANDBOX: "1" };
