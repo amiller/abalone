@@ -8,7 +8,10 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 
-const [credit, out] = process.argv.slice(2), root = path.resolve(import.meta.dirname, "../..");
+// It spends, so it refuses to start without the explicit --live flag that live.sh passes.
+const [live, credit, out] = process.argv.slice(2), root = path.resolve(import.meta.dirname, "../..");
+if (live !== "--live" || !/^[0-9a-f]{64}$/.test(credit ?? "") || !out) { console.error("usage: node tests/usability/live.mjs --live <64-hex credit id> <out dir>  (spends from that saved credit)"); process.exit(2); }
+const TURN_MS = 300_000;
 const TASKS = [
   { name: "summarize", prompts: ["Summarize @memo.md in five bullet points."] },
   { name: "question", prompts: ["In @rota.txt, who waters on Thursday?"], answered: (turns) => /Priya Raman/.test(turns[0].answer) && /Joan Castellanos/.test(turns[0].answer) },
@@ -22,14 +25,19 @@ function task({ name, prompts, check, answered }) {
   const work = fs.mkdtempSync(path.join(os.tmpdir(), `abalone-usability-live-${name}-`));
   for (const f of ["memo.md", "rota.txt"]) fs.copyFileSync(path.join(import.meta.dirname, "fixtures", f), path.join(work, f));
   const child = spawn(process.execPath, [path.join(root, "bin/abalone.mjs"), "credit", "session", "--credit", credit, "--mode", "rpc"], { cwd: work, stdio: ["pipe", "pipe", "pipe"] });
-  const turns = []; let stderr = "", buf = "", turn;
+  const turns = []; let stderr = "", buf = "", turn, timer;
+  // A turn that does not settle in TURN_MS, a refused prompt or unparseable output ends the task as a failure.
+  const stop = (why) => { turn.failure ??= why; child.kill(); };
   const send = () => { const message = prompts[turns.length]; turn = { prompt: message, start: Date.now(), ttftMs: null, stopReasons: [], outputTokens: 0, reasoningTokens: null, answer: "" };
-    turns.push(turn); child.stdin.write(JSON.stringify({ id: `p${turns.length}`, type: "prompt", message }) + "\n"); };
+    turns.push(turn); clearTimeout(timer); timer = setTimeout(() => stop(`no agent_settled within ${TURN_MS / 1000} s`), TURN_MS);
+    child.stdin.write(JSON.stringify({ id: `p${turns.length}`, type: "prompt", message }) + "\n"); };
   child.stderr.on("data", (d) => { stderr += d; });
   child.stdout.on("data", (d) => {
     buf += d;
     for (let i; (i = buf.indexOf("\n")) >= 0;) {
-      const ev = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1);
+      let ev; const line = buf.slice(0, i); buf = buf.slice(i + 1);
+      try { ev = JSON.parse(line); } catch { stop(`unparseable output: ${line.slice(0, 200)}`); continue; }
+      if (ev.type === "response" && ev.success === false) stop(`prompt refused: ${ev.error}`);
       if (ev.type === "message_update" && turn.ttftMs === null) turn.ttftMs = Date.now() - turn.start;
       if (ev.type === "message_end" && ev.message.role === "assistant") {
         const u = ev.message.usage ?? {};
@@ -38,16 +46,17 @@ function task({ name, prompts, check, answered }) {
         turn.answer += ev.message.content.filter((c) => c.type === "text").map((c) => c.text).join("");
       }
       if (ev.type === "extension_ui_request" && ["confirm", "select", "input", "editor"].includes(ev.method)) { turn.dialog = ev.method; child.kill(); }
-      if (ev.type === "agent_settled") { turn.ms = Date.now() - turn.start; turns.length < prompts.length ? send() : child.stdin.end(); }
+      if (ev.type === "agent_settled") { turn.ms = Date.now() - turn.start; clearTimeout(timer); turns.length < prompts.length ? send() : child.stdin.end(); }
     }
   });
   send();
   return new Promise((resolve) => child.on("exit", (code) => {
+    clearTimeout(timer);
     const lines = stderr.split("\n").filter(Boolean), warnings = lines.filter((l) => WARNING.test(l));
     const settled = turns.length === prompts.length && turns.every((t) => t.ms !== undefined);
     const result = { name, exitCode: code, stderrLines: lines.length, warningLines: warnings.length, stderr: lines, turns: turns.map(({ start, ...t }) => t),
       ...(check ? { edited: check(work) } : {}), ...(answered ? { answered: settled && answered(turns) } : {}) };
-    result.pass = code === 0 && settled && !turns.some((t) => t.stopReasons.includes("length") || t.dialog) && warnings.length <= 1 && result.edited !== false && result.answered !== false;
+    result.pass = code === 0 && settled && !turns.some((t) => t.stopReasons.includes("length") || t.dialog || t.failure) && warnings.length <= 1 && result.edited !== false && result.answered !== false;
     fs.rmSync(work, { recursive: true, force: true });
     console.log(`${result.pass ? "PASS" : "FAIL"} ${name}: stops ${turns.map((t) => t.stopReasons.join("+")).join(", ")}; output ${turns.map((t) => t.outputTokens).join(", ")}; reasoning ${turns.map((t) => t.reasoningTokens).join(", ")}; ttft ms ${turns.map((t) => t.ttftMs).join(", ")}; stderr lines ${lines.length} (${warnings.length} warning)`);
     resolve(result);
