@@ -7,12 +7,12 @@ same procedure; [getting started](getting-started.md) covers the session itself.
 is protected and what is not.
 
 <!-- Release step: point the links, the install.sh SHA256 and the claim deadline below at the new release. -->
-**Current release:** [v0.1.0-preview.7](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.7)
+**Current release:** [v0.1.0-preview.7.1](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.7.1)
 provides `install.sh --credit` and the `abalone credit` commands. Download
-[install.sh](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.7/install.sh) and
-[FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.7/FRIEND-SHA256SUMS) from that release.
+[install.sh](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.7.1/install.sh) and
+[FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.7.1/FRIEND-SHA256SUMS) from that release.
 Its `install.sh` SHA256 is
-`be8e5f6f46c4044d6a91f93f997f9fa7ec3f4a3db36c3dd7f8f7d8a34b6ea5d2`. The claim
+`a30db777b59f34e5701028cf7404e3db3b3a453e538fa8e4f6c2024499b1172c`. The claim
 deadline is 2026-10-18T18:00:00Z, when its signed issuer approval expires.
 
 ## Conditions before you start
