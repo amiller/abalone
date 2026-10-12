@@ -43,7 +43,8 @@ export function delivery(accepted, recipientKey, peer, code = coupon) {
 
 export async function issuer(profile, code = coupon) {
   // statuses is consumed first (one per bound status frame), then status repeats once a claim was sent; before any claim it is ready.
-  // lost answers every v4 frame with the generic failure a losing holder gets once another recipient won.
+  // lost answers every v4 frame with the generic failure a losing holder gets once another recipient won;
+  // claim "refuse" answers a claim with that failure, as the real issuer answered a claim after its window closed.
   const frames = [], state = { claim: "grant", status: "in_progress", statuses: [], claimExpired: false, accountingBlocked: false, lost: false };
   const host = await servePeer({ listen: ["/ip4/127.0.0.1/tcp/0"], evidence: () => () => ({ type: "dev" }), services: {
     [COUPON_ISSUER_PROTOCOL]: { maxDataLength: COUPON_ISSUER_FRAME_LIMIT, timeoutMs: 3000, handle: async (_lp, send, recv) => {
@@ -55,6 +56,7 @@ export async function issuer(profile, code = coupon) {
       if (state.lost) return send({ id: frame.id, ok: false, error: "request_failed" });
       if (frame.op === "offer") return send({ id: frame.id, ok: true, result: state.offer });
       if (frame.op === "claim") {
+        if (state.claim === "refuse") return send({ id: frame.id, ok: false, error: "request_failed" });
         if (state.claim === "in_progress") return send({ id: frame.id, ok: true, result: { state: "in_progress", automatic_retry_allowed: false, deposit_release_authorized: false } });
         return send({ id: frame.id, ok: true, result: delivery(state.offer, frame.recipient_key, auth.remotePeer.toString(), code) });
       }

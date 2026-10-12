@@ -2,6 +2,9 @@
 // CLI (`credit inspect`, `redeem`, `status`, `session --mode rpc`), once with a valid offer and once with an expired one.
 // Every line a recipient sees is recorded. Synthetic boundaries: issuer-hook.mjs (loopback issuer, synthetic identity
 // verdict) and tests/fixtures/near/synthetic-near-hook.mjs (NEAR verdict and transport); nothing else is substituted.
+// The expired journey redeems the loopback issuer's own terms with the recorded fixture's deadline; that issuer refuses
+// a late claim and reports the window closed, as the real issuer did (a client that sends the claim ends uncertain).
+// The recorded expired offer itself is checked on its own (expired-fixture), against its paired producer's issuer.
 // Usage: node tests/usability/cold-run.mjs <out-dir>. Prints PASS|FAIL <id>: <what>; writes cold-run.json, session.env.
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -35,7 +38,7 @@ async function journey(label, claimExpiresAt) {
   const [state, home, xdg, work, trial] = ["state", "home", "x", "work", "trial"].map((n) => { const d = path.join(base, n); fs.mkdirSync(d, { mode: 0o700 }); return d; });
   const server = await issuer();
   server.state.offer = bundle({ ...terms(server.host.peerId.toString()), claim_expires_at: claimExpiresAt });
-  if (label === "expired") Object.assign(server.state, { claim: "in_progress", status: "ready", claimExpired: true });
+  if (label === "expired") Object.assign(server.state, { claim: "refuse", status: "ready", claimExpired: true });
   const provider = { ...server.admission.provider, policy: { ...server.admission.provider.policy, gatewayTcb: OUT_OF_DATE_TRIAL_POLICY, modelTcb: OUT_OF_DATE_TRIAL_POLICY } };
   fs.writeFileSync(path.join(trial, "pin.json"), JSON.stringify(server.admission.pin));
   fs.writeFileSync(path.join(trial, "approval.json"), Buffer.from(server.admission.approval, "base64"));
