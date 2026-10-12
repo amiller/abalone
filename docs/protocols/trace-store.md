@@ -6,7 +6,7 @@ The storage format is distinct from the selected host boundary; see
 
 ## Entry and mode
 
-`abalone --incognito <folder>` starts a strict-incognito session in `<folder>`. Nothing else turns the mode on: the launcher deletes any inherited `ABALONE_INCOGNITO` and sets it itself. By default no conversation trace is retained and no trace key or passphrase is needed. `--keep-trace` explicitly retains an encrypted trace, creating a passphrase-protected key before any gift entry if absent. The session refuses `--resume`/`--continue`/`--session`, and refuses a `--model` whose provider is not ⌂ local or ◈ admitted.
+`abalone sandbox --incognito <folder>` starts a strict-incognito session in `<folder>`. Nothing else turns the mode on: the launcher deletes any inherited `ABALONE_INCOGNITO` and sets it itself. By default no conversation trace is retained and no trace key or passphrase is needed. `--keep-trace` explicitly retains an encrypted trace, creating a passphrase-protected key before any gift entry if absent. The session refuses `--resume`/`--continue`/`--session`, and refuses a `--model` whose provider is not ⌂ local or ◈ admitted.
 
 The incognito managed inference routes exclude outside workers. The gift
 wrapper obtains a coupon credential before handing control to Pi; incognito
@@ -74,9 +74,9 @@ Recovery: `abalone trace key export` prints the `AGE-SECRET-KEY-1…` identity f
 
 ```
 abalone trace key init | export | import           create (passphrase) / print identity / store an identity
-abalone --incognito <folder>                       session-only; no retained conversation trace
-abalone --incognito <folder> --keep-trace          encrypted retained trace; on exit prints what remains and how to reopen
-abalone --incognito <folder> --with-trace <id>     session-only incognito session that starts with that trace's conversation in context
+abalone sandbox --incognito <folder>               session-only; no retained conversation trace
+abalone sandbox --incognito <folder> --keep-trace  encrypted retained trace; on exit prints what remains and how to reopen
+abalone sandbox --incognito <folder> --with-trace <id> session-only incognito session that starts with that trace's conversation in context
 abalone trace list <folder>                        traces, sizes, record counts, closed or not; no key needed
 abalone trace open <folder> <id>                   unlock and print to this terminal; adds nothing to any session
 abalone trace delete <folder> <id>|--all           leave no trace: delete trace files and their high-water marks

@@ -84,7 +84,7 @@ run() { # route (direct|gift), case, expected error regex, NEAR mode, NRAS mode
   local trace=(); [[ -n ${NEG_TRACE:-} ]] && trace=(strace -f -e trace=connect -o "$tmp/$name.trace")
   local out code
   out=$(ABALONE_DIR="$dir" NODE_EXTRA_CA_CERTS="$ca" ABALONE_EGRESS_REDIRECT="$(IFS=,; echo "${redirect[*]}")" \
-    timeout 180 "${trace[@]}" "$root/bin/abalone" -p --model "nearai/$model" "secret: $canary" < /dev/null 2>&1); code=$?
+    timeout 180 "${trace[@]}" "$root/bin/abalone" sandbox -p --model "nearai/$model" "secret: $canary" < /dev/null 2>&1); code=$?
   printf "%s\n" "$out" > "$tmp/$name.out"; kill $(cat "$tmp/$name".*.pid)
   local chat wposts hits err refused debits
   chat=$(grep -c '"method":"POST","url":"/v1/chat' "$tmp/near.log")

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The interactive session (bin/abalone with no subcommand), driven over Pi's RPC mode with the stub private reader
+# The sandboxed session (bin/abalone sandbox), driven over Pi's RPC mode with the stub private reader
 # (tests/fixtures/scripts/first-crack.mjs as policy.json mediator) and the stub runner (stub-claude.sh):
 #   1. outside model selected + a private fixture file mentioned → the pour prompt appears, after the private side read it;
 #   2. continue privately sends nothing (strace connect + execve);

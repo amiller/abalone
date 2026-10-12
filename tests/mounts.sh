@@ -12,7 +12,7 @@ hidden="/etc/hostname /etc/shadow /etc/ssh /srv /var/log /opt $HOME/.ssh $root/r
 cd "$folder"
 out=$(PROBE_PATHS="$hidden $folder/memo.txt $root/runner-home/test /etc/ssl/certs/ca-certificates.crt" PROBE_WRITES="$ABALONE_DIR/approvals/standing.json $root/runner-home/test/w $folder/w" \
   PROBE_READS="memo.txt /etc/passwd ~/.abalone/node/keys.json $ABALONE_DIR/approvals/standing.json" \
-  STUB_SCRIPT="$root/tests/fixtures/scripts/mounts.mjs" "$root/bin/abalone" --model stub/script -p go < /dev/null 2>&1); echo "$out" | sed 's/^/  /'
+  STUB_SCRIPT="$root/tests/fixtures/scripts/mounts.mjs" "$root/bin/abalone" sandbox --model stub/script -p go < /dev/null 2>&1); echo "$out" | sed 's/^/  /'
 rm -f "$root/runner-home/test/marker"
 host_w=$([[ -e $root/runner-home/test/w ]] && echo present || echo absent)
 for p in $hidden; do check "harness and bash: $p absent" '[[ $out == *"

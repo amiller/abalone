@@ -2,7 +2,7 @@
 // usage: node tests/incognito-switch.mjs [--incognito]; prints {available: [provider/id …], set: <response>}.
 import { spawn } from "node:child_process";
 import path from "node:path";
-const child = spawn(path.join(import.meta.dirname, "..", "bin", "abalone"), ["--mode", "rpc", ...process.argv.slice(2), "--model", "stub-e2ee/script"], { stdio: ["pipe", "pipe", "inherit"] });
+const child = spawn(path.join(import.meta.dirname, "..", "bin", "abalone"), ["sandbox", "--mode", "rpc", ...process.argv.slice(2), "--model", "stub-e2ee/script"], { stdio: ["pipe", "pipe", "inherit"] });
 const got = {};
 let buf = "";
 child.stdout.on("data", (d) => {

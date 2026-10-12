@@ -15,7 +15,7 @@ check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fail=1; fi; }
 t=abalone-tui-$$
 screen() { tmux capture-pane -t $t -p "$@"; }
 wait_for() { for _ in $(seq 60); do screen | grep -q -- "$1" && return 0; sleep 0.5; done; echo "timed out waiting for: $1"; screen; return 1; }
-tmux new-session -d -s $t -x 80 -y 24 "cd $ABALONE_DIR/work && NO_COLOR=1 ABALONE_NO_CANARIES=1 ABALONE_DIR=$ABALONE_DIR ABALONE_CONFIG=$ABALONE_CONFIG STUB_SCRIPT=$STUB_SCRIPT ABALONE_RUNNER_CLAUDE=$ABALONE_RUNNER_CLAUDE $root/bin/abalone --model stub/script; sleep 60"
+tmux new-session -d -s $t -x 80 -y 24 "cd $ABALONE_DIR/work && NO_COLOR=1 ABALONE_NO_CANARIES=1 ABALONE_DIR=$ABALONE_DIR ABALONE_CONFIG=$ABALONE_CONFIG STUB_SCRIPT=$STUB_SCRIPT ABALONE_RUNNER_CLAUDE=$ABALONE_RUNNER_CLAUDE $root/bin/abalone sandbox --model stub/script; sleep 60"
 trap 'tmux kill-server 2>/dev/null' EXIT
 
 wait_for "nothing shared"
@@ -88,13 +88,13 @@ tmux send-keys -t $t "hello there" Enter; wait_for "private model turn"
 tmux send-keys -t $t C-d; sleep 0.5; tmux send-keys -t $t C-d; wait_for "Resume with: abalone"
 resume=$(screen -J | grep -o "Resume with: abalone .*" | tail -1 | sed "s/^Resume with: //; s/ *$//")
 echo "  exit line: Resume with: $resume"
-check "on exit abalone prints its own resume line (folder and session id)" '[[ $resume =~ ^abalone\ $other\ --resume\ [0-9a-f-]+$ ]]'
+check "on exit abalone prints its own resume line (folder and session id)" '[[ $resume =~ ^abalone\ sandbox\ $other\ --resume\ [0-9a-f-]+$ ]]'
 tmux kill-session -t $t; tmux new-session -d -s $t -x 80 -y 24 "env NO_COLOR=1 ABALONE_NO_CANARIES=1 ABALONE_DIR=$ABALONE_DIR ABALONE_CONFIG=$ABALONE_CONFIG STUB_SCRIPT=$STUB_SCRIPT ABALONE_RUNNER_CLAUDE=$ABALONE_RUNNER_CLAUDE $root/bin/abalone ${resume#abalone } --model stub/script; sleep 60"
 wait_for "hello there"
 check "that line resumes the conversation in that folder" 'screen | grep -q "hello there" && screen | grep -q "private model turn"'
 
 # In-content tools (stub-e2ee, as NEAR is): the answer shows readable steps, never the raw tool-call protocol.
-tmux new-session -d -s $t-tools -x 100 -y 30 "cd $ABALONE_DIR/work && NO_COLOR=1 ABALONE_NO_CANARIES=1 ABALONE_DIR=$ABALONE_DIR ABALONE_CONFIG=$ABALONE_CONFIG STUB_SCRIPT=$root/tests/fixtures/scripts/intools.mjs $root/bin/abalone --model stub-e2ee/script; sleep 60"
+tmux new-session -d -s $t-tools -x 100 -y 30 "cd $ABALONE_DIR/work && NO_COLOR=1 ABALONE_NO_CANARIES=1 ABALONE_DIR=$ABALONE_DIR ABALONE_CONFIG=$ABALONE_CONFIG STUB_SCRIPT=$root/tests/fixtures/scripts/intools.mjs $root/bin/abalone sandbox --model stub-e2ee/script; sleep 60"
 for _ in $(seq 60); do tmux capture-pane -t $t-tools -p | grep -q "nothing shared" && break; sleep 0.5; done
 tmux send-keys -t $t-tools "what's in this folder?" Enter
 for _ in $(seq 60); do tmux capture-pane -t $t-tools -p | grep -q "From abalone's tool result" && break; sleep 0.5; done
@@ -102,7 +102,7 @@ tmux capture-pane -t $t-tools -p > "$ABALONE_DIR/screen-tools.txt"; tmux kill-se
 check "tool use shows as a readable step (Completed · listed .) and no raw protocol text" 'grep -q "Completed · listed \." "$ABALONE_DIR/screen-tools.txt" && ! grep -q "<abalone-tool>\|<tool_call>\|arg_key" "$ABALONE_DIR/screen-tools.txt"'
 # Arrival: the wordmark line is the first thing on screen, in color, at 80x34 and 80x24; no art above it.
 for size in 80x34 80x24; do
-  tmux new-session -d -s $t-art -x ${size%x*} -y ${size#*x} "cd $ABALONE_DIR/work && env -u NO_COLOR ABALONE_DIR=$ABALONE_DIR ABALONE_CONFIG=$ABALONE_CONFIG STUB_SCRIPT=$STUB_SCRIPT ABALONE_NO_CANARIES=1 TERM=xterm-256color $root/bin/abalone --model stub/script; sleep 60"
+  tmux new-session -d -s $t-art -x ${size%x*} -y ${size#*x} "cd $ABALONE_DIR/work && env -u NO_COLOR ABALONE_DIR=$ABALONE_DIR ABALONE_CONFIG=$ABALONE_CONFIG STUB_SCRIPT=$STUB_SCRIPT ABALONE_NO_CANARIES=1 TERM=xterm-256color $root/bin/abalone sandbox --model stub/script; sleep 60"
   for _ in $(seq 60); do tmux capture-pane -t $t-art -p | grep -q "nothing shared" && break; sleep 0.5; done
   tmux capture-pane -t $t-art -p > "$ABALONE_DIR/screen-art-$size.txt"; tmux kill-session -t $t-art
 done

@@ -22,5 +22,5 @@ stubcfg() { # a rehashed copy of tests/fixtures/config in $ABALONE_DIR/config; r
 }
 stub() { # script.mjs, then abalone args
   local s=$1; shift
-  STUB_SCRIPT="$root/tests/fixtures/scripts/$s" "$root/bin/abalone" --model stub/script "$@"
+  STUB_SCRIPT="$root/tests/fixtures/scripts/$s" "$root/bin/abalone" sandbox --model stub/script "$@"
 }

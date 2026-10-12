@@ -119,4 +119,4 @@ if [ -z "$answer" ] && [ -r /dev/tty ] && [ -w /dev/tty ]; then
   case "$answer" in ""|[Yy]*) answer=yes ;; *) answer=no ;; esac
 fi
 if [ "$answer" = yes ]; then "$app/abalone/bin/abalone" canary init "$PWD"; fi
-echo "Start with: abalone$([ "$answer" = yes ] || echo ' --no-canaries   (or plant them first: abalone canary init .)')"
+echo "Start with: abalone sandbox$([ "$answer" = yes ] || echo ' --no-canaries   (or plant them first: abalone canary init .)')"

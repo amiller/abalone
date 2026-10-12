@@ -45,7 +45,7 @@ run() { # name, expected error regex, mitm tamper mode (or "none"), extra env...
   local trace=()
   [[ -n ${NEG_TRACE:-} ]] && trace=(strace -f -e trace=connect -o "$tmp/$name.trace")
   out=$(env "${envs[@]}" "$@" \
-    timeout 120 "${trace[@]}" "$root/bin/abalone" -p --model "redpill/z-ai/glm-5.2" "secret: $canary" < /dev/null 2>&1)
+    timeout 120 "${trace[@]}" "$root/bin/abalone" sandbox -p --model "redpill/z-ai/glm-5.2" "secret: $canary" < /dev/null 2>&1)
   local code=$?
   kill $(cat "$tmp/$name".*pid)
   local posts prompt witness
@@ -85,7 +85,7 @@ devkey phala t dummy
 log="$tmp/scope.mitm.jsonl"; : > "$log"
 node "$root/tests/mitm/server.mjs" "$tmp/leaf.pem" "$tmp/leaf.key" "$log" "$host" spki > "$tmp/scope.port" & pid=$!
 until [[ -s $tmp/scope.port ]]; do sleep 0.1; done
-out=$(ABALONE_EGRESS_REDIRECT="$host=127.0.0.1:$(cat "$tmp/scope.port")" NODE_EXTRA_CA_CERTS="$tmp/ca.pem" timeout 120 "$root/bin/abalone" --list-models < /dev/null 2>&1)
+out=$(ABALONE_EGRESS_REDIRECT="$host=127.0.0.1:$(cat "$tmp/scope.port")" NODE_EXTRA_CA_CERTS="$tmp/ca.pem" timeout 120 "$root/bin/abalone" sandbox --list-models < /dev/null 2>&1)
 kill $pid
 echo "[scope] $(grep -o '✗ refused: provider [a-z]*' <<<"$out"); listed: $(awk 'NR>1 && $1!~/✗|⌂/ {print $1}' <<<"$out" | grep -E '^(redpill|phala)$' | sort | uniq -c | xargs)"
 if [[ $out == *"✗ refused: provider redpill"* && $(grep -c '^phala ' <<<"$out") -gt 0 && $(grep -c '^redpill ' <<<"$out") == 0 ]]; then echo "  PASS: redpill refused, phala still listed"; else echo "  FAIL"; fail=1; fi

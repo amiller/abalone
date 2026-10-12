@@ -30,10 +30,10 @@ export ABALONE_DIR="$environment_root/state"
 export ABALONE_CONFIG="$environment_root/config"
 bin/abalone trace key init
 bin/abalone canary init "$workspace"
-bin/abalone --incognito "$workspace" --model "$local_model_id" --keep-trace
+bin/abalone sandbox --incognito "$workspace" --model "$local_model_id" --keep-trace
 bin/abalone trace list "$workspace"
 bin/abalone trace open "$workspace" "$trace_id"
-bin/abalone --incognito "$workspace" --model "$local_model_id" --with-trace "$trace_id"
+bin/abalone sandbox --incognito "$workspace" --model "$local_model_id" --with-trace "$trace_id"
 ```
 
 `trace_id` is obtained from the completed run, not guessed. Do not collect the

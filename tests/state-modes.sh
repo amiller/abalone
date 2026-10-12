@@ -9,7 +9,7 @@ export XDG_RUNTIME_DIR="$(mktemp -d -p "$XDG_RUNTIME_DIR")"   # this test's own,
 fail=0
 check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fail=1; fi; }
 out=$(mktemp -d)
-STUB_SCRIPT="$root/tests/fixtures/scripts/pour.mjs" "$root/bin/abalone" --model stub/script -p go < /dev/null > "$out/pour" 2>&1
+STUB_SCRIPT="$root/tests/fixtures/scripts/pour.mjs" "$root/bin/abalone" sandbox --model stub/script -p go < /dev/null > "$out/pour" 2>&1
 "$root/bin/abalone" ask --model ollama/reader "$root/tests/fixtures/docs/tenancy-renewal.pdf" "By what date?" < /dev/null > "$out/ask" 2>&1
 "$root/bin/abalone" notebook export "$ABALONE_DIR/exported" > "$out/export" 2>&1
 node "$root/tests/mcp.mjs" > "$out/mcp" 2>&1

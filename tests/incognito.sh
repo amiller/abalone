@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Strict incognito (abalone --incognito, docs/protocols/trace-store.md), offline with the stub-e2ee model:
+# Strict incognito (abalone sandbox --incognito, docs/protocols/trace-store.md), offline with the stub-e2ee model:
 #   entry refusals; a private read plus an offline test run; destination and mode facts; a plaintext-marker scan of
 #   state, run and temp dirs; fresh-process open; wrong passphrase, wrong key, key export/import into a fresh state dir;
 #   corrupted, reordered, truncated and header-edited traces; an interrupted close (launcher SIGKILL); --with-trace;
@@ -18,23 +18,23 @@ O=$(mktemp -d) # the test's own captures of the session's terminal output (plain
 echo "client codename $M owes 4410" > secret.txt; printf 'grep -q MARK secret.txt && echo TESTS PASS\n' > test.sh
 start="$ABALONE_DIR/.start"; touch "$start"
 
-out=$(ab --incognito "$W" --keep-trace </dev/null 2>&1); check "retained trace requires deliberate key setup before launch" '[[ $out == *"no terminal to ask for the trace key passphrase"* ]]'
+out=$(ab sandbox --incognito "$W" --keep-trace </dev/null 2>&1); check "retained trace requires deliberate key setup before launch" '[[ $out == *"no terminal to ask for the trace key passphrase"* ]]'
 # Default session-only uses the same real sandbox but no key or transcript writer.
 node "$root/tests/incognito-drive.mjs" stub-e2ee/script "please check secret.txt and run the tests" > "$O/ephemeral-events" 2> "$O/ephemeral-error"
 check "default incognito does useful work without key or retained transcript" 'grep -q TESTS\ PASS "$O/ephemeral-events" && [[ ! -d .abalone/traces && ! -f $ABALONE_DIR/keys/trace-active ]] && grep -q "No conversation trace retained" "$O/ephemeral-error"'
 check "default keeps no Pi history or plaintext marker in state/runtime" '[[ ! -d $ABALONE_DIR/agent/sessions && ! -d $ABALONE_DIR/notebook ]] && ! grep -rlF "$M" "$ABALONE_DIR" --exclude=secret.txt --exclude-dir=work'
 pw trace key init > /dev/null
 check "key files are outside the folder; the identity is age-encrypted" '[[ -f $(ls "$ABALONE_DIR"/keys/trace-*.pub) ]] && head -c 40 "$ABALONE_DIR"/keys/trace-*.age | grep -q "age-encryption.org/v1" && ! grep -rq AGE-SECRET-KEY "$ABALONE_DIR/keys"'
-out=$(ab --incognito "$W" --model runner/claude 2>&1); check "an outside model is refused at entry" '[[ $out == *"not a ⌂ local or ◈ admitted provider"* ]]'
-out=$(ab "$W" --with-trace x 2>&1); check "--with-trace without --incognito is refused" '[[ $out == *"works only with --incognito"* ]]'
-out=$(ab --incognito "$W" --continue 2>&1); check "--continue is refused in incognito" '[[ $out == *"keeps no Pi session"* ]]'
+out=$(ab sandbox --incognito "$W" --model runner/claude 2>&1); check "an outside model is refused at entry" '[[ $out == *"not a ⌂ local or ◈ admitted provider"* ]]'
+out=$(ab sandbox "$W" --with-trace x 2>&1); check "--with-trace without --incognito is refused" '[[ $out == *"works only with --incognito"* ]]'
+out=$(ab sandbox --incognito "$W" --continue 2>&1); check "--continue is refused in incognito" '[[ $out == *"keeps no Pi session"* ]]'
 
 drive "please check secret.txt and run the tests" > $O/ev1 2> $O/err1 || { cat $O/err1; fail=1; }
 ev() { node -e 'const l=require("fs").readFileSync(process.argv[1],"utf8").trim().split("\n").map(JSON.parse); console.log(eval("(es=>"+process.argv[2]+")")(l))' "$1" "$2"; }
 answer=$(ev $O/ev1 'es.filter(e=>e.type==="message_end"&&e.message.role==="assistant").at(-1).message.content[0].text')
 check "useful work: the private file was read and the test ran in the sandbox" '[[ $answer == *"$M"* && $answer == *"TESTS PASS"* && $answer == *"exit 0"* ]]'
 check "destination: the sent-to line names the ◈ model, and the strip says strict incognito" '[[ $(ev $O/ev1 "es.filter(e=>e.method===\"notify\").map(e=>e.message).join(\"|\")") == *"sent to: stub-e2ee TEE"* && $(ev $O/ev1 "es.filter(e=>e.method===\"setStatus\").map(e=>e.statusText).join(\"|\")") == *"incognito"* ]]'
-check "close says in four short lines what was kept, what was not, and the one reopen command, with no absolute path" 'sed -n "/^Strict incognito closed/,\$p" $O/err1 > $O/close; [[ $(wc -l < $O/close) == 4 ]] && grep -q "^Kept: an encrypted trace in .abalone/traces/ ([0-9]* records)" $O/close && grep -q "^Not kept: " $O/close && grep -q "^Reopen: abalone --incognito . --with-trace [0-9a-f]*$" $O/close && ! grep -q "/tmp\|$HOME" $O/close'
+check "close says in four short lines what was kept, what was not, and the one reopen command, with no absolute path" 'sed -n "/^Strict incognito closed/,\$p" $O/err1 > $O/close; [[ $(wc -l < $O/close) == 4 ]] && grep -q "^Kept: an encrypted trace in .abalone/traces/ ([0-9]* records)" $O/close && grep -q "^Not kept: " $O/close && grep -q "^Reopen: abalone sandbox --incognito . --with-trace [0-9a-f]*$" $O/close && ! grep -q "/tmp\|$HOME" $O/close'
 id=$(ls .abalone/traces | sed -E 's/^[^-]+-//; s/\.trace$//'); T=".abalone/traces/$(ls .abalone/traces)"
 check "one trace, encrypted: no plaintext marker in it" '[[ $(ls .abalone/traces | wc -l) == 1 ]] && ! grep -q "$M" "$T" && ! grep -q "TESTS PASS" "$T"'
 hits=$( { grep -rlF "$M" "$ABALONE_DIR" --exclude=secret.txt; find /tmp "${XDG_RUNTIME_DIR}" -xdev -type f -newer "$start" -readable 2>/dev/null | xargs -r grep -lF "$M" 2>/dev/null; } | grep -v "^$O/" | sort -u)
@@ -67,7 +67,7 @@ cp -r "$W" "$ABALONE_DIR/t6"; mv "$ABALONE_DIR/t6/$T" "$ABALONE_DIR/t6/.abalone/
 o=$(pw trace open "$ABALONE_DIR/t6" 0000000000000000 2>&1); check "a file renamed to another id is refused" '[[ $o == *"the header names trace $id"* ]]'
 
 # Interrupted close: the launcher is killed (SIGKILL) after the turn; Pi dies with it (bwrap --die-with-parent).
-mkfifo "$ABALONE_DIR/in"; "$root/bin/abalone" --mode rpc --incognito --keep-trace --model stub-e2ee/script < "$ABALONE_DIR/in" > $O/ev2 2>$O/err2 & lp=$!
+mkfifo "$ABALONE_DIR/in"; "$root/bin/abalone" sandbox --mode rpc --incognito --keep-trace --model stub-e2ee/script < "$ABALONE_DIR/in" > $O/ev2 2>$O/err2 & lp=$!
 exec 4> "$ABALONE_DIR/in"; echo '{"id":"p1","type":"prompt","message":"please check secret.txt and run the tests"}' >&4
 for i in $(seq 100); do grep -q agent_settled $O/ev2 && break; sleep 0.2; done
 kill -9 $lp; exec 4>&-; wait $lp 2>/dev/null

@@ -9,9 +9,9 @@ out="$(mktemp -d)"
 if [[ "${1:-}" == --tui ]]; then
   # Interactive session on a pty for 30s, then SIGINT: covers TUI-only startup network paths.
   shift
-  timeout -s INT 30 script -qec "strace -f -e trace=connect -o $out/trace $root/bin/abalone $*" /dev/null > "$out/stdout" 2>&1
+  timeout -s INT 30 script -qec "strace -f -e trace=connect -o $out/trace $root/bin/abalone sandbox $*" /dev/null > "$out/stdout" 2>&1
 else
-  strace -f -e trace=connect -o "$out/trace" "$root/bin/abalone" "$@" < /dev/null > "$out/stdout" 2>&1
+  strace -f -e trace=connect -o "$out/trace" "$root/bin/abalone" sandbox "$@" < /dev/null > "$out/stdout" 2>&1
 fi
 echo "session exit $?: $(tail -c 200 "$out/stdout")"
 hosts=$(node -e 'const p=require(process.argv[1]); console.log([...p.admitted.flatMap(a=>a.hosts), ...p.verifierHosts].join(" "))' "$root/providers.json")

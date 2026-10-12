@@ -7,7 +7,7 @@ set -uo pipefail
 . "$(dirname "$0")/lib/env.sh"; stubcfg
 fail=0
 check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fail=1; fi; }
-out=$(STUB_SCRIPT="$root/tests/fixtures/scripts/pour.mjs" "$root/bin/abalone" --model stub/script -p go < /dev/null 2>&1); echo "$out" | sed 's/^/  /'
+out=$(STUB_SCRIPT="$root/tests/fixtures/scripts/pour.mjs" "$root/bin/abalone" sandbox --model stub/script -p go < /dev/null 2>&1); echo "$out" | sed 's/^/  /'
 d="$ABALONE_DIR/disclosures.jsonl"; a="$ABALONE_DIR/agents.jsonl"
 field() { node -e 'for (const l of require("fs").readFileSync(process.argv[1],"utf8").trim().split("\n")) console.log(eval("(r=>"+process.argv[2]+")")(JSON.parse(l)))' "$1" "$2"; }
 field "$d" 'r.approval+" "+r.policy+" "+r.bytes+"B "+(r.refused??"")' | sed 's/^/  disclosures: /'
@@ -20,7 +20,7 @@ check "4 releases logged, 1 released" '[[ $(wc -l < "$d") == 4 && $(grep -c "\"l
 check "agents.jsonl: private root + exactly one open runner spawn, linked to its pour" '[[ $(grep -c "\"event\":\"spawn\"" "$a") == 2 && $(grep "\"event\":\"spawn\"" "$a" | sed -n 2p) == *"\"domain\":\"open\""*"\"pour\":\"$(field "$d" r.id | head -1)\""* ]]'
 : > "$ABALONE_DIR/egress.jsonl"
 out=$(PROBE_PATHS="$HOME $HOME/.ssh $root $root/local-data $ABALONE_DIR/private-out $ABALONE_DIR/agent" \
-  STUB_SCRIPT="$root/tests/fixtures/scripts/probe-runner.mjs" "$root/bin/abalone" --model stub/script -p go < /dev/null 2>&1); echo "$out" | sed 's/^/  /'
+  STUB_SCRIPT="$root/tests/fixtures/scripts/probe-runner.mjs" "$root/bin/abalone" sandbox --model stub/script -p go < /dev/null 2>&1); echo "$out" | sed 's/^/  /'
 check "runner: ~, ~/.ssh, the repo, the corpus, private-out and the agent dir are unreadable" '[[ $(grep -c "^readable" <<<"$out") == 0 && $(grep -c "^denied" <<<"$out") == 6 ]]'
 check "runner: scratch holds only the pour" '[[ $(sed -n "/^denied/!{/^readable/!p}" <<<"$out" | sed -n 2p) == pour.md ]]'
 check "runner: proxy admits api.anthropic.com, refuses example.com, no direct route" '[[ $out == *"proxy api.anthropic.com: 404"* && $out == *"proxy example.com: 000"* && $out == *"direct: exit=6"* ]]'

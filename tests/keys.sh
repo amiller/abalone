@@ -28,7 +28,7 @@ check "keys.json is mode 0600" '[[ $(stat -c %a "$ABALONE_DIR/node/keys.json") =
 out=$("$root/bin/abalone" caps); check "abalone caps shows the active key as node ⌂ dev (unattested)" '[[ $out == *"fake       node ⌂ dev (unattested) key spare …5678"* ]]'
 unset ABALONE_CONFIG
 devkey redpill a dummy-aaaa; devkey redpill b dummy-bbbb
-out=$(cd "$ABALONE_DIR" && timeout 120 "$root/bin/abalone" -p --model redpill/z-ai/glm-5.2 hi < /dev/null 2>&1); code=$?
+out=$(cd "$ABALONE_DIR" && timeout 120 "$root/bin/abalone" sandbox -p --model redpill/z-ai/glm-5.2 hi < /dev/null 2>&1); code=$?
 echo "  $(grep '✗ node' <<<"$out")"
 check "a failing key is named and nothing else is tried" '[[ $code -ne 0 && $out == *"✗ node ⌂ dev key redpill:a:aaaa failed: 401"*"No other key is tried"* && $out != *bbbb* ]]'
 echo "keys: $([[ $fail == 0 ]] && echo PASS || echo FAIL)"; exit $fail

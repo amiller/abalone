@@ -22,7 +22,7 @@ check "the fixture is redacted by default: the user text is a placeholder; the r
 check "--include-text keeps the user text, in the next number" 'grep -q secret-word-7 "$ABALONE_REPORT_DIR/tests/regress/0002/fixture.json"'
 check "the generated fixture replays through the regress harness" 'node "$root/tests/regress/check.mjs" "$ABALONE_REPORT_DIR/tests/regress/0001" | grep -q "^PASS 0001 stop"'
 # A command does not start an agent run (no agent_settled), so this drives RPC until the command's notification.
-node -e 'const c=require("child_process").spawn(process.argv[1],["--mode","rpc","--model","stub-e2ee/script","--continue"]); let b="";
+node -e 'const c=require("child_process").spawn(process.argv[1],["sandbox","--mode","rpc","--model","stub-e2ee/script","--continue"]); let b="";
   const t=setTimeout(()=>{console.error("timed out");c.kill();process.exit(1)},60000);
   c.stdout.on("data",(d)=>{b+=d;let i;while((i=b.indexOf("\n"))>=0){const l=b.slice(0,i);b=b.slice(i+1);console.log(l);const e=JSON.parse(l);
     if(e.method==="select")c.stdin.write(JSON.stringify({type:"extension_ui_response",id:e.id,value:"redacted"})+"\n");

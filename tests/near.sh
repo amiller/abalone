@@ -10,7 +10,7 @@ state="${ABALONE_DIR:-$HOME/.abalone}"
 work="$(mktemp -d)"; cd "$work"
 fail=0
 check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fail=1; fi; }
-run() { timeout 300 "$root/bin/abalone" -p --model "nearai/$1" "Reply with exactly: abalone ok" < /dev/null 2>&1 | grep -v "⌂ local provider"; }
+run() { timeout 300 "$root/bin/abalone" sandbox -p --model "nearai/$1" "Reply with exactly: abalone ok" < /dev/null 2>&1 | grep -v "⌂ local provider"; }
 for m in anthropic/claude-fable-5 anthropic/claude-haiku-4-5 openai/gpt-5-nano openai/gpt-4.1-mini; do
   out=$(run "$m"); check "$m refused for private agents: $(tail -1 <<<"$out" | cut -c1-150)" '[[ $out == *"is ○ outside"* ]]'
 done

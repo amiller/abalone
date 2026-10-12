@@ -10,7 +10,7 @@ check "matrix has the private agent, bash, the runner and the MCP caller" '[[ $o
 check "observer table and guarantees_* set false" '[[ $out == *OBSERVERS*"Frontier vendor"* && $out == *"guarantees_confidentiality_against_operator: false"* && $out == *"direct_fallback: false"* ]]'
 # The real config: provider handshakes from the harness, then the real claude binary in the runner sandbox.
 unset ABALONE_CONFIG; devkey redpill t dummy; devkey phala t dummy
-(cd "$ABALONE_DIR" && "$root/bin/abalone" --list-models < /dev/null > /dev/null 2>&1)
+(cd "$ABALONE_DIR" && "$root/bin/abalone" sandbox --list-models < /dev/null > /dev/null 2>&1)
 node "$root/tests/runner-claude.mjs" > /dev/null 2>&1
 nets=$("$root/bin/abalone" caps --json | node -e 'const d=JSON.parse(require("fs").readFileSync(0));console.log(d.capabilities.filter(c=>c.action==="net").map(c=>c.object).join("\n"))')
 hosts=$(node -e 'for (const l of require("fs").readFileSync(process.argv[1],"utf8").trim().split("\n")) { const e=JSON.parse(l); if (e.allowed) console.log(e.host) }' "$ABALONE_DIR/egress.jsonl" | sort -u)

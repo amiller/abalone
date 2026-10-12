@@ -9,7 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const [model, file, ...extra] = process.argv.slice(2), steps = JSON.parse(fs.readFileSync(file, "utf8"));
-const child = spawn(path.join(import.meta.dirname, "..", "bin", "abalone"), ["--mode", "rpc", ...extra, "--model", model], { stdio: ["pipe", "pipe", "inherit"] });
+const child = spawn(path.join(import.meta.dirname, "..", "bin", "abalone"), ["sandbox", "--mode", "rpc", ...extra, "--model", model], { stdio: ["pipe", "pipe", "inherit"] });
 const send = (o) => child.stdin.write(JSON.stringify(o) + "\n");
 let buf = "", waiter = null, step = null, n = 0;
 const out = (e) => console.log(JSON.stringify(e));

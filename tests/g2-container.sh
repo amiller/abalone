@@ -45,7 +45,7 @@ docker run --rm --network host --security-opt seccomp=unconfined --security-opt 
   -v "$W/cfg:/cfg:ro" -e ABALONE_CONFIG=/cfg -e TERM=dumb -e ABALONE_PLANT_CANARIES=yes abalone-friend-prereqs sh -c "
     export XDG_RUNTIME_DIR=\$(mktemp -d) &&
     curl -fsSL http://127.0.0.1:28800/install.sh | sh -s -- --peer $P $token &&
-    ~/.local/bin/abalone -p 'Reply with exactly: abalone ok' < /dev/null" > "$W/friend.log" 2>&1
+    ~/.local/bin/abalone sandbox -p 'Reply with exactly: abalone ok' < /dev/null" > "$W/friend.log" 2>&1
 code=$?; end=$(date +%s.%N)
 sed 's/g1[0-9A-Z]\{31\}\.[A-Za-z0-9_-]*/g1<redacted>/; s/^/  /' "$W/friend.log"
 secs=$(printf %.1f "$(echo "$end - $start" | bc)")

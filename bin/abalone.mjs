@@ -1,5 +1,5 @@
-// abalone: Pi locked down. With no arguments it opens the interactive session, which is the product.
-// Subcommands: caps, approvals, canary init, node keys, notebook, node serve, gift, gifts, redeem, report, verify, and ask (a one-shot test entry point).
+// abalone: Pi locked down. With no arguments it opens the saved credit's session; `abalone help` lists every subcommand.
+// The older sandboxed session (providers.json models, canaries) is `abalone sandbox [folder] [Pi options]`.
 import { spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -530,6 +530,42 @@ async function printCaps(json) {
   console.log("\nLIMITATIONS"); for (const l of doc.limitations) console.log(`  - ${l}`);
 }
 
+const REDEEM_PAGE = "https://amiller.github.io/abalone/redeem/";
+const REDEEM_STEPS = ["  abalone credit inspect --trial /abs/trial.json --input-file /abs/gift.txt",
+  "  abalone credit redeem --trial /abs/trial.json --input-file /abs/gift.txt --accept-offer <offerHash>"];
+const HELP = `abalone: an incognito AI session paid for by a gifted credit (Dsmack handles redemption).
+
+  abalone                                 open your saved credit's session (lists them if you have several)
+  abalone credit inspect|redeem ...       review a gift's offer and claim deadline, then redeem and save it:
+${REDEEM_STEPS.map((l) => `  ${l}`).join("\n")}
+  abalone credit status [--credit <id>]   saved credits and their state
+  abalone credit recover --credit <id>    finish an interrupted redeem with the same keys
+  abalone credit session --credit <id> [--mode rpc]   open a session with one saved credit
+  abalone help                            this text
+
+No gift yet, or no install? Start at ${REDEEM_PAGE}
+
+Older and developer commands:
+  abalone sandbox [folder] [Pi options]   the bubblewrap-sandboxed session using providers.json models
+  caps, approvals, canary init, trace, notebook, ask, report, show evidence, verify, setup,
+  gift, gifts, redeem, offers, commission, tasks, coupon-session, node keys|serve|relay`;
+const NEXT = { offered: (c) => `${c.claimWindow} Redeem it with abalone credit redeem ... --accept-offer ${c.offerHash}`, expired: (c) => c.claimWindow,
+  claiming: (c) => `A claim may be in progress; finish it with abalone credit recover --credit ${c.creditId}`, reconciliation_required: () => "The issuer's operator must reconcile this claim before it can be used.",
+  refused: (c) => `This saved credit was refused (${c.code}); abalone credit status --credit ${c.creditId} shows why.` };
+NEXT.uncertain = NEXT.claiming;
+
+// Plain `abalone`: the one saved credit's session; otherwise say which credits exist or how to get one.
+async function savedCreditCmd() {
+  const dir = path.join(STATE, "credit"), all = fs.existsSync(dir) ? await createCreditManager({ directory: dir }).status() : [];
+  const ready = all.filter((c) => c.state === "installed"), waiting = all.filter((c) => c.state !== "installed");
+  if (ready.length === 1) { args.splice(0, args.length, "credit", "session", "--credit", ready[0].creditId); return creditCmd(); }
+  if (ready.length) throw new Error([`You have ${ready.length} saved credits. Open one with:`,
+    ...ready.map((c) => `  abalone credit session --credit ${c.creditId}   (${c.model}, $${c.nominalCapUsd} nominal cap)`)].join("\n"));
+  throw new Error([waiting.length ? "No saved credit is ready to use yet:" : "No saved credit yet.", ...waiting.map((c) => `  ${c.creditId}  ${c.state}: ${NEXT[c.state](c)}`),
+    `To redeem a gift, open its link or ${REDEEM_PAGE} for the install steps (sh install.sh --credit prints your trial.json path).`,
+    "Save the gift code or link in a private file (chmod 600 gift.txt), then:", ...REDEEM_STEPS, "Then run abalone again. abalone help lists every command."].join("\n"));
+}
+
 // Flags that would re-enable ambient resources or bring outside text into the system prompt.
 const REFUSED = new Set(["--approve", "-a", "--system-prompt", "--append-system-prompt", "--prompt-template", "--theme", "--api-key"]);
 
@@ -539,10 +575,10 @@ async function prepareRetention() {
 }
 
 async function session() {
-  // abalone <folder>: work in that folder. The sandbox binds the working directory, and nothing else of the home.
+  // abalone sandbox <folder>: work in that folder. The sandbox binds the working directory, and nothing else of the home.
   const shell = process.cwd(); // where the user typed the command, for the reopen line
   if (args[0] && !args[0].startsWith("-") && fs.statSync(args[0], { throwIfNoEntry: false })?.isDirectory()) process.chdir(args.shift());
-  // abalone --incognito <folder>: strict incognito (docs/protocols/trace-store.md). Only this flag turns it on.
+  // abalone sandbox --incognito <folder>: strict incognito (docs/protocols/trace-store.md). Only this flag turns it on.
   const incognito = args.includes("--incognito"), keepTrace = args.includes("--keep-trace"), withTrace = flag("--with-trace");
   const ownedHost = args.includes("--owned-host");
   if (ownedHost && (!incognito || !couponSlot)) throw new Error("Owned-host mode requires an explicit incognito coupon session; no ambient provider is substituted.");
@@ -565,7 +601,7 @@ async function session() {
     if (REFUSED.has(a)) throw new Error(`✗ refused: ${a} is not available in abalone (ambient resources and project trust stay off)`);
     if (a === "-e" || a === "--extension") loads.push("-e", admit(entries, args[++i], "extension"));
     else if (a === "--skill") loads.push("--skill", admit(entries, args[++i], "skill"));
-    // abalone --resume <id> (the line printed on exit) is Pi's --session <id>; a bare --resume opens Pi's picker.
+    // abalone sandbox --resume <id> (the line printed on exit) is Pi's --session <id>; a bare --resume opens Pi's picker.
     else if (a === "--resume" && args[i + 1] && !args[i + 1].startsWith("-")) user.push("--session", args[++i]);
     else if (!["--no-canaries", "--incognito", "--keep-trace", "--owned-host"].includes(a)) user.push(a);
   }
@@ -592,7 +628,7 @@ async function session() {
     if (!giftOk && !couponOk && (m === GIFT || (place(m) !== "⌂ local" && !p.admitted.some((a) => a.id === m)))) throw new Error(`✗ refused: ${m} is not a ⌂ local or ◈ admitted provider; strict incognito sends nothing elsewhere`);
     user.push("--no-session"); // Pi keeps its session in memory only; the launcher writes the encrypted trace
   }
-  const env = { ...process.env, PI_RESUME_HINT: `Resume with: abalone ${/\s/.test(process.cwd()) ? JSON.stringify(process.cwd()) : process.cwd()} --resume {id}`, PI_QUIET_MANAGED_TOOLS: "1", ABALONE_DIR: STATE, PI_CODING_AGENT_DIR: AGENT_DIR, PI_ADMITTED_HOSTS: [...hosts, ...LOOPBACK].join(","), ABALONE_SANDBOX: "1" };
+  const env = { ...process.env, PI_RESUME_HINT: `Resume with: abalone sandbox ${/\s/.test(process.cwd()) ? JSON.stringify(process.cwd()) : process.cwd()} --resume {id}`, PI_QUIET_MANAGED_TOOLS: "1", ABALONE_DIR: STATE, PI_CODING_AGENT_DIR: AGENT_DIR, PI_ADMITTED_HOSTS: [...hosts, ...LOOPBACK].join(","), ABALONE_SANDBOX: "1" };
   delete env.ABALONE_COUPON_FD; delete env.ABALONE_COUPON_CONSENT_FD;
   delete env.ABALONE_COUPON_SOCKET; delete env.ABALONE_COUPON_MODEL; delete env.ABALONE_COUPON_PROVIDER; delete env.ABALONE_COUPON_MAX_TOKENS;
   if (canaries) env.ABALONE_CANARIES = canaries; else env.ABALONE_NO_CANARIES = "1";
@@ -737,7 +773,7 @@ async function session() {
     console.error(`\nStrict incognito closed.
 Kept: an encrypted trace in .abalone/traces/ (${tw.frames()} records), opened only with your trace passphrase. Files written here stay as ordinary files${g ? ", the gift's balance stays in abalone's state" : ""}, and abalone's egress log keeps the host names contacted.
 Not kept: Pi's session, logs and scratch (memory only).
-Reopen: abalone --incognito ${/\s/.test(here) ? JSON.stringify(here) : here} --with-trace ${tw.id}`);
+Reopen: abalone sandbox --incognito ${/\s/.test(here) ? JSON.stringify(here) : here} --with-trace ${tw.id}`);
   }
   if (incognito && !tw) console.error("Incognito closed. No conversation trace retained; Pi sessions, logs and scratch were memory-only. Workspace files, terminal output and egress hostname metadata may remain. This is not secure erasure or IP anonymity.");
   close();
@@ -746,12 +782,15 @@ Reopen: abalone --incognito ${/\s/.test(here) ? JSON.stringify(here) : here} --w
   tor.close();
   if (g) await g.close();
   if (couponSlot) { const saved = couponSlot.savedCredit; await couponSlot.close(); couponSlot = null; console.error(saved ? "Incognito session closed. Saved credit remains available for a fresh process; no ordinary conversation trace was saved." : "Coupon session closed. Local coupon identity, delivery key and credential were forgotten by this process. This is not upstream revocation or secure erasure. Conversation and workspace retention follow the session mode."); }
-  if (next) process.exit(spawnSync(process.execPath, [import.meta.filename, ...next, ...args], { stdio: "inherit" }).status);
+  if (next) process.exit(spawnSync(process.execPath, [import.meta.filename, "sandbox", ...next, ...args], { stdio: "inherit" }).status);
   process.exit(code);
 }
 
 try {
-  if (args[0] === "caps") await printCaps(args[1] === "--json");
+  if (!args.length) await savedCreditCmd();
+  else if (["help", "--help", "-h"].includes(args[0])) console.log(HELP);
+  else if (args[0] === "sandbox") { args.shift(); await session(); }
+  else if (args[0] === "caps") await printCaps(args[1] === "--json");
   else if (args[0] === "node" && args[1] === "keys") await nodeKeys(args.slice(2));
   else if (args[0] === "node" && args[1] === "serve") await serveNode();
   else if (args[0] === "node" && args[1] === "relay") await relayNode();
@@ -786,9 +825,9 @@ try {
     console.log(describe(r));
     process.exit(r.ok ? 0 : 1);
   }
-  else await session();
+  else throw Object.assign(new Error(`Unknown command ${shown(args[0])}. The older sandboxed session is now abalone sandbox [folder] [options].\n\n${HELP}`), { exit: 2 });
 } catch (e) {
   if (couponSlot) await couponSlot.close().catch(() => {});
   console.error(e.message);
-  process.exit(1);
+  process.exit(e.exit ?? 1);
 }

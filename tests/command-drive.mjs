@@ -4,7 +4,7 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 const [model, command] = process.argv.slice(2), choices = JSON.parse(process.env.CHOICES ?? "[]"), done = new RegExp(process.env.DONE);
-const child = spawn(path.join(import.meta.dirname, "..", "bin", "abalone"), ["--mode", "rpc", "--model", model], { stdio: ["pipe", "pipe", "inherit"] });
+const child = spawn(path.join(import.meta.dirname, "..", "bin", "abalone"), ["sandbox", "--mode", "rpc", "--model", model], { stdio: ["pipe", "pipe", "inherit"] });
 const events = [];
 let buf = "";
 const timer = setTimeout(() => { child.kill(); console.error("timed out"); process.exit(1); }, Number(process.env.TIMEOUT_MS ?? 90_000));

@@ -14,18 +14,18 @@ echo "AMBIENT-GLOBAL" | tee "$agent/AGENTS.md" "$agent/SYSTEM.md" "$agent/APPEND
 cp "$root/tests/fixtures/evil-extension.ts" "$proj/.pi/extensions/evil.ts"; cp "$root/tests/fixtures/evil-extension.ts" "$agent/extensions/evil.ts"
 echo '{"defaultProjectTrust":"always","extensions":["./extensions/evil.ts"],"skills":["./skills"]}' | tee "$proj/.pi/settings.json" > "$agent/settings.json"
 cd "$proj"
-out=$(STUB_SCRIPT="$root/tests/fixtures/scripts/echo-context.mjs" "$root/bin/abalone" --model stub/script -p go < /dev/null 2>&1); echo "  context: $out"
+out=$(STUB_SCRIPT="$root/tests/fixtures/scripts/echo-context.mjs" "$root/bin/abalone" sandbox --model stub/script -p go < /dev/null 2>&1); echo "  context: $out"
 check "no ambient context, system prompt or skill reaches the model" '! grep -qE "AMBIENT-[A-Z]+=true" <<<"$out"'
 check "curated skills and tools are present" '[[ $out == *pour-planning=true* && $out == *attestation-analyst=true* && $out == *ask_frontier=true* ]]'
 check "no ambient extension ran" '[[ ! -e $ABALONE_DIR/EVIL-LOADED ]]'
 for flags in "--approve" "-a" "--append-system-prompt AGENTS.md" "--system-prompt x" "--prompt-template x" "--theme x" \
              "-e .pi/extensions/evil.ts" "--extension $root/tests/fixtures/evil-extension.ts" "--skill .pi/skills/evil" "--skill $root/tests/fixtures/evil-skill"; do
-  out=$("$root/bin/abalone" --model stub/script $flags -p go < /dev/null 2>&1); code=$?
+  out=$("$root/bin/abalone" sandbox --model stub/script $flags -p go < /dev/null 2>&1); code=$?
   check "refused: $flags  ($out)" '[[ $code -ne 0 && $out == "✗ refused"* ]]'
 done
-out=$("$root/bin/abalone" --model stub/script --skill "$root/skills/pour-planning" -p go < /dev/null 2>&1)
+out=$("$root/bin/abalone" sandbox --model stub/script --skill "$root/skills/pour-planning" -p go < /dev/null 2>&1)
 check "a listed skill is admitted by flag ($out)" '[[ $out == "hello from stub" ]]'
 node -e 'const f=process.argv[1],m=JSON.parse(require("fs").readFileSync(f));m.entries.find(e=>e.path=="skills/pour-planning").sha256="0".repeat(64);require("fs").writeFileSync(f,JSON.stringify(m))' "$ABALONE_CONFIG/curated/manifest.json"
-out=$("$root/bin/abalone" --model stub/script -p go < /dev/null 2>&1); code=$?
+out=$("$root/bin/abalone" sandbox --model stub/script -p go < /dev/null 2>&1); code=$?
 check "hash mismatch refuses to start ($out)" '[[ $code -ne 0 && $out == *"code changed since it was verified (skills/pour-planning)"* && $out == *"rehash-manifest.mjs"*"reinstall"* ]]'
 echo "lockdown: $([[ $fail == 0 ]] && echo PASS || echo FAIL)"; exit $fail

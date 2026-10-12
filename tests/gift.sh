@@ -131,7 +131,7 @@ echo "== redeem and a first verified private turn (fresh HOME, through the relay
 out=$(rcp a abalone redeem --peer "$ABALONE_PEER" "$token"); echo "$out" | sed 's/^/  /'
 check "redemption shows the terms, model and the peer's attestation" '[[ $out == *"no promotional offers on terminal, browser, notifications, email"* && $out == *"Model: z-ai/glm-5.3-flash"* && $out == *"Server: "* ]]'
 [[ -n $MAC ]] && check "the Mac peer's App Attest evidence was verified (approved CDHash)" '[[ $out == *"App Attest, CDHash 67dfc08f0eca"* ]]'
-t0=$(date +%s.%N); out=$(rcp a abalone -p 'Reply with exactly: abalone ok'); t1=$(date +%s.%N)
+t0=$(date +%s.%N); out=$(rcp a abalone sandbox -p 'Reply with exactly: abalone ok'); t1=$(date +%s.%N)
 echo "$out" | sed 's/^/  /'
 check "first turn answered via the gift ($(printf %.1f "$(echo "$t1 - $t0" | bc)") s)" '[[ $out == *"abalone ok"* ]]'
 check "recipient holds no provider key" '[[ ! -e $W/a/home/.abalone/node/keys.json ]]'
@@ -143,7 +143,7 @@ check "G7: redemption recorded the no-promotion restriction and no consent" 'nod
 acct=$(node -e 'console.log(require(process.argv[1]).account)' "$W/a/home/.abalone/coupon.json")
 printf 'Private finding: the canary is ZEBRA-%s.\n' $RANDOM > "$W/a/work/private.txt"
 before=$(charged)
-out=$(rcp a abalone -p 'Summarize @private.txt'); echo "$out" | tail -1 | sed 's/^/  /'
+out=$(rcp a abalone sandbox -p 'Summarize @private.txt'); echo "$out" | tail -1 | sed 's/^/  /'
 check "a file mention is answered through the gift peer (E2EE to NEAR's TEE; tests/gift-session.sh checks the peer sees no plaintext), and charged" '[[ $(charged) -gt $before && $out != *"✗"* && $out != *stopped* ]]'
 
 echo "== G3: replay and retry"
@@ -175,7 +175,7 @@ node -e 'for (const t of JSON.parse(process.argv[1])) console.log("  ", t.status
 check "\$0.01 gift, 3 concurrent requests (each could cost \$0.004) run one at a time: each sees the balance the one before left" 'node -e "const t=JSON.parse(process.argv[1]).map(x=>x.charge).sort((a,b)=>b.remaining-a.remaining); let r=10000; process.exit(t.length===3 && t.every(c=>c && (r-=c.charge)===c.remaining) ? 0 : 1)" "$out"'
 out=$(GIFT_MAX_TOKENS=19990 client c one)
 check "a request that could cost more than is left is refused before anything is sent: $(cut -c1-120 <<<"$out")" '[[ $out == *"\"status\":402"*"The gift ran out"* ]]'
-out=$(rcp c abalone -p 'Reply with exactly: abalone ok'); echo "$out" | tail -1 | sed 's/^/  /'
+out=$(rcp c abalone sandbox -p 'Reply with exactly: abalone ok'); echo "$out" | tail -1 | sed 's/^/  /'
 check "abalone on the nearly spent gift stops with the plain message" '[[ $out == *"The gift ran out. This last message was not answered and was not sent anywhere."* ]]'
 iss gifts | sed 's/^/  /'
 status=$(status)

@@ -3,7 +3,7 @@
 Three harnesses for the core-competence skills in `skills/`. Each has a `run.py` (calls models, writes one JSON per item) and a `score.py` (deterministic scoring plus, where needed, a judge model).
 
 **Models are shell commands.** Every `--sealed`, `--frontier`, `--analyst`, `--reader` and `--judge` flag takes a command that reads the prompt on stdin and prints the reply on stdout (`llm.py`). Examples:
-- sealed (TEE): `bin/abalone -p --no-skills --model redpill/<model-id>` (needs a node key: `abalone node keys add redpill`)
+- sealed (TEE): `bin/abalone sandbox -p --no-skills --model redpill/<model-id>` (needs a node key: `abalone node keys add redpill`)
 - frontier: `claude -p` or `codex exec -` (outside inference; use synthetic or explicitly released inputs only)
 - offline stand-ins: `python3 evals/<eval>/fixtures/fake.py <role>`. These test the plumbing only. They are not baselines.
 

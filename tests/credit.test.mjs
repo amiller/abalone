@@ -459,6 +459,29 @@ test("credit CLI names each argument mistake and what to do next, never echoing 
   assert.equal(trial.status, 1); assert.ok(!trial.stderr.includes(home) && !trial.stderr.includes("ENOENT"));
 });
 
+test("plain abalone without saved credit points to the redeem page; help prints help; an unknown command fails with help and exit 2", () => {
+  const home = tempDir(), run = (...argv) => spawnSync(process.execPath, [path.join(root, "bin/abalone.mjs"), ...argv], { encoding: "utf8", timeout: 20_000, env: { ...process.env, ABALONE_DIR: path.join(home, "state") }, input: "" });
+  const none = run();
+  assert.equal(none.status, 1);
+  assert.ok(none.stderr.startsWith("No saved credit yet.\n"), none.stderr);
+  for (const text of ["https://amiller.github.io/abalone/redeem/", "sh install.sh --credit", "abalone credit inspect --trial /abs/trial.json --input-file /abs/gift.txt",
+      "--accept-offer <offerHash>", "Then run abalone again."]) assert.ok(none.stderr.includes(text), text);
+  assert.ok(!/canar|bubblewrap|providers\.json/.test(none.stderr), "never the legacy sandboxed session");
+  assert.equal(fs.existsSync(path.join(home, "state", "credit")), false, "listing creates no credit directory");
+  for (const flag of ["--help", "-h", "help"]) {
+    const r = run(flag);
+    assert.equal(r.status, 0); assert.equal(r.stderr, "");
+    for (const text of ["abalone credit inspect", "abalone credit redeem", "abalone credit status", "abalone credit recover", "abalone credit session", "abalone sandbox [folder]"]) assert.ok(r.stdout.includes(text), `${flag}: ${text}`);
+  }
+  for (const argv of [["status"], ["--model", "stub/script"], ["s".repeat(43)]]) {
+    const r = run(...argv);
+    assert.equal(r.status, 2, argv.join(" "));
+    assert.ok(r.stderr.startsWith(`Unknown command ${argv[0].length === 43 ? "(not shown" : JSON.stringify(argv[0])}`), r.stderr);
+    assert.ok(r.stderr.includes("abalone sandbox [folder]") && r.stderr.includes("abalone credit session --credit <id>"));
+    assert.ok(!r.stderr.includes("s".repeat(43)) && !r.stderr.includes("no canaries"), "never the legacy session");
+  }
+});
+
 // Producer → consumer: matched dsmack bundles (tests/fixtures/coupon/durable/PROVENANCE.json "paired"), each recorded from one
 // Python LiveWorker/MacLiveWorker run. Node checks them with the same functions durable credit uses.
 const durableDir = new URL("fixtures/coupon/durable/", import.meta.url);
