@@ -77,6 +77,8 @@ printed. Agent-specific rules:
 - Explain the inspected offer's provider, cap, expiry and material restrictions.
   When the user has requested redemption, accept that exact offer by its returned
   hash; no ceremonial confirmation phrase is needed.
+- If the inspected state is `expired`, the claim window has closed. Do not redeem;
+  tell the user to ask the sponsor for a new gift.
 - `--stdin` is an alternative to `--input-file`; pass input through the tool's
   stdin, not a shell command containing the coupon.
 - Save and use the returned credit ID. Conversation privacy does not require
@@ -96,7 +98,8 @@ usage; never describe the full cap as spent merely because it was redeemed.
 The automation interface is `abalone credit session --credit CREDIT_ID --mode rpc`
 (Pi RPC mode); do not invent another prompt protocol.
 
-Hand the user a fresh interactive terminal running the session command from
+Hand the user a fresh interactive terminal running `abalone`, which opens the
+saved credit when exactly one is ready, as in
 [Open a session](../../docs/redeem.md#open-a-session). If opening a
 user-controlled terminal is unavailable, give that exact launch command. Do not
 require tmux, reuse of the setup agent's process, another coupon or a credential

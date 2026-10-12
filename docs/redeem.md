@@ -6,6 +6,7 @@ same procedure; [getting started](getting-started.md) covers the session itself.
 [What incognito means here](../README.md#what-incognito-means-here) explains what
 is protected and what is not.
 
+<!-- Release step: point the links, the install.sh SHA256 and the claim deadline below at the new release. -->
 **Current release:** [v0.1.0-preview.6](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.6)
 provides `install.sh --credit` and the `abalone credit` commands. Download
 [install.sh](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.6/install.sh) and
@@ -98,13 +99,22 @@ abalone credit inspect --trial /ABS/trial.json --input-file /private/gift.txt
 ```
 
 Read the returned offer: provider, cap, expiry and restrictions. Inspecting
-claims nothing. To accept that exact offer:
+claims nothing. The offer's `claimWindow` line says when the gift must be
+redeemed. If that time has passed, the state is `expired` and the line says
+"Claim window closed; the deadline was ... This gift can no longer be redeemed:
+ask the sponsor for a new gift." Redeeming an expired offer is refused before
+anything is sent to the issuer. If your computer's clock is wrong, correct it
+first.
+
+To accept that exact offer:
 
 ```sh
 abalone credit redeem --trial /ABS/trial.json --input-file /private/gift.txt --accept-offer OFFER_HASH
 abalone credit status
 ```
 
+Redeem reads the issuer's status for the gift before it sends the first claim,
+and stops without claiming if the issuer reports the window closed.
 Saved access lives in `~/.abalone/credit/` (or `$ABALONE_DIR/credit/`), in a
 0700 directory with 0600 files owned by your account. These files hold the
 credential and its recovery keys, never conversations. Concurrent commands are
@@ -122,25 +132,40 @@ balance. The operator or provider can revoke access; caps can overshoot.
 `abalone credit status` shows the token counts the provider reported for this
 credit, totalled on this computer, or "not reported". They are not priced.
 
+Each request is bounded to the trial's per-request output limit, 4096 tokens in
+this trial. A credit keeps the limits it was saved with: a credit saved under an
+earlier trial file (512 tokens) keeps 512, and inspecting that gift again with a
+newer `trial.json` is refused with `credit_admission_changed` and changes
+nothing.
+
 ## Open a session
 
 Open a fresh terminal of your own, change to the folder you want to work in,
 and run:
 
 ```sh
-abalone credit session --credit CREDIT_ID
+abalone
 ```
 
+With exactly one saved credit ready, plain `abalone` opens it. With several it
+lists them with the command to open each; with none ready it says why (for
+example an expired offer) and how to redeem. The explicit form, also for
+automation, is `abalone credit session --credit CREDIT_ID [--mode rpc]`.
+
 No password, tmux or new coupon is needed. The session adds no files to the
-folder. With the current NEAR route it prints one warning, once per session:
+folder. Before it starts, it prints the saved credit's terms, which for this
+trial include its OutOfDate notice. With the current NEAR route it then prints
+one firmware line when the provider is first admitted:
 `⚠ NEAR firmware out of date (N Intel advisories); synthetic input only`.
+`/coupon` lists the advisory IDs.
 Inside the session, `/status` shows usage, what is kept and what was verified;
 `/coupon` shows the credit's state and limits.
 
-Closing discards the managed
-conversation by default and keeps saved access for the next session; reopening
-uses the same credit with fresh provider admission and never redeems again.
-Continue with [getting started](getting-started.md).
+Closing discards the managed conversation by default and keeps saved access.
+Next time, run `abalone` again (or `abalone credit status` to find the credit ID
+for the explicit form). Each session uses the same credit with fresh provider
+admission and never redeems again. Continue with
+[getting started](getting-started.md).
 
 [Releases](https://github.com/amiller/abalone/releases) ·
 [Source](https://github.com/amiller/abalone) ·

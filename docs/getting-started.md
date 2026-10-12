@@ -48,7 +48,7 @@ this runtime.
 
 ## Open, work and close
 
-Open the session in a fresh terminal of your own, as in
+Open the session by running `abalone` in a fresh terminal of your own, as in
 [Open a session](redeem.md#open-a-session). Stop any recording or observation
 by the setup agent first; its stepping aside is cooperation, not enforced
 exclusion. Ask a question or select a synthetic text or PDF file: `Summarize @notes.txt`, `Summarize @report.pdf`, or
@@ -64,8 +64,9 @@ with fresh provider admission and never triggers another redemption. Workspace f
 terminal scrollback, swap and host captures have their own lifetimes; closing is not
 secure erasure.
 
-An inference may already have been charged when its reply fails; do not blindly
-repeat it. A nominal cap is not a verified remaining balance, and the provider or
+Each answer is bounded to the trial's per-request output limit (4096 tokens in
+this trial). An inference may already have been charged when its reply fails; do
+not blindly repeat it. A nominal cap is not a verified remaining balance, and the provider or
 operator can revoke access.
 
 Keep diagnostics deliberate and metadata-only. Never post a coupon, credential,
