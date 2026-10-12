@@ -85,6 +85,18 @@ test("8. coupon footer shows an unknown credit balance and a compact trial warni
   assert.match(footerLine(segments({ ...base, model: { provider: "synthetic-near", id: "fixture" } }), 80, themes.plain), /⚠ fixture/);
 });
 
+test("9. the 80-column strip keeps the sharing and canary state after a NEAR TCB flag; the full flag stays in the long form", () => {
+  process.env.ABALONE_NO_CANARIES = "1";
+  const gw = "OutOfDate INTEL-SA-01192,INTEL-SA-01245,INTEL-SA-01312,INTEL-SA-01313";
+  const near = (model, model_tcb) => ({ type: "custom", customType: "near-attestation", timestamp: "2026-10-12T00:00:00Z", data: { provider: "nearai", model, gateway_tcb: gw, model_tcb } });
+  for (const [id, mt, brief] of [["z-ai/glm-5.3-flash", ["UpToDate"], "tcb:ok gw-tcb:ood"], ["Qwen/Qwen3.6-35B-A3B-FP8", [gw], "tcb:ood gw-tcb:ood"]]) {
+    const segs = segments({ model: { provider: "nearai", id }, entries: [near(id, mt)], session: "test", coupon: null });
+    assert.equal(footerLine(segs, 80, themes.plain), `◈ attested ${id.split("/").at(-1)} ${brief} · nothing shared · no canaries`);
+    assert.match(segs[0][0], /tcb:(up-to-date|out-of-date \(4 Intel advisories\)), gw-tcb:out-of-date/);
+  }
+  delete process.env.ABALONE_NO_CANARIES;
+});
+
 test("remote NEAR coupon is not classified as a model running on this computer", async () => {
   const old = process.env.ABALONE_COUPON_SOCKET;
   process.env.ABALONE_COUPON_SOCKET = "/synthetic-unit/coupon.sock";
