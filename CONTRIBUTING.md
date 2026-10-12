@@ -9,6 +9,22 @@ Start with the [roadmap](docs/roadmap.md) and [GitHub issues](https://github.com
 The optional incognito journey is the first introduction, not a mandatory global
 mode. Follow the [development workflow](docs/development.md) for scope and review.
 
+## Contributor doors
+
+Each directory has a different audience and a different review bar. Changes to
+`lib/`, `bin/`, `curated/`, `anchors/`, `aci/` and the skills admitted in
+`curated/manifest.json` reach users only through a release.
+
+| Directory | Who | First contribution | Review needed |
+| --- | --- | --- | --- |
+| `guides/` | People who use Tor, Tails, wallets or local models | Answer the questions in a `todo` guide; see [guides](guides/README.md) | Editorial, or security-sensitive when readers rely on it to stay private |
+| `portable/` | Tails and live-system users | Report a session attempt on Tails with its exact failure | Security-sensitive |
+| `docs/` | Anyone who followed a procedure | Fix a step that did not match what happened | Editorial; `make verify-docs` |
+| `skills/` | Agent and skill authors | Improve a skill's eval or report a wrong instruction | Independent review; admitted skills need a release |
+| `tests/` | Anyone with a Linux machine | Run `make verify-offline` and report a failing suite | Independent review |
+| `curated/`, `anchors/`, `providers.json` | Attestation and TEE reviewers | A negative fixture that a verifier must refuse | Security review, full offline gate and a release |
+| `bin/`, `lib/` | Shell developers | A bounded issue from the [tracker](https://github.com/amiller/abalone/issues) | Independent review, full offline gate and a release |
+
 ## Local development
 
 Use a topic branch or `tools/dev-worktree.sh <name>`. The helper creates a separate
