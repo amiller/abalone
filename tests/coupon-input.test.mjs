@@ -60,12 +60,19 @@ test('missing terminal and malformed descriptor refuse without echoing descripto
   }
 });
 
-test('terminalLine discards what follows the line and names too-long input, ended input and missing bash', () => {
-  const code = `import fs from 'node:fs';import {terminalLine} from ${JSON.stringify(inputModule)};
-try{const line=await terminalLine('Prompt: ');console.log(JSON.stringify({line,rest:fs.readFileSync(0,'utf8')}))}catch(e){console.log(JSON.stringify({error:e.message,code:e.code}))}`;
-  const run = (input, env = process.env) => JSON.parse(spawnSync(process.execPath, ['--input-type=module', '-e', code], { input, env, encoding: 'utf8' }).stdout);
-  assert.deepEqual(run('first line\nsecond line\nthird'), { line: 'first line', rest: '' });
-  assert.deepEqual(run(`${'x'.repeat(2000)}\n`), { error: 'That line is longer than 1024 bytes, so it was refused; run the command again and enter one line.', code: 'credit_input_refused' });
-  assert.deepEqual(run(''), { error: 'Terminal input ended before a line was entered; run the command again.', code: 'credit_input_refused' });
-  assert.deepEqual(run('line\n', { ...process.env, PATH: '/nonexistent' }), { error: 'Reading the terminal needs bash, which could not be started; install bash and run the command again.', code: 'credit_input_refused' });
+test('terminalLine discards what follows the line, never blocks when nothing waits, and names each refusal', () => {
+  const pty = (steps, body) => JSON.parse(spawnSync('python3', ['-I', new URL('./usability/pty.py', import.meta.url).pathname, '20', JSON.stringify(steps), '--', process.execPath, '--input-type=module', '-e',
+    `import {terminalLine} from ${JSON.stringify(inputModule)};try{${body}}catch(e){console.log('@'+JSON.stringify({error:e.message,code:e.code}))}`], { encoding: 'utf8' }).stdout);
+  const result = (r) => { assert.equal(r.timedOut, false, r.output); return JSON.parse(r.output.split('@').at(-1)); };
+  assert.deepEqual(result(pty([['Prompt: ', 'first line\rsecond line\rpartial'], ['Next: ', 'fresh\r']],
+    `const {spawnSync:s}=await import('node:child_process'),g=()=>s('stty',['-g'],{stdio:['inherit','pipe','inherit'],encoding:'utf8'}).stdout,before=g();
+    const a=await terminalLine('Prompt: ',{hidden:true}),b=await terminalLine('Next: ');console.log('@'+JSON.stringify({a,b,restored:before===g()}))`)), { a: 'first line', b: 'fresh', restored: true });
+  const idle = result(pty([['Prompt: ', 'x\r']], "const t=Date.now(),a=await terminalLine('Prompt: ',{fresh:true});console.log('@'+JSON.stringify({a,ms:Date.now()-t}))"));
+  assert.equal(idle.a, 'x'); assert.ok(idle.ms < 2000, `${idle.ms} ms`);
+  const refused = (error) => ({ error, code: 'credit_input_refused' });
+  assert.deepEqual(result(pty([['Prompt: ', `${'x'.repeat(2000)}\r`]], "await terminalLine('Prompt: ')")), refused('That line is longer than 1024 bytes, so it was refused; run the command again and enter one line.'));
+  assert.deepEqual(result(pty([['Prompt: ', '\x04']], "await terminalLine('Prompt: ')")), refused('Terminal input ended before a line was entered; run the command again.'));
+  assert.deepEqual(result(pty([], "process.env.PATH='/nonexistent';await terminalLine('Prompt: ')")), refused('Reading the terminal needs bash, which could not be started; install bash and run the command again.'));
+  const piped = spawnSync(process.execPath, ['--input-type=module', '-e', `import {terminalLine} from ${JSON.stringify(inputModule)};await terminalLine('Prompt: ').catch((e)=>console.log(e.message))`], { input: 'line\n', encoding: 'utf8' });
+  assert.equal(piped.stdout.trim(), 'Standard input is not a terminal; run the command again at a terminal.');
 });
