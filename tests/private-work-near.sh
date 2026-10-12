@@ -22,7 +22,7 @@ timeout 300 "$root/bin/abalone" ask --model "nearai/$model" --project g4-live "$
 cat out
 check "answer cites the file and abalone quotes the cited lines" 'grep -q "^  \[L[0-9]*\] \"" out && ! grep -q "no such line" out'
 "$root/bin/abalone" show evidence > ev 2>&1; cat ev
-check "strip shows verification from verifier output, with the gateway TCB flag" '[[ $(sed -n "/^Status (from/,/^Saved:/p" out | tr -s " \n" " ") == *"Model: remote, TEE checked · out-of-date firmware"* ]] && grep -q "Model: nearai/$model, remote, checked by abalone .*GPU: NVIDIA verdict (signature checked)" ev && grep -q "tcb:out-of-date" ev'
+check "strip shows verification from verifier output, with the gateway TCB as gw-tcb (model TEE up to date)" '[[ $(sed -n "/^Status (from/,/^Saved:/p" out | tr -s " \n" " ") == *"Model: remote, TEE checked · gw-tcb:out-of-date"* ]] && grep -q "Model: nearai/$model, remote, checked by abalone .*GPU: NVIDIA verdict (signature checked)), tcb:up-to-date, gw-tcb:out-of-date" ev'
 hosts=$(node -e 'for (const l of require("fs").readFileSync(process.argv[1],"utf8").trim().split("\n")) { const e=JSON.parse(l); if (e.ts>=process.argv[2]) console.log(e.via, e.host, e.allowed) }' "$state/egress.jsonl" "$since" | sort | uniq -c)
 echo "$hosts" | sed 's/^/  egress: /'
 check "egress only to NEAR, NVIDIA NRAS, Intel PCS and the other admitted hosts' attestation endpoints" '! grep -vE "cloud-api.near.ai|nras.attestation.nvidia.com|trustedservices.intel.com|tee.redpill.ai|inference.phala.com|127.0.0.1" <<<"$hosts" | grep -q .'

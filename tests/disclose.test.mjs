@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { screen } from "../lib/disclose.mjs";
-import { footerLine } from "../lib/status.mjs";
+import { footerLine, tcbFlag } from "../lib/status.mjs";
 import { STATES, status, themes } from "../lib/ui/layout.mjs";
 
 const dir = path.join(import.meta.dirname, "fixtures", "snapshots");
@@ -57,6 +57,18 @@ test("the footer strip: one line within 80 columns; color only paints tcb:out-of
   assert.equal(color.replace(SGR, ""), plain);
   assert.equal(color.match(SGR).length, 2, "only the flag is painted");
   assert.equal(footerLine(segs, 40, themes.plain).length, 40, "an over-long strip is cut to the width, marked with …");
+});
+
+test("NEAR TCB flags: the model TEE's status is the privacy flag; the gateway's is a separate gw-tcb: flag", () => {
+  const gw = "OutOfDate INTEL-SA-01192,INTEL-SA-01245,INTEL-SA-01312,INTEL-SA-01313";
+  assert.equal(tcbFlag({ gateway_tcb: gw, model_tcb: ["UpToDate"] }), "tcb:up-to-date, gw-tcb:out-of-date");
+  assert.equal(tcbFlag({ gateway_tcb: gw, model_tcb: ["OutOfDate INTEL-SA-01192,INTEL-SA-01245", "OutOfDate INTEL-SA-01245,INTEL-SA-01312,INTEL-SA-01313"] }), "tcb:out-of-date (4 Intel advisories), gw-tcb:out-of-date");
+  assert.equal(tcbFlag({ gateway_tcb: "UpToDate", model_tcb: ["UpToDate", "OutOfDate INTEL-SA-01192"] }), "tcb:out-of-date (1 Intel advisory)");
+  assert.equal(tcbFlag({ gateway_tcb: "UpToDate", model_tcb: ["UpToDate"] }), "tcb:up-to-date");
+  const segs = (flag) => [[`◈ attested Qwen/Qwen3.6-35B-A3B-FP8, checked, ${flag}`, `◈ attested Qwen3.6-35B-A3B-FP8 ${flag}`], ["nothing shared", "nothing shared"]];
+  const painted = (flag) => (footerLine(segs(flag), 120, themes.ansi).match(SGR) ?? []).length;
+  assert.equal(painted("tcb:up-to-date, gw-tcb:out-of-date"), 0, "an out-of-date gateway alone is not painted");
+  assert.equal(painted("tcb:out-of-date (4 Intel advisories), gw-tcb:out-of-date"), 2, "only the model flag is painted");
 });
 
 test("every task state renders as a word", () => {

@@ -9,7 +9,7 @@
   {
    "kind": "extension",
    "path": "curated/abalone.ts",
-   "sha256": "31e85e52b7313de887a1faef862fde8e484450171392f4243e611a94a6e73b02"
+   "sha256": "d50f63bf0acbcf4ea28ae7e563ab388d4fcb042975a32af3fde492206c489822"
   },
   {
    "kind": "extension",
@@ -29,7 +29,7 @@
   {
    "kind": "tree",
    "path": "lib",
-   "sha256": "f76f0fd7dbf0c278efb59de6b4924264b144402c9ff817a4045d4cf19f62cd33"
+   "sha256": "3f6db3bfe5bed6a3c153e8e0e83dbff7b7f7f01e19564ee737df641fd2de5c8b"
   },
   {
    "kind": "skill",
@@ -74,7 +74,7 @@
   {
    "kind": "provider",
    "path": "curated/near-provider.ts",
-   "sha256": "4e9d026c94a7778bc2ed095ade3878ce2c5228993e2320f7879438aa4802a6e0"
+   "sha256": "5ddbaf8f1d33a98c13a0404ce064d61a85c94e0eecd448e285ed5d455a3cd570"
   },
   {
    "kind": "tree",

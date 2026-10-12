@@ -144,7 +144,7 @@ export default async function (pi: ExtensionAPI) {
   // Place labels for the model picker (pi core reads PI_MODEL_LABELS), and the footer strip.
   process.env.PI_MODEL_LABELS = path.join(process.env.ABALONE_EGRESS!, "model-labels.json");
   fs.writeFileSync(process.env.PI_MODEL_LABELS, "{}");
-  let segs: any = null, tcbExplained = false;
+  let segs: any = null, modelTcbExplained = false, gatewayTcbExplained = false;
   // The launcher's Tor transport writes its status next to the egress sockets; the strip shows it once Tor is in use.
   const torStatus = () => { const f = path.join(process.env.ABALONE_EGRESS!, "tor-status"); return fs.existsSync(f) ? fs.readFileSync(f, "utf8") : "off"; };
   const line = (w: number) => {
@@ -158,9 +158,14 @@ export default async function (pi: ExtensionAPI) {
     const entries = ctx.sessionManager.getEntries();
     fs.writeFileSync(process.env.PI_MODEL_LABELS!, JSON.stringify(labels(ctx.modelRegistry.getAvailable(), remember(entries))));
     segs = ctx.model && segments({ model: ctx.model, entries, session: sessionId, coupon: coupon(), couponSession: COUPON_SESSION, incognito: INCOGNITO });
-    if (!tcbExplained && segs && segs[0][0].includes("tcb:out-of-date")) {
-      tcbExplained = true;
-      ctx.ui.notify("tcb:out-of-date: the firmware of NEAR's TEE has known Intel security advisories. Your messages are still encrypted end to end to the verified model; /evidence has the details.", "warning");
+    const shown = segs ? segs[0][0] : "";
+    if (!modelTcbExplained && /(?<!gw-)tcb:out-of-date/.test(shown)) {
+      modelTcbExplained = true;
+      ctx.ui.notify("tcb:out-of-date: the firmware of the TEE running this model, which decrypts your messages, has known Intel security advisories. /evidence lists them.", "warning");
+    }
+    if (!gatewayTcbExplained && shown.includes("gw-tcb:out-of-date")) {
+      gatewayTcbExplained = true;
+      ctx.ui.notify("gw-tcb:out-of-date: the firmware of NEAR's gateway TEE has known Intel security advisories. The gateway sees only end-to-end encrypted messages plus your account, the model, timing, sizes and usage; tcb: is the model's TEE. /evidence has the details.", "info");
     }
     ctx.ui.setStatus("abalone", line(80));
     render();

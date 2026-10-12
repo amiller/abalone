@@ -12,6 +12,7 @@ import { providers } from "../lib/config.mjs";
 import { ATTESTED_OWNERS, chatSignatureFails, peerStatus, untrusted, decrypt, encrypt, verifyNearModel, withKey } from "../lib/near.mjs";
 import { deviceHeaders } from "../lib/gift.mjs";
 import { saveLeft } from "../lib/peer.mjs";
+import { tcbFlag } from "../lib/status.mjs";
 
 const FIELDS = ["content", "reasoning_content", "reasoning"];
 
@@ -79,10 +80,10 @@ function decryptSse(body: ReadableStream<Uint8Array>, ecdh: crypto.ECDH, price?:
   }));
 }
 
-// Shown in the status strip once a model is verified. Policy (providers.json): the gateway TCB is reported, not
-// gating, and shown in red when out of date; the model TCB likewise (providers.json modelTcb).
+// Shown in the status strip once a model is verified. Policy (providers.json): gateway and model TCB are reported, not
+// gating. The model's out-of-date TCB is red; the gateway's (gw-tcb:) is not, since it sees only ciphertext and metadata.
 const RED = (s: string) => `\x1b[31m${s}\x1b[39m`;
-const strip = (p: any, gift: Gift | null) => `${gift ? `${gift.peer} → ` : ""}◈ nearai ${p.model} · ${[p.gateway_tcb, ...(p.model_tcb ?? [])].every((t: string) => t.startsWith("UpToDate")) ? "tcb:up-to-date" : RED("tcb:out-of-date")} · ${gift ? "the peer sees ciphertext, sizes and usage only" : "tools off (NEAR sees E2EE messages only)"}`;
+const strip = (p: any, gift: Gift | null) => `${gift ? `${gift.peer} → ` : ""}◈ nearai ${p.model} · ${tcbFlag(p).replace(/(?<!gw-)tcb:out-of-date/, RED)} · ${gift ? "the peer sees ciphertext, sizes and usage only" : "tools off (NEAR sees E2EE messages only)"}`;
 
 // A gift: its coupon, the launcher's attested loopback endpoint to its peer, and how the peer is named.
 export type Gift = { coupon: any; url: string; peer: string };

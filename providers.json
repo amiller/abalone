@@ -61,7 +61,7 @@
       "tools": "in-content",
       "transport": "near-e2ee (per model)",
       "axes": {
-        "hw": "per model: gateway+model TDX, report_data binding, SPKI pin, GPU NRAS; gateway and model TCB reported (tcb:out-of-date shown in red)",
+        "hw": "per model: gateway+model TDX, report_data binding, SPKI pin, GPU NRAS; gateway and model TCB reported (model tcb:out-of-date in red; gateway as gw-tcb:, metadata only)",
         "code": "compose measured into RTMR3 and allowed by NEAR's DstackApp on Base (NEAR's governance; owner is an EOA, no notice period)",
         "operator": "S0",
         "custody": "unchecked"

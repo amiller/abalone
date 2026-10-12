@@ -11,6 +11,7 @@ import { ROOT } from "../lib/config.mjs";
 
 globalThis.fetch = (url) => { throw new Error(`network is cut in this test: ${url}`); };
 const { checkReport } = await import("../lib/near.mjs");
+const { tcbFlag } = await import("../lib/status.mjs");
 const fx = JSON.parse(fs.readFileSync(path.join(ROOT, "tests/fixtures/near/attestation.json"), "utf8"));
 // The NRAS token lives an hour: the verifier's clock is the recording's (a test moves it to show expiry is refused).
 const realNow = Date.now, at = (t) => (Date.now = () => t);
@@ -35,6 +36,7 @@ test("positive control: the recording verifies offline, the NRAS token's signatu
   const v = await check(fx.report);
   assert.equal(v.profile.model_signing_address, fx.report.model_attestations[0].signing_address);
   assert.equal(v.profile.gpu, "GPU: NVIDIA verdict (signature checked)");
+  assert.equal(tcbFlag(v.profile), "tcb:up-to-date, gw-tcb:out-of-date", "the recorded gateway is OutOfDate, its model TEE UpToDate");
 });
 test("NVIDIA's JWKS unreachable: the verdict is shown as not checked, with the reason, never as checked", async () => {
   const v = await check(fx.report, replay((r) => (r.url.endsWith("/jwks.json") ? { ...r, status: 503 } : r)));
