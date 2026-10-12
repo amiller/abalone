@@ -43,8 +43,8 @@ exploratory notebooks and abandoned variants in a private workspace or an issue.
 | `aci/` | Provider and verifier packages used by the client |
 | `contracts/` | On-chain contract implementation and tests for the paths that reference it |
 | `tests/`, `tests/fixtures/` | Reproducible positive/adversarial checks and selected synthetic/recorded inputs |
-| `tools/` | Build, installer, fixture recording, manifest and worktree tooling |
-| `site/` | One supported hidden-entry friend landing source |
+| `tools/` | Build, installer, fixture recording, manifest and development-checkout tooling |
+| `site/` | One supported hidden-entry gift landing source |
 | `docs/`, `docs/protocols/` | User/security/build guides and maintained interface contracts |
 | `evals/` | Skill evaluation harnesses, selected targets and scoring references |
 

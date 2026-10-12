@@ -46,7 +46,7 @@ merely because the user asked what Abalone does.
   Do not invent a checkout, payment address, Zcash funding endpoint or availability
   claim. A future funding design is not a working acquisition path.
 
-Use the [release/access instructions](../../docs/friend-preview.md) to obtain the
+Use the [release/access instructions](../../docs/redeem.md) to obtain the
 reviewed distribution; its `install.sh --credit` fetches and checks the pinned
 public trial files and prints their path. Check actual
 availability and expiry there. Use a release exposing the `credit` commands;

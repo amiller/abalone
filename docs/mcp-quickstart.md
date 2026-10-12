@@ -1,6 +1,6 @@
 # Using Abalone from Claude Code over MCP
 
-This is the connected-session MCP interface, not the incognito friend entry.
+This is the connected-session MCP interface, not the incognito gift entry.
 Read [security profiles](security.md) before applying approval or sandbox claims.
 Ordinary MCP outputs and approval state can contain plaintext; a same-user caller
 with shell/file access can bypass that state's permissions.

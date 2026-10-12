@@ -19,7 +19,7 @@ the trust limits. An explanation request is not permission to install or spend.
 
 The agent can then install the release, handle your coupon and save the
 resulting credential under ordinary private file permissions, as described in
-[access and installation](friend-preview.md). It can redeem and run a synthetic
+[Redeem a coupon](redeem.md). It can redeem and run a synthetic
 test when you ask. Handling the credential does not entitle it to your private
 documents, prompts or answers; none of these are sent to the setup agent
 automatically.
@@ -42,7 +42,7 @@ this runtime.
 
 - **Saved Abalone access:** `abalone credit status` lists saved credits. Reuse one;
   do not redeem another coupon.
-- **Coupon:** inspect, redeem and save it as in [access and installation](friend-preview.md).
+- **Coupon:** inspect, redeem and save it as in [Redeem a coupon](redeem.md).
 - **Existing provider key:** importing a separate provider key is not supported
   in this release. Only NEAR access obtained through Abalone is supported.
 

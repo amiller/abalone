@@ -12,7 +12,7 @@ Record scope, dependencies, next action and expected acceptance. Assign a real
 owner only when they take the task; historical assistant names are not assignments.
 No particular assistant, model or automatic scheduler is required.
 
-Use one topic branch/worktree per change. The optional tools/dev-worktree.sh helper
+Use one topic branch per change. The optional tools/dev-worktree.sh helper
 creates an isolated checkout; copied build outputs do not share writable inodes.
 Use disposable ABALONE_DIR state and synthetic data. Preserve unrelated work.
 
