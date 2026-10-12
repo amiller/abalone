@@ -14,6 +14,8 @@ fragment to the address bar locally so the user can copy the full link. The page
 requests containing coupon data. Static images, script and stylesheet are local;
 CSP denies network connections and form submissions, and referrers are disabled.
 Gift-bearing clipboard text should be pasted only into a trusted setup agent.
+`index.html` and `friend.html` have no script. Dark is the default theme; a light
+theme follows `prefers-color-scheme`.
 
 ## Deployment
 
@@ -31,10 +33,13 @@ and service availability are maintained independently of the static website.
 
 ## Checks
 
-Run `node --check assets/redeem.js`, `git diff --check` and a local static
-server. Inspect desktop and mobile widths, keyboard focus, missing/malformed
-fragments, clipboard failure, and section navigation before copying. With a
-synthetic fragment, verify browser network requests contain no coupon bytes and
-no external requests. Never use a real coupon for page testing.
+Run `node --check assets/redeem.js`, `git diff --check` and a local static server. Inspect desktop and mobile
+widths in both colour schemes, keyboard focus, missing/malformed fragments, clipboard failure, section
+navigation before copying, and the absence of horizontal
+scroll and CSP console errors. `friend.html` must pass the release template
+check (CSP `default-src 'none'`, links to the hosted redeem entry and the setup
+skill, no script or versioned installer link). Never use a real coupon for page
+testing. With a synthetic fragment, verify browser network requests contain no
+coupon bytes and no external requests.
 
 Artwork provenance is in [assets/README.md](assets/README.md).
