@@ -139,8 +139,7 @@ authorized controlled test, disconnect that VPN while a non-sensitive provider
 request is active: the request must fail, and capture must show no traffic on
 the ordinary path. Restore it and repeat the positive control. Record the exact
 commands, candidate, interface and results in the pinned report. Matching route
-and ruleset observations do not repeat that real loss test. See the existing
-[VPN qualification boundary](vpn-qualification.md); its veth fixture is synthetic.
+and ruleset observations do not repeat that real loss test.
 
 ## Local verification and live qualification
 

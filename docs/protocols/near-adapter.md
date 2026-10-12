@@ -6,7 +6,7 @@ fresh remote attestation before the first prompt byte, a pinned transport, model
 end-to-end encryption and a launcher-side credential broker. It is client inference
 code only. Issuance remains the separately gated
 [issuer-bound coupon protocol](coupon.md); nothing here qualifies private
-issuance, rollback recovery, settlement, the [host VPN boundary](../vpn-qualification.md)
+issuance, rollback recovery, settlement, the [host VPN boundary](../gift-trial.md#separate-later-portable-agent-and-node-provided-vpn-milestone)
 or an installed release.
 
 ## Selected profile

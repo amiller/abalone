@@ -432,7 +432,7 @@ credential only to recipient code. The separately selected provider adapter and
 launcher implement credential-broker, retention and consent behavior. An old
 synthetic recipient command is not an attested release entry. Preserve explicit
 consent, nonreplacement, admission and retention boundaries. Provider/model
-attestation and the [host VPN boundary](../vpn-qualification.md) remain independent
+attestation and the [host VPN boundary](../gift-trial.md#separate-later-portable-agent-and-node-provided-vpn-milestone) remain independent
 requirements; issuer identity is no substitute for either.
 
 ## Current Mac issuer profile

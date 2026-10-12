@@ -40,7 +40,7 @@ Current work is tracked in [Abalone issues](https://github.com/amiller/abalone/i
 ## Follow-on work
 
 - Qualify explicit bubblewrap containment and portable setup, including actual
-  route-loss behavior if network isolation is selected; see [VPN checks](vpn-qualification.md).
+  route-loss behavior if network isolation is selected; see [VPN checks](gift-trial.md#separate-later-portable-agent-and-node-provided-vpn-milestone).
 - Make the session's tools, destinations, retention and live credit state easy to
   understand through a real walkthrough.
 - Support deliberately authorized outside work and outward artifacts without

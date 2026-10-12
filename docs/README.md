@@ -17,7 +17,6 @@ live service.
 | Integrate delegated tasks and verification | [Task protocol](protocols/task-v1.md), [runner interface](protocols/runner-task.md) and [receipts](protocols/receipt-v1.md) |
 | Inspect the CDP browser interface | [Browser grants](protocols/browser-grant.md) |
 | Use the separate MCP interface | [MCP quickstart](mcp-quickstart.md) |
-| Qualify later network isolation | [VPN qualification](vpn-qualification.md) |
 | Find current product priorities | [Roadmap](roadmap.md) and [public issues](https://github.com/amiller/abalone/issues) |
 
 Keep supported instructions, security reasoning and interface specifications here.
