@@ -599,8 +599,9 @@ test("socket broker pins provider/model/auth, sanitizes echoes and errors, bound
   });
   await new Promise((r) => upstream.listen(0, "127.0.0.1", r));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "coupon-session-unit-")), socketPath = path.join(dir, "broker.sock"), states = [];
-  const broker = await couponCredentialBroker({ socketPath, provider: admitCouponSessionProvider(loopback(upstream.address().port), "fixture"), credential: syntheticCredential, coupon, timeoutMs: 300, maxBytes: 2048, onState: (s) => states.push(s) });
+  let broker;
   try {
+    broker = await couponCredentialBroker({ socketPath, provider: admitCouponSessionProvider(loopback(upstream.address().port), "fixture"), credential: syntheticCredential, coupon, timeoutMs: 300, maxBytes: 2048, onState: (s) => states.push(s) });
     assert.equal(fs.statSync(socketPath).mode & 0o777, 0o600);
     await assert.rejects(couponSocketFetch(socketPath)("ignored", { body: JSON.stringify(chatBody), signal: AbortSignal.abort() }), /broker is unavailable/);
     assert.equal(calls, 0, "already-aborted provider call must not contact the broker or upstream");
@@ -615,5 +616,5 @@ test("socket broker pins provider/model/auth, sanitizes echoes and errors, bound
     assert.ok(states.includes("access_revoked_or_expired") && states.includes("provider_unavailable") && states.includes("installed"));
     const before = calls; assert.ok((await brokerRequest(socketPath, "x".repeat(3000))).status >= 400); assert.equal(calls, before);
     await broker.close(); assert.equal(fs.existsSync(socketPath), false); await assert.rejects(brokerRequest(socketPath, chatBody));
-  } finally { await broker.close(); upstream.closeAllConnections(); await new Promise((r) => upstream.close(r)); fs.rmSync(dir, { recursive: true, force: true }); }
+  } finally { await broker?.close(); upstream.closeAllConnections(); await new Promise((r) => upstream.close(r)); fs.rmSync(dir, { recursive: true, force: true }); }
 });
