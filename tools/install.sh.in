@@ -1,24 +1,18 @@
 #!/bin/sh
-# abalone @REV@: installs exactly abalone-@REV@.tar.gz (sha256 @SHA256@), redeems the gift given as arguments (if any),
-# and can launch the approved /4 incognito trial with hidden gift entry.
+# abalone @REV@: installs exactly abalone-@REV@.tar.gz (sha256 @SHA256@) and redeems the gift given as arguments (if any).
 #   sh install.sh --credit                                                     install the durable-credit runtime and public inputs only
-#   sh install.sh --friend [--keep-trace]                                       guided Linux gift session
 #   sh install.sh                                                              install only
-#   sh install.sh --trial /ABS/trial.json                                        install and start incognito
 #   curl -fsSL @BASE@/install.sh | sh -s -- --peer <peer address> <code>.<grant>    install and redeem a gift
-# Needs: Node24, curl, tar, bash, sha256sum (--credit also flock). Bubblewrap is required except for
-# the explicitly pinned linux-node24-owned-host profile (no OS isolation).
+# Needs: Node24, curl, tar, bash, sha256sum (--credit also flock; plain install on Linux also bubblewrap).
 # Installs into ~/.abalone-app/@REV@ and links ~/.local/bin/abalone.
 # --credit claims nothing and starts nothing: it verifies the runtime, saves the four pinned public files under
-# ~/.abalone-app/@REV@/public-credit/<bundle>/ and prints their path.
+# ~/.abalone-app/@REV@/public-credit/<bundle>/ and prints their path. Its profile is linux-node24-owned-host (no OS isolation).
 # On macOS there is no bubblewrap, so the private local session does not run; redeem, offers, commission, tasks and
 # verify do (node 24 or later).
 set -eu
-trial=
-friend=no
 credit=no
-keep_trace=no
-friend_platform='@TRIAL_PLATFORM@'
+os=$(uname -s)
+case "${1:-}" in ''|--credit|--peer) ;; *) echo "Usage: install.sh [--credit | --peer <peer address> <code>.<grant>]. Nothing was installed." >&2; exit 1 ;; esac
 if [ "${1:-}" = --credit ]; then
   credit=yes
   shift
@@ -27,43 +21,12 @@ if [ "${1:-}" = --credit ]; then
     case "$pinned" in *[!0-9a-f]*) pinned= ;; esac
     [ "${#pinned}" = 64 ] || { echo "This installer has no fully pinned public credit bundle. Nothing was installed." >&2; exit 1; }
   done
-  [ "$friend_platform" = linux-node24-owned-host ] || { echo "This installer pins the $friend_platform profile; --credit needs the trusted linux-node24-owned-host profile. Nothing was installed." >&2; exit 1; }
   case "$HOME" in /*) ;; *) echo "HOME must be an absolute path. Nothing was installed." >&2; exit 1 ;; esac
-fi
-if [ "${1:-}" = --friend ]; then
-  friend=yes
-  shift
-  if [ "${1:-}" = --keep-trace ]; then keep_trace=yes; shift; fi
-  [ "$#" = 0 ] || { echo "Usage: install.sh --friend [--keep-trace]" >&2; exit 1; }
-  case '@TRIAL_SHA256@' in ''|@*) echo "This installer has no reviewed friend bundle. Nothing was started." >&2; exit 1 ;; esac
-fi
-if [ "${1:-}" = --trial ]; then
-  [ "$#" = 2 ] || { echo "Usage: install.sh --trial /ABS/trial.json" >&2; exit 1; }
-  case "$2" in /*) ;; *) echo "The public trial bundle path must be absolute." >&2; exit 1 ;; esac
-  [ -r "$2" ] || { echo "The operator must supply the reviewed public trial bundle before gift entry." >&2; exit 1; }
-  trial=$2
-  set --
-fi
-os=$(uname -s)
-if [ "$friend" = yes ]; then
-  [ "$os:$(uname -m)" = Linux:x86_64 ] || { echo "The friend trial currently supports Linux x86_64 only." >&2; exit 1; }
-  [ "$(id -u)" != 0 ] || { echo "Run the friend session as your ordinary user, not root." >&2; exit 1; }
-fi
-if [ "$credit" = yes ]; then
   [ "$os:$(uname -m)" = Linux:x86_64 ] || { echo "The credit install currently supports Linux x86_64 only. Nothing was installed." >&2; exit 1; }
   [ "$(id -u)" != 0 ] || { echo "Install credit as your ordinary user, not root. Nothing was installed." >&2; exit 1; }
 fi
-need_bwrap=yes
-[ "$credit" = no ] || need_bwrap=no
-if [ "$friend" = yes ]; then
-  case "$friend_platform" in
-    linux-node24-owned-host) need_bwrap=no ;;
-    linux-node24-bubblewrap) ;;
-    *) echo "Unsupported pinned friend platform. Nothing was started." >&2; exit 1 ;;
-  esac
-fi
 for c in node curl tar sha256sum bash $([ "$credit" = no ] || echo flock); do command -v "$c" >/dev/null 2>&1 || { echo "abalone needs $c, which is not installed on this computer." >&2; exit 1; }; done
-if [ "$os" != Darwin ] && [ "$need_bwrap" = yes ]; then command -v bwrap >/dev/null 2>&1 || { echo "This isolated profile requires bubblewrap. No weaker profile was selected." >&2; exit 1; }; fi
+if [ "$os" != Darwin ] && [ "$credit" = no ]; then command -v bwrap >/dev/null 2>&1 || { echo "This isolated profile requires bubblewrap. No weaker profile was selected." >&2; exit 1; }; fi
 case "$os:$(node -v)" in *:v24.*|Darwin:v2[5-9].*) ;; *) echo "abalone needs node 24 (this computer has $(node -v))." >&2; exit 1 ;; esac
 app="$HOME/.abalone-app/@REV@"
 if [ "$credit" = yes ]; then
@@ -129,8 +92,8 @@ if [ "$credit" = yes ]; then
   printf '%s\n' "Install receipt: $bundle/receipt.json (install-time digests only)"
   echo "Trusted owned host profile: no OS isolation. Credit sessions run with your ordinary account's filesystem and network access."
   printf '%s\n' "Credit state is created later by abalone credit in ~/.abalone/credit (or \$ABALONE_DIR/credit), not by this installer."
-  echo "Next, when you have a gift, review its offer without claiming it (paste the gift on standard input, never as an argument):"
-  printf '%s\n' "  $(q "$launcher") credit inspect --trial $(q "$bundle/trial.json") --stdin"
+  echo "Next, when you have a gift, put it in a 0600 file in a private directory (never in an argument) and review its offer without claiming it:"
+  printf '%s\n' "  $(q "$launcher") credit inspect --trial $(q "$bundle/trial.json") --input-file /private/gift.txt"
   printf '%s\n' "Check saved credit at any time: $(q "$launcher") credit status"
   exit 0
 fi
@@ -144,45 +107,6 @@ if [ ! -x "$app/abalone/bin/abalone" ]; then
 fi
 mkdir -p "$HOME/.local/bin" && ln -sf "$app/abalone/bin/abalone" "$HOME/.local/bin/abalone"
 echo "Installed abalone @REV@."
-if [ "$friend" = yes ]; then
-  # Fresh, private state: no existing account keys or operator profile are reused.
-  umask 077
-  [ "$need_bwrap" = no ] || mkdir -p "$app/abalone/runner-home"
-  mkdir -p "$HOME/.abalone-friend"
-  session=$(mktemp -d "$HOME/.abalone-friend/session.XXXXXX")
-  if [ "$friend_platform" = linux-node24-owned-host ]; then
-    echo "Trusted owned host: no OS isolation. Local tools have your ordinary account's filesystem and network access."
-    runtime=$(mktemp -d /dev/shm/abalone-friend.XXXXXX) || { echo "Owned-host memory runtime unavailable. No disk fallback or gift entry." >&2; exit 1; }
-  else
-    runtime=$(mktemp -d /tmp/abalone-friend.XXXXXX)
-  fi
-  trap 'rmdir "$runtime" 2>/dev/null || true' EXIT
-  mkdir "$session/home" "$session/state" "$session/work" "$session/trial"
-  for name in trial.json issuer-pin.json staging-approval.json readiness.json; do
-    case "$name" in
-      trial.json) expected='@TRIAL_SHA256@' ;;
-      issuer-pin.json) expected='@PIN_SHA256@' ;;
-      staging-approval.json) expected='@APPROVAL_SHA256@' ;;
-      readiness.json) expected='@READINESS_SHA256@' ;;
-    esac
-    curl -fsSL "@BASE@/$name" -o "$session/trial/$name"
-    echo "$expected  $session/trial/$name" | sha256sum -c --quiet - || { echo "The public trial inputs do not match this installer. No gift was requested." >&2; exit 1; }
-  done
-  echo "Fresh session workspace: $session/work"
-  echo "Session-only by default. --keep-trace explicitly retains an encrypted trace."
-  cd "$session/work"
-  set -- run --bundle "$session/trial/trial.json"
-  [ "$keep_trace" = no ] || set -- "$@" --keep-trace
-  # Public bundle only; no ambient account key, NODE_OPTIONS or operator environment.
-  env -i PATH="$PATH" HOME="$session/home" USER="$(id -un)" TERM="${TERM:-dumb}" LANG="${LANG:-C.UTF-8}" \
-    ABALONE_DIR="$session/state" XDG_RUNTIME_DIR="$runtime" \
-    node "$app/abalone/tools/coupon-first-use.mjs" "$@"
-  exit $?
-fi
-if [ -n "$trial" ]; then
-  [ "$os" = Linux ] || { echo "This incognito trial requires Linux and bubblewrap." >&2; exit 1; }
-  exec node "$app/abalone/tools/coupon-first-use.mjs" run --bundle "$trial"
-fi
 if [ $# -gt 0 ]; then "$app/abalone/bin/abalone" redeem "$@"
 else echo "No gift redeemed. If someone sends you one later: abalone redeem --peer <peer address> <code>.<grant> (the link you get shows the exact command)."; fi
 if [ "$os" = Darwin ]; then echo "On macOS the private local session needs Linux (bubblewrap) and does not run. These work: abalone offers, abalone commission, abalone tasks, abalone verify."; exit 0; fi

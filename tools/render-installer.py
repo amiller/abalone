@@ -26,7 +26,7 @@ for value in (args.base, artifact_base):
     base = urlparse(value)
     if base.scheme != 'https' or not base.hostname or base.username or base.password or base.query or base.fragment or not re.fullmatch(r'https://[A-Za-z0-9./_:-]+', value):
         parser.error('Use credential-free HTTPS release bases without query or fragment.')
-values = {'REV': args.rev, 'SHA256': args.artifact_sha256, 'BASE': args.base.rstrip('/'), 'ARTIFACT_BASE': artifact_base.rstrip('/'), 'TRIAL_PLATFORM': 'linux-node24-bubblewrap'}
+values = {'REV': args.rev, 'SHA256': args.artifact_sha256, 'BASE': args.base.rstrip('/'), 'ARTIFACT_BASE': artifact_base.rstrip('/')}
 names = {'TRIAL_SHA256': 'trial.json', 'PIN_SHA256': 'issuer-pin.json', 'APPROVAL_SHA256': 'staging-approval.json', 'READINESS_SHA256': 'readiness.json'}
 values.update({key: '' for key in names})
 if args.trial_dir:
@@ -42,9 +42,8 @@ if args.trial_dir:
         public_bytes[name] = raw
         values[key] = hashlib.sha256(raw).hexdigest()
     trial = json.loads(public_bytes['trial.json'])
-    if trial.get('platform') not in ('linux-node24-bubblewrap', 'linux-node24-owned-host'):
-        parser.error('Use an explicit supported friend platform; no boundary fallback is allowed.')
-    values['TRIAL_PLATFORM'] = trial['platform']
+    if trial.get('platform') != 'linux-node24-owned-host':
+        parser.error('install.sh --credit supports only the linux-node24-owned-host profile.')
     if trial.get('issuer', {}).get('pin') != 'issuer-pin.json' or trial.get('issuer', {}).get('approval') != 'staging-approval.json':
         parser.error('The friend bundle must use the exact public sibling filenames.')
 text = args.template.read_text()
