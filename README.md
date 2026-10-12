@@ -1,47 +1,43 @@
 # Abalone
 
-**An incognito session for working with AI.**
+Abalone, a cypherpunk AI privacy shell. Give your user an incognito session using TEE-based private inference.
 
-Abalone is a terminal app for asking a remote AI model about a document or a
-question, with the request encrypted directly to a model whose attestation it has
-checked. A gift coupon pays for the model access, so you need no provider account
-or API key.
+A session sends each request encrypted to a model whose attestation Abalone has
+checked. Around the agent, Abalone also controls the environment: a bubblewrap
+sandbox, egress limited to admitted hosts, and canary values that the release gate
+refuses to send out. In this release these come from two launchers:
 
-## Redeem a coupon
+- `abalone credit session`: the coupon route. Direct NEAR inference, the
+  conversation kept in memory only, run as your own user without a sandbox or
+  canaries (the owned-host profile in [security details](docs/security.md)).
+- `abalone sandbox [folder]`: the bubblewrap session, with egress limited to
+  admitted hosts and canaries required in the folder (`abalone canary init`). Models come from
+  [providers.json](providers.json).
 
-You need a Linux x86_64 computer you trust, with Node 24; the
-[full requirements](docs/abalone-coupon-redeem.md#conditions-before-you-start) list the rest.
-Use synthetic, non-sensitive material.
+In both, the session's model is an admitted provider whose attestation Abalone
+verifies, or a local model. There is no mode for an unverified provider key yet.
 
-1. Open the gift link and paste the page's full link into your coding agent. The
-   agent reads the [setup skill](skills/abalone-incognito/SKILL.md), checks the
-   current release's installer digest and runs `sh install.sh --credit`
-   ([installer details](docs/abalone-coupon-redeem.md#check-and-run-the-installer)). The installer
-   prints the launcher and `trial.json` paths used below.
-2. Keep the gift link in a 0600 file, then inspect the offer: provider, cap,
-   expiry and restrictions.
+You need a Linux x86_64 computer you trust, with Node 24. Use synthetic,
+non-sensitive material.
 
-   ```sh
-   abalone credit inspect --trial /path/to/trial.json --input-file /private/gift.txt
-   ```
+## Run abalone
 
-3. Accept that exact offer by its hash and check that access was saved:
+Plain `abalone` opens your saved access. With one saved credit it starts that
+credit's session; with several it lists them. With nothing saved it says how to
+get a credit from a gift: install with `install.sh --credit`, then
+`abalone credit inspect` and `abalone credit redeem`. `abalone help` lists every
+command.
 
-   ```sh
-   abalone credit redeem --trial /path/to/trial.json --input-file /private/gift.txt --accept-offer OFFER_HASH
-   abalone credit status
-   ```
+## Get access
 
-   Keep the returned credit ID. If redemption is interrupted, do not redeem
-   again; run `abalone credit recover --credit CREDIT_ID`.
-4. Open a fresh terminal of your own and start the session:
-
-   ```sh
-   abalone credit session --credit CREDIT_ID
-   ```
-
-   Keep the documents and questions you want private out of your setup agent's
-   chat. Closing the session discards the conversation and keeps the saved access.
+- **Coupon:** someone gives you a gift link, and an issuer on the
+  [Dsmack](https://github.com/amiller/dsmack) network turns it into model access.
+  [Redeem a coupon](docs/abalone-coupon-redeem.md) has the procedure.
+- **Your own provider key:** not supported in the release
+  ([#21](https://github.com/amiller/abalone/issues/21)). From a source checkout,
+  `abalone node keys add <provider>` stores a key for a provider in
+  [providers.json](providers.json) and `abalone sandbox` uses it.
+- **Zcash:** todo. See [acquiring private inference](guides/acquiring-private-inference/README.md).
 
 ## What incognito means here
 
@@ -76,6 +72,8 @@ published ones, not that they are safe.
 - [Getting started](docs/getting-started.md): using the session
 - [Watch a synthetic PDF become meeting minutes](https://pod.dstack.soc1024.com/artifact-reports-2026c/abalone-coupon-pdf-meeting-minutes--lWMO2qY1hfbnqZdRWwg8cQ/),
   with a real coupon and direct NEAR inference
+- [Guides](guides/README.md): what private inference protects, how to pay for it,
+  which network to connect from
 - [Architecture and source layout](docs/architecture.md) and the
   [documentation index](docs/README.md)
 - [Contributing](CONTRIBUTING.md), [issues](https://github.com/amiller/abalone/issues)
