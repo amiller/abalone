@@ -6,8 +6,10 @@ The page works as readable HTML without JavaScript, including the instructions
 for a setup agent whose HTTP fetch cannot see a URL fragment.
 
 The copy button reads a gift fragment into browser memory and includes it only in
-an explicitly requested clipboard copy. Section navigation preserves the original
-gift for that copy. The page performs no redemption, storage, analytics or network
+an explicitly requested clipboard copy. Section navigation preserves the gift for
+that copy; a changed `#code=` fragment replaces it. Malformed, empty or duplicate
+codes are never copied. If clipboard access is denied, the page restores the gift
+fragment to the address bar locally so the user can copy the full link. The page performs no redemption, storage, analytics or network
 requests containing coupon data. Static images, script and stylesheet are local;
 CSP denies network connections and form submissions, and referrers are disabled.
 Gift-bearing clipboard text should be pasted only into a trusted setup agent.

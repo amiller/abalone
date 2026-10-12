@@ -1,9 +1,16 @@
 'use strict';
-// Keep the original fragment in page memory when section links change the hash.
-// Only an explicit copy exports it; no requests, storage, analytics or redemption.
-const giftFragment = window.location.hash;
+// Keep the gift fragment in page memory: section links leave it unchanged, while a
+// changed #code= fragment replaces it. Only an explicit copy exports it; no
+// requests, storage, analytics or redemption.
 const button = document.querySelector('#copy-instructions');
 const status = document.querySelector('#copy-status');
+const initialStatus = status.textContent;
+let giftFragment = window.location.hash;
+window.addEventListener('hashchange', () => {
+  if (!new URLSearchParams(window.location.hash.slice(1)).has('code')) return;
+  giftFragment = window.location.hash;
+  status.textContent = initialStatus;
+});
 button.hidden = false;
 button.addEventListener('click', async () => {
   const params = new URLSearchParams(giftFragment.slice(1));
@@ -26,6 +33,7 @@ button.addEventListener('click', async () => {
       ? 'Copied. Paste into your coding agent to choose your access path.'
       : 'Copied with your gift link. Paste only into the setup agent you trust.';
   } catch {
+    if (code !== null) history.replaceState(null, '', giftFragment);
     status.textContent = 'Copy this page’s full address into your coding agent; clipboard access is unavailable.';
   }
 });

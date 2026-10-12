@@ -35,14 +35,14 @@ merely because the user asked what Abalone does.
 
 - **Saved Abalone access:** use `abalone credit status`, select the relevant saved
   credit, and open a fresh session. Do not redeem another coupon.
-- **Coupon or gift link:** inspect the offer and redeem when instructed, using
-  the commands below. Save delivered access independently of conversation state.
 - **Existing provider credential:** identify its provider and the installed
   supported adapter/import path. Reuse supported access; do not demand a coupon
   or send the credential to a different provider. Check the selected release's
   documented credential interface before importing. If unsupported, explain the
   precise compatibility gap and available supported route rather than inventing
   an import command or treating all keys as NEAR keys.
+- **Coupon or gift link:** inspect the offer and redeem when instructed, using
+  the commands below. Save delivered access independently of conversation state.
 - **No access yet:** explain the currently available coupon and provider-account
   options, help the user obtain the chosen supported access, then continue setup.
   Consult the published access instructions and the user's existing arrangements.
