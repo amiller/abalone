@@ -2,14 +2,14 @@
 
 **An incognito session for working with AI.**
 
-Abalone is a setup guide and a terminal app for bringing a document or question
-to private inference. A gifted coupon provides model access without a provider
-account or a manually supplied API key. Dsmack handles redemption; Abalone checks
-the remote provider's attestation and encrypts inference directly to the model.
+Abalone is a terminal app for asking a remote AI model about a document or a
+question, with the request encrypted directly to a model whose attestation it has
+checked. A gift coupon pays for the model access, so you need no provider account
+or API key.
 
 ## Redeem a coupon
 
-You need a trusted Linux x86_64 computer with Node 24; the
+You need a Linux x86_64 computer you trust, with Node 24; the
 [full requirements](docs/redeem.md#conditions-before-you-start) list the rest.
 Use synthetic, non-sensitive material.
 
@@ -43,39 +43,43 @@ Use synthetic, non-sensitive material.
    Keep the documents and questions you want private out of your setup agent's
    chat. Closing the session discards the conversation and keeps the saved access.
 
-[Redeem a coupon](docs/redeem.md) has the full procedure. To watch the result,
-see [a synthetic PDF become meeting minutes](https://pod.dstack.soc1024.com/artifact-reports-2026c/abalone-coupon-pdf-meeting-minutes--lWMO2qY1hfbnqZdRWwg8cQ/):
-a real coupon, direct NEAR inference and useful output, from a preinstalled app
-with scripted interaction.
-
-## Before you install
-
-Download and inspect the installer and check its published digest before running
-it. A checksum identifies the bytes; it does not replace reading what the script
-does. The skill guides setup. The app supplies patched Pi, provider verification,
-encryption and credential handling; a skill alone does not add those mechanisms
-to another agent. [Architecture and source layout](docs/architecture.md) explain
-what each component does and what you are trusting.
-
 ## What incognito means here
 
-**Use synthetic, non-sensitive material with the available NEAR access route.**
-It accepts verified firmware warnings, and the coupon operator can access and
-revoke the model credential. Check [access conditions](docs/redeem.md#conditions-before-you-start)
-before redeeming.
+The coupon is redeemed with an issuer on the [Dsmack](https://github.com/amiller/dsmack)
+network. Abalone accepts the issuer only if its fresh admission matches the
+identity and policy pinned in the release. The issuer delivers a model credential
+encrypted to keys your computer generated. From then on, Abalone checks the NEAR
+model's attestation and sends each request encrypted to that model; the issuer
+does not see your prompts.
 
-Abalone runs on a trusted Linux computer. Local tools have your account's file
-and network access; the administrator remains trusted. Your setup agent stepping
-aside is cooperation, not enforced exclusion. Incognito does not hide your IP
-address. Optional encrypted conversation traces, workspace files and terminal
-captures have separate lifetimes. See [security details](docs/security.md).
+What others can still do:
 
-## Build and contribute
+- The coupon operator can read and revoke the model credential. The operator or
+  provider can end access at any time, and spending can overshoot the cap.
+- The current NEAR route accepts verified out-of-date firmware warnings. This is
+  why it is for synthetic material only.
+- Your own computer is trusted. Local tools have your account's file and network
+  access, and the administrator can inspect the session's memory. Nothing enforces
+  that your setup agent stays out of the session; it stays out by following the skill.
 
-- [Build and contribute](CONTRIBUTING.md)
-- [Documentation guide](docs/README.md)
-- [Roadmap](docs/roadmap.md) and [issues](https://github.com/amiller/abalone/issues)
-- [Security reporting](SECURITY.md)
+Abalone does not hide your IP address. By default the conversation is kept in
+memory for the session; optional encrypted traces, files you write and terminal
+scrollback have their own lifetimes. See [security details](docs/security.md).
+
+Read the installer before running it. A matching checksum shows the bytes are the
+published ones, not that they are safe.
+
+## Where to go next
+
+- [Redeem a coupon](docs/redeem.md): the full procedure, what a release contains
+  and what the installer changes
+- [Getting started](docs/getting-started.md): using the session
+- [Watch a synthetic PDF become meeting minutes](https://pod.dstack.soc1024.com/artifact-reports-2026c/abalone-coupon-pdf-meeting-minutes--lWMO2qY1hfbnqZdRWwg8cQ/),
+  with a real coupon and direct NEAR inference
+- [Architecture and source layout](docs/architecture.md) and the
+  [documentation index](docs/README.md)
+- [Contributing](CONTRIBUTING.md), [issues](https://github.com/amiller/abalone/issues)
+  and [security reporting](SECURITY.md)
 
 First-party code is [MIT licensed](LICENSE); preserve
 [component notices](THIRD_PARTY_NOTICES.md).
