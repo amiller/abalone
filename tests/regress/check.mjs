@@ -15,6 +15,7 @@ if (!real) throw new Error(`${fx.model}: provider not in providers.json`);
 pj.admitted.find((a) => a.id === "stub-e2ee").tools = real.tools;
 fs.writeFileSync(pf, JSON.stringify(pj));
 const cwd = fs.mkdtempSync(path.join(process.env.ABALONE_DIR, "regress-"));
+for (const [f, text] of Object.entries(fx.files ?? {})) fs.writeFileSync(path.join(cwd, f), text); // the workspace the recorded turn saw
 const { events } = await runPrompt({ args: ["--model", "stub-e2ee/script"], message: fx.turns.at(-1).user, onUi: (ev) => { throw new Error(`unexpected ${ev.method} dialog`); },
   env: { ...process.env, STUB_SCRIPT: path.join(import.meta.dirname, "replay.mjs"), REGRESS_FIXTURE: path.join(dir, "fixture.json") }, cwd });
 // next_sees checks: a follow-up turn in the same session, whose stub answers with what the model was sent.
@@ -57,6 +58,7 @@ const test = {
   screen_matches: (v) => [new RegExp(v).test(screen), "screen"],
   screen_not_matches: (v) => [!new RegExp(v).test(screen), "screen"],
   next_sees: (v) => [new RegExp(v).test(next), `the next turn was sent: ${next}`],
+  file_is: ([f, v]) => [fs.readFileSync(path.join(cwd, f), "utf8") === v, `${f} is ${JSON.stringify(fs.readFileSync(path.join(cwd, f), "utf8"))}`],
   trace_has: (v) => [appended.some((e) => e.customType === v), `entries: ${appended.map((e) => e.customType).join(",")}`],
 };
 let fail = 0;

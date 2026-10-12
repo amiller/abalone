@@ -1,0 +1,32 @@
+{
+ "issue": "0007",
+ "source": "the preview.7 live usability run's edit task (tests/usability/live.mjs, 2026-10-12): its two recorded responses, joined in live.json, split at the first </tool_call>; the third reply is a synthetic closing answer that the recorded run never reached",
+ "model": "nearai/Qwen/Qwen3.8-27B",
+ "protocol": "intools",
+ "redacted": false,
+ "files": {
+  "rota.txt": "SYNTHETIC FIXTURE: invented names for the usability gate.\nElm Street Garden - spring watering rota\n\nMonday: Ellis Booth, Wen Zhao\nTuesday: Marcus Oyelaran\nWednesday: Sam Duarte, Lior Ben-Ami\nThursday: Priya Raman, Joan Castellanos\nFriday: (open)\nSaturday: Dana Whitfield, Tomas Lindqvist\nSunday: Hana Sato\n"
+ },
+ "turns": [
+  {
+   "user": "Edit rota.txt so Priya Raman moves from Thursday to Friday. Change only that line pair.",
+   "steps": [
+    {
+     "model": "<tool_call>read\n<arg_key>path</arg_key>\n<arg_value>rota.txt</arg_value>\n</tool_call>"
+    },
+    {
+     "abalone-tool": "<tool result: rota.txt>"
+    },
+    {
+     "model": "<tool_call>write\n<arg_key>path</arg_key>\n<arg_value>rota.txt</arg_value>\n<arg_content>SYNTHETIC FIXTURE: invented names for the usability gate.\nElm Street Garden - spring watering rota\n\nMonday: Ellis Booth, Wen Zhao\nTuesday: Marcus Oyelaran\nWednesday: Sam Duarte, Lior Ben-Ami\nThursday: Joan Castellanos\nFriday: Priya Raman\nSaturday: Dana Whitfield, Tomas Lindqvist\nSunday: Hana Sato\n</arg_content>\n</tool_call>"
+    },
+    {
+     "abalone-tool": "<tool result: wrote rota.txt>"
+    },
+    {
+     "model": "Moved Priya Raman from Thursday to Friday in rota.txt."
+    }
+   ]
+  }
+ ]
+}

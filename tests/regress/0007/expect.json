@@ -1,0 +1,10 @@
+{
+ "issue": "0007",
+ "checks": [
+  { "max_model_calls": 3 },
+  { "stop": "stop" },
+  { "shown_not_matches": "not executed" },
+  { "trace_has": "abalone-tool" },
+  { "file_is": ["rota.txt", "SYNTHETIC FIXTURE: invented names for the usability gate.\nElm Street Garden - spring watering rota\n\nMonday: Ellis Booth, Wen Zhao\nTuesday: Marcus Oyelaran\nWednesday: Sam Duarte, Lior Ben-Ami\nThursday: Joan Castellanos\nFriday: Priya Raman\nSaturday: Dana Whitfield, Tomas Lindqvist\nSunday: Hana Sato\n"] }
+ ]
+}
