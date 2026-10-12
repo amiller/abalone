@@ -31,7 +31,6 @@ import { separateUser } from "../lib/setup.mjs";
 import { report } from "../lib/report.mjs";
 import * as trace from "../lib/trace.mjs";
 import * as task from "../lib/commission.mjs";
-import { admitCouponSessionIssuer, openCouponSession } from "../lib/coupon-session.mjs";
 import { couponEntry, terminalLine } from "../lib/coupon-input.mjs";
 import { admitAttestedCouponIssuerPin, admitAttestedCouponSessionIssuer, openAttestedCouponSession, readAttestedCouponAdmissionFile,
   ATTESTED_COUPON_WAIT, ATTESTED_COUPON_RECOVER } from "../lib/coupon-attested-session.mjs";
@@ -144,60 +143,17 @@ async function trialAdmission(file) {
     approvalRoot: trial.bundle.issuer.approvalRoot, provider: trial.bundle.provider };
 }
 
-async function couponSessionCmd() {
-  args.shift();
-  const attested = args.includes("--attested");
-  const peerAddr = PEER(), experimental = !attested && args.includes("--experimental-local");
-  if (experimental) args.splice(args.indexOf("--experimental-local"), 1);
-  if (attested) { args.splice(args.indexOf("--attested"), 1); return attestedCouponSessionCmd(peerAddr); }
-  const p = providers();
-  // Separate issuer adapter: peer authentication is not approved issuance code.
-  admitCouponSessionIssuer({ experimental, peerAddr, admit: p.peers?.admit });
-  const seen = new Set();
-  for (let n = 0; n < args.length; n++) {
-    const a = args[n];
-    if (seen.has(a)) throw new Error("Duplicate coupon-session options are refused. Nothing was claimed.");
-    seen.add(a);
-    if (a === "--model") { if (!args[++n]?.startsWith("synthetic-near/")) throw new Error("Select an admitted synthetic model. Nothing was claimed."); }
-    else if (a === "--mode") { if (args[++n] !== "rpc") throw new Error("The only automated coupon-session mode is RPC. Nothing was claimed."); }
-    else if (!["--incognito", "--keep-trace", "--no-canaries"].includes(a)) throw new Error("Coupon-session accepts only --peer, --model, --experimental-local, --incognito, --no-canaries and --mode rpc. Never put a coupon in command arguments. Nothing was claimed.");
-  }
-  const i = args.indexOf("--model"), selected = i >= 0 && args[i + 1];
-  if (!selected?.startsWith("synthetic-near/")) throw new Error("Select an admitted synthetic model: --model synthetic-near/<model>. Nothing was claimed.");
-  if (args.some((a) => ["--resume", "-r", "--continue", "-c", "--session", "--with-trace", "--api-key", "-e", "--extension", "--skill"].includes(a))) throw new Error("Coupon sessions cannot resume another session or load extra code. Retained credential recovery is not implemented; nothing was claimed.");
-  if (args.some((a) => REFUSED.has(a))) throw new Error("This coupon session refuses flags that change ambient resources. Nothing was claimed.");
-  await prepareRetention();
-  canary.forSession(process.cwd(), args.includes("--no-canaries") || process.env.ABALONE_NO_CANARIES === "1");
-  if (gift.coupon()) throw new Error("An existing routed gift is active. Nothing was replaced or claimed; use a fresh synthetic profile.");
-  verified();
-  runtimeDir();
-  if (process.platform !== "linux" || spawnSync("bwrap", ["--version"], { stdio: "pipe" }).status !== 0) throw new Error("This synthetic session requires the Linux sandbox installed before claim. Nothing was claimed.");
-  couponSlot = await openCouponSession({ peerAddr, admit: p.peers.admit, config: p, model: selected.slice("synthetic-near/".length), experimental,
-    occupied: keys.list().some((k) => k.provider === "synthetic-near"), ambient: !!process.env.SYNTHETIC_COUPON_API_KEY || !!process.env.ABALONE_COUPON_SOCKET });
-  const code = await couponEntry("ABALONE_COUPON_FD", "Paste the synthetic coupon (hidden; not a command argument): ", true);
-  const offer = await couponSlot.inspect(code);
-  process.stderr.write(`${offer.text}\n`);
-  const consent = await couponEntry("ABALONE_COUPON_CONSENT_FD", "Type CLAIM SESSION ONLY to accept this offer, or Enter to cancel: ");
-  if (consent !== "CLAIM SESSION ONLY") { await couponSlot.close(); couponSlot = null; process.stderr.write("Cancelled. Nothing was claimed or installed.\n"); return; }
-  try { await couponSlot.claim({ offerHash: offer.offerHash, consent }); }
-  catch (e) {
-    process.stderr.write(`${e.message}\n`);
-    const retry = await couponEntry("ABALONE_COUPON_CONSENT_FD", "Type RETRY SAME KEYS for same-process recovery, or Enter to stop (keys will be lost): ");
-    await couponSlot.recover({ consent: retry });
-  }
-  process.stderr.write("Installed a synthetic credential for this process only. Inference uses the local provider socket, not dsmack. Balance and provider expiry remain unknown. /coupon shows state; /coupon forget closes this process.\n");
-  await session();
-}
-
 // abalone coupon-session --attested --peer <issuer multiaddr> --issuer-pin <file>
 //   (--fixture-local --model synthetic-near/<model>  |  --staging-approval <file> --approval-root <hex> --model near/<model>)
 //   [--incognito] [--no-canaries] [--mode rpc]. Version 4: issuer discovery and fresh identity
 // verification, asynchronous claim, encrypted delivery, and the scoped provider-use broker.
-async function attestedCouponSessionCmd(peerAddr) {
-  const p = providers();
+async function attestedCouponSessionCmd() {
+  args.shift();
+  if (!args.includes("--attested")) throw new Error("coupon-session needs --attested; the version 3 synthetic session was removed. No coupon was read or sent.");
+  args.splice(args.indexOf("--attested"), 1);
+  const peerAddr = PEER(), p = providers();
   if (args.some((a) => ["--resume", "-r", "--continue", "-c", "--session", "--with-trace", "--api-key", "-e", "--extension", "--skill"].includes(a))) throw new Error("Coupon sessions cannot resume another session or load extra code. Retained credential recovery is not implemented; nothing was claimed.");
   if (args.some((a) => REFUSED.has(a))) throw new Error("This coupon session refuses flags that change ambient resources. Nothing was claimed.");
-  if (args.includes("--experimental-local")) throw new Error("--experimental-local is the version 3 profile; the attested session takes --fixture-local or --staging-approval. Nothing was claimed.");
   const seen = new Set();
   let profile, approvalFile, approvalRoot, issuerPinFile, model, allowOutOfDateTrial = false;
   for (let n = 0; n < args.length; n++) {
@@ -857,7 +813,7 @@ try {
   else if (args[0] === "gift") await giftCmd();
   else if (args[0] === "gifts") await giftsCmd();
   else if (args[0] === "redeem") await redeemCmd();
-  else if (args[0] === "coupon-session") await couponSessionCmd();
+  else if (args[0] === "coupon-session") await attestedCouponSessionCmd();
   else if (args[0] === "credit") await creditCmd();
   else if (args[0] === "offers") await offersCmd();
   else if (args[0] === "commission") await commissionCmd();

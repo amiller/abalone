@@ -66,8 +66,7 @@ test("malformed/dev/evidence and permissive policy fields refuse; production can
 test("actual Noise issuer/recipient binding and signed runtime app/CDHash admission precede any bearer", { timeout: 15000 }, async () => {
   const { servePeer } = await import("../lib/p2p.mjs");
   const { couponAttestedClientForTesting, COUPON_ISSUER_PROTOCOL, COUPON_ISSUER_FRAME_LIMIT } = await import("../lib/coupon-attested.mjs");
-  const { canonicalCouponJson } = await import("../lib/coupon-offer.mjs");
-  const { MAC_COUPON_APPROVAL_DOMAIN } = await import("../lib/coupon-staging.mjs");
+  const { canonicalCouponJson, MAC_COUPON_APPROVAL_DOMAIN } = await import("../lib/coupon-staging.mjs");
   const { syntheticBaseGuard } = await import("./fixtures/coupon/staging-signer.mjs");
   const f = fixture(), pub = f.challenge().public_key_hex, seen = [], root = crypto.generateKeyPairSync("ed25519");
   const info = { version: 2, issuer_public_key_hex: pub, identity_policy_sha256: macIssuerPolicyHash(f.policy), issuance_policy_sha256: "cd".repeat(32) };

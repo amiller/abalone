@@ -7,13 +7,15 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import http from "node:http";
 import { servePeer } from "../lib/p2p.mjs";
-import { canonicalCouponJson } from "../lib/coupon-offer.mjs";
+import { canonicalCouponJson } from "../lib/coupon-staging.mjs";
 import { couponAttestedClientForTesting, couponAttestedRecipient, couponAttestedRecipientPeerHash, COUPON_ISSUER_PROTOCOL, COUPON_ISSUER_FRAME_LIMIT, COUPON_PROTOCOL_V4 } from "../lib/coupon-attested.mjs";
 import { openCouponNearAdapterForTesting } from "../lib/coupon-near.mjs";
 import { issuerPolicyHash } from "../lib/vendor/dstack-issuer/dstack_issuer.mjs";
 import { encrypt } from "../lib/near.mjs";
-import { admitAttestedCouponIssuerPin, admitAttestedCouponSessionIssuer, openAttestedCouponSession, ATTESTED_COUPON_WAIT, ATTESTED_COUPON_RECOVER } from "../lib/coupon-attested-session.mjs";
+import { admitAttestedCouponIssuerPin, admitAttestedCouponSessionIssuer, openAttestedCouponSession, ATTESTED_COUPON_WAIT, ATTESTED_COUPON_RECOVER,
+  admitCouponSessionProvider, couponCredentialBroker } from "../lib/coupon-attested-session.mjs";
 import { syntheticIssuerIdentity } from "./fixtures/coupon/issuer-v2.mjs";
 import { syntheticStagingSigner, syntheticBaseGuard } from "./fixtures/coupon/staging-signer.mjs";
 import { couponSocketFetch } from "../lib/coupon-socket.mjs";
@@ -568,4 +570,50 @@ test("firmware exception is explicit signed-debug-only and refuses a larger tria
     close: async () => { closed++; }, offer: () => { throw Error("bearer must not be sent"); },
   }) }), { code: "profile_refused" });
   assert.equal(closed, 1);
+});
+
+const loopback = (port) => ({ couponSession: { mode: "synthetic-loopback", provider: "synthetic-near", baseUrl: `http://127.0.0.1:${port}/v1`, models: ["fixture"] } });
+const brokerRequest = (socketPath, body, { auth = "coupon-session", route = "/v1/chat/completions", method = "POST" } = {}) => new Promise((resolve, reject) => {
+  const r = http.request({ socketPath, path: route, method, headers: { authorization: `Bearer ${auth}`, "content-type": "application/json" } }, (s) => {
+    const chunks = []; s.on("data", (c) => chunks.push(c)); s.on("end", () => resolve({ status: s.statusCode, text: Buffer.concat(chunks).toString() })); s.on("error", reject);
+  }); r.on("error", reject); r.end(typeof body === "string" ? body : JSON.stringify(body));
+});
+
+test("synthetic provider admission refuses non-loopback, non-/v1, query and userinfo base URLs", () => {
+  for (const baseUrl of ["https://provider.example/v1", "http://127.0.0.1:99/other", "http://localhost:99/v1", "http://127.0.0.1:99/v1?redirect=x", "http://key@127.0.0.1:99/v1"])
+    assert.throws(() => admitCouponSessionProvider({ couponSession: { ...loopback(99).couponSession, baseUrl } }, "fixture"));
+});
+
+const chatBody = { model: "fixture", messages: [{ role: "user", content: "synthetic-private-prompt" }] };
+
+test("socket broker pins provider/model/auth, sanitizes echoes and errors, bounds and aborts requests, cleans up", { timeout: 15_000 }, async () => {
+  let calls = 0, mode = "ok", aborted = false;
+  const upstream = http.createServer(async (req, res) => {
+    calls++; assert.equal(req.headers.authorization, `Bearer ${syntheticCredential}`);
+    let text = ""; for await (const chunk of req) text += chunk;
+    assert.equal(JSON.parse(text).model, "fixture");
+    if (mode === "hang") { res.on("close", () => { aborted = true; }); return; }
+    if (mode === "redirect") { res.writeHead(302, { location: "http://192.0.2.1:80/secret" }); res.end(syntheticCredential); return; }
+    if (mode === "revoked") { res.writeHead(401); res.end(syntheticCredential); return; }
+    res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify({ answer: mode === "large" ? "x".repeat(5000) : `useful synthetic answer ${syntheticCredential} ${coupon}` }));
+  });
+  await new Promise((r) => upstream.listen(0, "127.0.0.1", r));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "coupon-session-unit-")), socketPath = path.join(dir, "broker.sock"), states = [];
+  const broker = await couponCredentialBroker({ socketPath, provider: admitCouponSessionProvider(loopback(upstream.address().port), "fixture"), credential: syntheticCredential, coupon, timeoutMs: 300, maxBytes: 2048, onState: (s) => states.push(s) });
+  try {
+    assert.equal(fs.statSync(socketPath).mode & 0o777, 0o600);
+    await assert.rejects(couponSocketFetch(socketPath)("ignored", { body: JSON.stringify(chatBody), signal: AbortSignal.abort() }), /broker is unavailable/);
+    assert.equal(calls, 0, "already-aborted provider call must not contact the broker or upstream");
+    for (const [payload, options] of [[{ ...chatBody, model: "other" }, {}], [{ ...chatBody, endpoint: "http://192.0.2.1/evil" }, {}], [chatBody, { auth: "ambient-key" }], [chatBody, { route: "/redirect" }], ["malformed", {}]]) assert.ok((await brokerRequest(socketPath, payload, options)).status >= 400);
+    assert.equal(calls, 0);
+    const ok = await brokerRequest(socketPath, chatBody); assert.equal(ok.status, 200); assert.ok(ok.text.includes("useful synthetic answer")); assert.ok(!ok.text.includes(syntheticCredential) && !ok.text.includes(coupon));
+    mode = "revoked"; const revoked = await brokerRequest(socketPath, chatBody); assert.ok(revoked.text.includes("access_revoked_or_expired")); assert.ok(!revoked.text.includes(syntheticCredential));
+    mode = "redirect"; assert.ok((await brokerRequest(socketPath, chatBody)).text.includes("provider_unavailable"));
+    mode = "large"; assert.ok((await brokerRequest(socketPath, chatBody)).text.includes("provider_response_too_large"));
+    mode = "hang"; await assert.rejects(brokerRequest(socketPath, chatBody));
+    await new Promise((r) => setTimeout(r, 50)); assert.equal(aborted, true);
+    assert.ok(states.includes("access_revoked_or_expired") && states.includes("provider_unavailable") && states.includes("installed"));
+    const before = calls; assert.ok((await brokerRequest(socketPath, "x".repeat(3000))).status >= 400); assert.equal(calls, before);
+    await broker.close(); assert.equal(fs.existsSync(socketPath), false); await assert.rejects(brokerRequest(socketPath, chatBody));
+  } finally { await broker.close(); upstream.closeAllConnections(); await new Promise((r) => upstream.close(r)); fs.rmSync(dir, { recursive: true, force: true }); }
 });

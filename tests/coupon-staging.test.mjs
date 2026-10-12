@@ -6,8 +6,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import fs from "node:fs";
-import { verifyCouponStagingAdmission, couponStagingApprovalHash, COUPON_STAGING_APPROVAL_DOMAIN, couponStagingGuardNotice } from "../lib/coupon-staging.mjs";
-import { canonicalCouponJson } from "../lib/coupon-offer.mjs";
+import { canonicalCouponJson, verifyCouponStagingAdmission, couponStagingApprovalHash, COUPON_STAGING_APPROVAL_DOMAIN, couponStagingGuardNotice } from "../lib/coupon-staging.mjs";
 import { syntheticBaseGuard } from "./fixtures/coupon/staging-signer.mjs";
 
 const dir = new URL("fixtures/coupon/staging/", import.meta.url);

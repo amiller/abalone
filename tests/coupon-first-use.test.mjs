@@ -178,8 +178,7 @@ test("fresh owned-host preflight needs no legacy approvals or runner-home setup"
 
 test("first-use public inputs dispatch an independently pinned Mac policy and distinct signed approval", async () => {
   const { macIssuerPolicyHash } = await import("../lib/mac-coupon-issuer.mjs");
-  const { MAC_COUPON_APPROVAL_DOMAIN } = await import("../lib/coupon-staging.mjs");
-  const { canonicalCouponJson } = await import("../lib/coupon-offer.mjs");
+  const { canonicalCouponJson, MAC_COUPON_APPROVAL_DOMAIN } = await import("../lib/coupon-staging.mjs");
   const f = fixture();
   try {
     const oldPin = JSON.parse(fs.readFileSync(path.join(f.directory, "issuer-pin.json"))), rootPair = crypto.generateKeyPairSync("ed25519");

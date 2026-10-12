@@ -1,10 +1,10 @@
 # Coupon redemption protocol
 
-The client implements four distinct coupon versions. Their accepted terms,
-recipient bindings and delivery domains are incompatible by design. The current
-recipient profile uses version 4 with explicit signed debug-staging authority.
-Older versions remain interoperability fixtures, not alternative release entry
-points. [Getting started](../getting-started.md) is the user path; the
+Dsmack defines four coupon versions. Their accepted terms, recipient bindings
+and delivery domains are incompatible by design. The client implements only
+version 4, with explicit signed debug-staging authority; versions 1 to 3 are
+described because version 4 builds on their terms.
+[Getting started](../getting-started.md) is the user path; the
 [development gift trial](../gift-trial.md) specifies source-wrapper inputs.
 
 Issuer identity is not private credential custody, rollback safety or settlement
@@ -13,9 +13,9 @@ delivery; the issuer is not a prompt relay. See [security profiles](../security.
 
 | Version | Client implementation | Recipient binding | Issuer evidence |
 | --- | --- | --- | --- |
-| 1 | `lib/coupon.mjs` | Protected preauthorized subject and delivery key | Experimental peer/service evidence |
-| 2 | `lib/coupon-offer.mjs` | Preauthorized subject plus exact accepted offer | Explicit local-unattested fixture |
-| 3 | `lib/coupon-accountless.mjs` | Atomic first authenticated bearer, Noise peer and delivery key | Explicit local-unattested fixture |
+| 1 | Removed | Protected preauthorized subject and delivery key | Experimental peer/service evidence |
+| 2 | Removed | Preauthorized subject plus exact accepted offer | Explicit local-unattested fixture |
+| 3 | Removed | Atomic first authenticated bearer, Noise peer and delivery key | Explicit local-unattested fixture |
 | 4 | `lib/coupon-attested.mjs` | Same winner/keys plus exact issuer policy and signing-key commitments | Fresh TDX or Mac identity; live debug staging is separately signed |
 
 Amounts in these offers are canonical integer nanoUSD strings. A nominal provider
@@ -54,34 +54,6 @@ wire frames cannot select that mapping, provision a coupon, or supply provider
 management/reporting credentials. Production still requires admission, rate
 policy and qualified issuer/observer attestation.
 
-### Client profile and delivery boundary
-
-`lib/coupon.mjs` exports `couponClient(address, admit, {privateKey, timeoutMs})`
-and `couponRecipient()`. The address must pin a service PeerId. Existing peer
-evidence verification finishes before any coupon frame is sent. The client
-opens no HTTP proxy and accepts no provider configuration in coupon requests.
-It provides `claim`, `status`, `observe` and `close` methods. A grant is explicitly
-prebound to an authenticated recipient subject: this is not first-bearer claim.
-
-Tests explicitly admit development peers. Existing App Attest/runner admission
-does not qualify this new issuer policy, key confinement or private issuance.
-There is no production fallback policy or qualified attested issuer profile here.
-
-`couponRecipient()` keeps a generated X25519 key in memory and exposes its public
-key plus `decryptDelivery(coupon, result)`. Decryption checks the current v1
-coupon-digest/key-ID AAD and AES-GCM integrity; the wrong recipient key cannot
-decrypt it. The provider secret is returned deliberately to the calling recipient
-code for direct provider use. Never log it or expose it to an outside setup agent.
-Retries must retain the same recipient object. Losing that object loses recovery
-of that envelope; this helper supplies no persistence or replacement policy.
-
-The current envelope does not bind provider/account identity, issuer policy or a
-verified offer. Those are shared interface gates, together with service discovery,
-error/status mapping and retention. Credential installation, provider/model
-admission, UI, existing-slot protection, exhaustion/revocation and forgetting are
-not implemented by this experimental module. Signed local observation integrity
-does not authorize deposit release.
-
 ## Version 2 prebound offers
 
 ### Exact v2 offer
@@ -119,21 +91,7 @@ whitespace, uses the restricted ASCII schema and contains no floating numbers.
 `offer_hash` is SHA-256 of `dsmack-coupon-offer-v2\0` followed by those bytes.
 Decimal strings preserve budget precision across JavaScript and Python.
 
-### Explicit acceptance and authenticated delivery
-
-`lib/coupon-offer.mjs` exports `couponOfferClient`, `couponOfferRecipient`, schema
-validation, canonicalization and observation verification primitives. No UI,
-credential slot or persistence policy is implemented. The client verifies existing
-peer evidence before sending any coupon frame. Development admission is explicit;
-neither existing edge evidence nor local signature integrity establishes an
-approved private-issuance workload, key confinement or provider-account custody.
-
-`client.offer(coupon)` validates the exact authoritative response and returns a
-deeply frozen bundle retained by that client. The caller explicitly supplies this
-bundle to `client.claim(coupon, recipient, accepted)`. A fabricated/cloned bundle,
-one obtained from another client, or one for another coupon is rejected locally.
-On reconnect, fetch again with `{expectedHash: previouslyAccepted.offer_hash}`
-to refuse changed terms rather than silently accepting them.
+### Authenticated delivery
 
 Claim wire fields are exactly `id`, `op`, `coupon`, `recipient_key`, `offer_hash`.
 Before a provider effect, dsmack checks the accepted hash and recipient grant.
@@ -143,12 +101,6 @@ offer_hash, coupon_digest, key_id, recipient_key_sha256}`. The recipient helper
 checks every binding against the retained offer, coupon, result key ID and its
 own public key before returning the provider secret. Altering provider scope,
 issuer policy, terms or recipient changes the authenticated binding.
-
-The delivery private key remains in the recipient object's closure. The returned
-secret belongs only in recipient code calling its provider directly. These helpers
-do not log it, install it, overwrite another key, or bypass ordinary provider/model
-admission. Losing the in-memory key loses recovery of that envelope. Forgetting,
-secure erasure and upstream revoke behavior are not qualified.
 
 ### Expiry, status and observation
 
@@ -209,21 +161,7 @@ and status. Losing holders get the generic failure envelope and no delivery,
 state detail or rebinding path. Sponsor/observer roles alone do not retrieve the
 winner's envelope: claim still checks the reserved peer and delivery key.
 
-### Client identity and delivery
-
-`lib/coupon-accountless.mjs` exposes `couponAccountlessClient`,
-`couponAccountlessRecipient`, exact offer validation, recipient peer hashing and
-local observation verification. The client creates a Noise identity unless the
-caller explicitly injects an existing private key. The recipient object separately
-holds a generated X25519 private key in its closure. Both objects belong to the
-current in-memory session; no account, credential slot or persistence is created.
-
-The client admits the pinned service's existing evidence before sending coupon
-frames. `client.offer(coupon)` returns a deeply frozen authoritative bundle, retained
-with that client's actual local PeerId. The caller passes it explicitly to
-`client.claim(coupon, recipient, accepted)`. A different client's offer or a copied
-bundle cannot replace this acceptance. Reconnecting callers can refetch with
-`{expectedHash: previous.offer_hash}` to refuse changed terms.
+### Delivery
 
 Delivery uses the same crypto wrapper as v1/v2, with canonical authenticated data:
 
@@ -429,9 +367,8 @@ report bytes as non-Intel quotes.
 
 The helpers retain Noise and X25519 keys in memory and return the decrypted
 credential only to recipient code. The separately selected provider adapter and
-launcher implement credential-broker, retention and consent behavior. An old
-synthetic recipient command is not an attested release entry. Preserve explicit
-consent, nonreplacement, admission and retention boundaries. Provider/model
+launcher implement credential-broker, retention and consent behavior. Preserve
+explicit consent, nonreplacement, admission and retention boundaries. Provider/model
 attestation and the [host VPN boundary](../gift-trial.md#separate-later-portable-agent-and-node-provided-vpn-milestone) remain independent
 requirements; issuer identity is no substitute for either.
 
@@ -453,8 +390,8 @@ settlement remain unqualified. See [the selected trust profile](../security.md).
 
 Exact field validation, version separation, changed-offer refusal, winning-peer
 binding, replay without new issuance, expiry and asynchronous same-key delivery
-are exercised by `tests/coupon*.test.mjs`. Shared synthetic offer vectors are in
-`tests/fixtures/coupon/offer-v2.json`, `offer-v3.json` and `offer-v4.json`.
+are exercised by `tests/coupon*.test.mjs`. The shared synthetic offer vector is
+`tests/fixtures/coupon/offer-v4.json`.
 The separately named testing factories reject live-provider authority.
 
 Paired Noise E2E checks need an explicitly selected Dsmack source checkout:

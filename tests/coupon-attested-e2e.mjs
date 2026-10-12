@@ -9,9 +9,7 @@ import { pathToFileURL } from "node:url";
 import { execFileSync } from "node:child_process";
 import { generateKeyPair } from "@libp2p/crypto/keys";
 import { node, servePeer } from "../lib/p2p.mjs";
-import { couponClient, COUPON_PROTOCOL } from "../lib/coupon.mjs";
-import { couponOfferClient, COUPON_PROTOCOL_V2, canonicalCouponJson } from "../lib/coupon-offer.mjs";
-import { couponAccountlessClient, COUPON_PROTOCOL_V3 } from "../lib/coupon-accountless.mjs";
+import { canonicalCouponJson } from "../lib/coupon-staging.mjs";
 import { couponAttestedClient, couponAttestedClientForTesting, couponAttestedRecipient, COUPON_PROTOCOL_V4, COUPON_ISSUER_PROTOCOL,
   couponAttestedRecipientPeerHash, validateAttestedCouponOffer, verifyAttestedCouponObservation } from "../lib/coupon-attested.mjs";
 
@@ -55,7 +53,6 @@ try {
     (bytes) => { frames.push({ protocol, remotePeer: auth.remotePeer, direction: "response", body: bytes.toString() }); return send(bytes); },
     async () => { const bytes = await recv(); frames.push({ protocol, remotePeer: auth.remotePeer, direction: "request", body: bytes.toString() }); return bytes; }, auth) });
   const peer = await servePeer({ listen: ["/ip4/127.0.0.1/tcp/0"], privateKey: keys[2], evidence: () => () => ({ type: "dev" }), services: {
-    [COUPON_PROTOCOL]: bridge.service, [COUPON_PROTOCOL_V2]: bridge.serviceV2, [COUPON_PROTOCOL_V3]: bridge.serviceV3,
     [COUPON_PROTOCOL_V4]: wrapped(bridge.serviceV4, COUPON_PROTOCOL_V4), [COUPON_ISSUER_PROTOCOL]: wrapped(bridge.issuerService, COUPON_ISSUER_PROTOCOL),
   } }); resources.push(() => peer.stop());
   const address = String(peer.getMultiaddrs()[0]);
@@ -95,20 +92,10 @@ try {
   await new Promise((r) => setTimeout(r, Math.max(0, Date.parse(expiry) - Date.now() + 10)));
   assert.equal((await winningClient.status(coupon)).claim_expired, true);
   assert.deepEqual(await winningClient.claim(coupon, recipients[winner], offers[winner]), result);
-  stage = "v1-v3 protocol isolation";
-  await new Promise((r) => setTimeout(r, 1100)); // preserve libp2p admission pacing
-  const old1 = await bridge.provision(context(COUPON_PROTOCOL), 1, legacyPeer);
-  const old2 = await bridge.provisionV2(context(COUPON_PROTOCOL_V2), "1", legacyPeer, "2030-10-10T00:00:00Z");
-  const old3 = await bridge.provisionV3(context(COUPON_PROTOCOL_V3), "1", "2030-10-10T00:00:00Z");
-  const legacyClients = await Promise.all([
-    couponClient(address, { dev: true }, { privateKey: keys[5] }), couponOfferClient(address, { dev: true }, { privateKey: keys[5] }), couponAccountlessClient(address, { dev: true }, { privateKey: keys[5] }),
-  ]);
-  legacyClients.forEach((client) => resources.push(() => client.close()));
-  for (const [index, old] of [old1, old2, old3].entries()) {
-    assert.equal((await legacyClients[index].status(old.coupon)).state, "ready");
-    await assert.rejects(legacyClients[index].status(coupon), /request failed/);
-    await assert.rejects(winningClient.offer(old.coupon), /request failed/);
-  }
+  stage = "v1-v3 coupons refused on /4";
+  const old = [await bridge.provision(context("/dsmack/coupon/1"), 1, legacyPeer), await bridge.provisionV2(context("/dsmack/coupon/2"), "1", legacyPeer, "2030-10-10T00:00:00Z"),
+    await bridge.provisionV3(context("/dsmack/coupon/3"), "1", "2030-10-10T00:00:00Z")];
+  for (const { coupon: legacy } of old) await assert.rejects(winningClient.offer(legacy), /request failed/);
   stage = "direct inference and bound observation";
   const prompt = "synthetic-attested-coupon-direct-prompt";
   provider = http.createServer(async (request, response) => {
@@ -136,7 +123,7 @@ try {
   console.log(JSON.stringify({ mode: "synthetic-issuer-v2-coupon-v4-libp2p-e2e", identity: "synthetic-only-not-hardware", actual_noise_peer_bound: true,
     bearer_after_identity: true, genuine_verifier_refuses_fixture: true, policy_and_key_offer_bound: true, unknown_peer_race_winners: 1,
     provider_creates: 1, issuer_restart_replay: true, replay_after_expiry: true, loser_denied: true, direct_inference: true,
-    offer_bound_observation: true, v1_v2_v3_compatible: true, private_issuance_qualified: false, rollback_qualified: false, deposit_release_authorized: false }));
+    offer_bound_observation: true, v1_v2_v3_refused: true, private_issuance_qualified: false, rollback_qualified: false, deposit_release_authorized: false }));
 } catch (error) { throw new Error(`Synthetic attested integration failed during ${stage}`, { cause: error }); }
 finally {
   console.error = originalError;

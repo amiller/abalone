@@ -2,7 +2,7 @@
 // signer and a fixed non-provider credential, shared by the credit unit tests and the CLI session fixture.
 import crypto from "node:crypto";
 import { servePeer } from "../../lib/p2p.mjs";
-import { canonicalCouponJson } from "../../lib/coupon-offer.mjs";
+import { canonicalCouponJson } from "../../lib/coupon-staging.mjs";
 import { couponAttestedClientForTesting, couponAttestedRecipientPeerHash, COUPON_ISSUER_PROTOCOL, COUPON_ISSUER_FRAME_LIMIT, COUPON_PROTOCOL_V4 } from "../../lib/coupon-attested.mjs";
 import { creditId } from "../../lib/credit-store.mjs";
 import { syntheticIssuerIdentity } from "../fixtures/coupon/issuer-v2.mjs";

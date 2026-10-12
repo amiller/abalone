@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import { servePeer } from "../lib/p2p.mjs";
-import { canonicalCouponJson } from "../lib/coupon-offer.mjs";
+import { canonicalCouponJson } from "../lib/coupon-staging.mjs";
 import { couponAttestedClient, couponAttestedClientForTesting, couponAttestedRecipient, couponAttestedRecipientPeerHash, couponDeliveryAad, validateAttestedCouponOffer, COUPON_ISSUER_PROTOCOL, COUPON_ISSUER_FRAME_LIMIT, COUPON_PROTOCOL_V4, COUPON_DELIVERY_RECIPIENT_V1 } from "../lib/coupon-attested.mjs";
 import fs from "node:fs";
 import { syntheticIssuerIdentity } from "./fixtures/coupon/issuer-v2.mjs";

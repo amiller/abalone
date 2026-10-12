@@ -145,7 +145,7 @@ and ruleset observations do not repeat that real loss test.
 
 ```sh
 DSMACK_CODE_DIR=/ABS/reviewed-dsmack-source \
-  node tests/coupon-session-e2e.mjs --attested
+  node tests/coupon-session-e2e.mjs
 node --test tests/coupon-attested-session.test.mjs tests/coupon-first-use.test.mjs
 make verify-offline
 ```

@@ -4,8 +4,7 @@
 // nothing about hardware or the measured image: it fabricates no qualification, and a manifest it
 // signs can never reach production roots because the recipient pins the root independently.
 import crypto from "node:crypto";
-import { canonicalCouponJson } from "../../../lib/coupon-offer.mjs";
-import { COUPON_STAGING_APPROVAL_DOMAIN } from "../../../lib/coupon-staging.mjs";
+import { canonicalCouponJson, COUPON_STAGING_APPROVAL_DOMAIN } from "../../../lib/coupon-staging.mjs";
 
 export const syntheticBaseGuard = () => ({ chain_id: 8453, address: `0x${"11".repeat(20)}`, code_hash: `0x${"22".repeat(32)}`,
   issuer_address: "0x5975c152fe58cdcb7e25586a3c9b994a16dbb615",
