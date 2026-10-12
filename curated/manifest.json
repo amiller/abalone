@@ -9,7 +9,7 @@
   {
    "kind": "extension",
    "path": "curated/abalone.ts",
-   "sha256": "28887eb280f3c37fba55594948387f7fd334e4490e5116c1ccb1f3a5c92cf0ef"
+   "sha256": "31e85e52b7313de887a1faef862fde8e484450171392f4243e611a94a6e73b02"
   },
   {
    "kind": "extension",
@@ -29,7 +29,7 @@
   {
    "kind": "tree",
    "path": "lib",
-   "sha256": "33700c4dbf16ebf85d90e7b133257814dc4325c07bf8a25f5e590c28cd3d631b"
+   "sha256": "47af75857917631ec50b609058ba2f3d6372e261d5a5309f65fe2e5084d07ba7"
   },
   {
    "kind": "skill",

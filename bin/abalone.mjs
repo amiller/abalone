@@ -266,9 +266,10 @@ async function attestedCouponSessionCmd(peerAddr) {
       throw e;
     }
   }
+  const expiry = couponSlot.info().providerExpiry, unknowns = expiry === "unknown" ? "Balance and provider expiry remain unknown." : `Balance remains unknown; the provider key expires ${expiry}.`;
   process.stderr.write(profile === "debug-staging"
-    ? "Installed the delivered credential for this process only, under the signed debug-staging admission (operator secret access; not private issuance; synthetic-only prompts). Inference uses the local provider socket through the selected NEAR policy; the explicit trial exception is disclosed when selected. Balance and provider expiry remain unknown. /coupon shows state; /coupon forget closes this process.\n"
-    : "Installed the attested fixture credential for this process only. Inference uses the local provider socket, not dsmack. Balance and provider expiry remain unknown. /coupon shows state; /coupon forget closes this process.\n");
+    ? `Installed the delivered credential for this process only, under the signed debug-staging admission (operator secret access; not private issuance; synthetic-only prompts). Inference uses the local provider socket through the selected NEAR policy; the explicit trial exception is disclosed when selected. ${unknowns} /coupon shows state; /coupon forget closes this process.\n`
+    : `Installed the attested fixture credential for this process only. Inference uses the local provider socket, not dsmack. ${unknowns} /coupon shows state; /coupon forget closes this process.\n`);
   // Admission flags belong to the launcher. Pi receives only its selected socket provider/model.
   const sessionArgs = ["--model", `${couponSlot.provider.provider}/${couponSlot.provider.model}`];
   for (const flag of ["--incognito", "--keep-trace", "--no-canaries", "--owned-host"]) if (args.includes(flag)) sessionArgs.push(flag);

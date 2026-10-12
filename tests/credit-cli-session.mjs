@@ -71,7 +71,7 @@ for (const run of [1, 2]) {
   assert.deepEqual(fs.readdirSync(work), ["tenancy-renewal.pdf"], "no decoy file is planted");
   const notes = r.events.filter((e) => e.type === "extension_ui_request" && e.method === "notify").map((e) => e.message);
   const shown = notes.find((m) => m.startsWith("Coupon: ")), status = notes.find((m) => m.startsWith("This session: "));
-  assert.ok(shown?.includes("Each request: at most 4096 output tokens. Balance: unknown; usage: ") && !shown.includes("NEAR firmware"), `run ${run} /coupon: ${shown}`);
+  assert.ok(shown?.includes("Each request: at most 4096 output tokens. Balance: unknown; usage: ") && shown.includes("; provider expiry: unknown. Sponsor may revoke or change limits.") && !shown.includes("NEAR firmware"), `run ${run} /coupon: ${shown}`);
   assert.ok(status?.includes("usage: not reported") && status.includes("Verified: the launcher checks") && !/\$0\.0000|private reader|--keep-trace|No verifier output/.test(status), `run ${run} /status: ${status}`);
   assert.ok(!/\$5 |\$5\/|5 trial/.test(r.err), "no fixed $5 trial text");
   for (const secret of [coupon, credential, record.noiseSeed, record.recipientKey]) assert.ok(!r.out.includes(secret) && !r.err.includes(secret) && !r.argv.join(" ").includes(secret));
