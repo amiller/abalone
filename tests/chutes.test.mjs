@@ -1,0 +1,96 @@
+// Chutes offline: the instance verifier and the E2EE envelope (lib/chutes.mjs) against one recorded live instance
+// (tests/fixtures/chutes/attestation.json, from tools/record-chutes-fixture.mjs). Network is cut; Intel PCS and NVIDIA
+// fetches are served from the recording. The untouched recording verifies and its recorded sealed reply opens; each
+// tampered copy is refused naming the failed check. Intel collateral expires about 30 days after recording.
+import assert from "node:assert/strict";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import zlib from "node:zlib";
+import { test } from "node:test";
+import { ml_kem768 } from "@noble/post-quantum/ml-kem.js";
+import { ROOT } from "../lib/config.mjs";
+
+globalThis.fetch = (url) => { throw new Error(`network is cut in this test: ${url}`); };
+const { anchor, checkEvidence, open, seal } = await import("../lib/chutes.mjs");
+const { verifications } = await import("../lib/status.mjs");
+const fx = JSON.parse(fs.readFileSync(path.join(ROOT, "tests/fixtures/chutes/attestation.json"), "utf8"));
+const realNow = Date.now;
+Date.now = () => Date.parse(fx.recorded);
+const replay = (edit = (r) => r) => async (url, init = {}) => {
+  const r = fx.http.find((h) => h.url === String(url) && h.method === (init.method ?? "GET") && (h.request ?? null) === (init.body ?? null));
+  if (!r) throw new Error(`no recorded response for ${init.method ?? "GET"} ${url}`);
+  const e = edit({ ...r, body: Buffer.from(r.body, "base64") });
+  return new Response(e.body, { status: e.status, headers: e.headers });
+};
+const check = ({ ev = fx.evidence, nonce = fx.nonce, inst = fx.instance, policy = fx.policy, http = replay() } = {}) => checkEvidence(ev, nonce, inst, policy, http);
+const b64flip = (s, i) => { const b = Buffer.from(s, "base64"); b[i] ^= 1; return b.toString("base64"); };
+const otherKey = Buffer.from(ml_kem768.keygen().publicKey).toString("base64");
+const jwksCert = () => JSON.parse(Buffer.from(fx.http.find((h) => h.url.endsWith("/jwks.json")).body, "base64")).keys[0].x5c[0];
+const nrasClaims = (edit) => (r) => {
+  if (!r.url.includes("/attest/gpu")) return r;
+  const j = JSON.parse(r.body), [h, p, s] = j[0][1].split(".");
+  j[0][1] = [h, Buffer.from(JSON.stringify(edit(JSON.parse(Buffer.from(p, "base64url"))))).toString("base64url"), s].join(".");
+  return { ...r, body: JSON.stringify(j) };
+};
+
+test("positive control: the recorded instance verifies offline", async () => {
+  const p = await check();
+  assert.equal(p.instance_id, fx.instance.instance_id);
+  assert.deepEqual(p.model_tcb_statuses, ["UpToDate"]);
+  assert.match(p.measurement, /^8x\S+ .* v\d+\.\d+\.\d+ \(anchor captured 2026-10-12\)$/);
+  assert.match(p.gpu, /^GPU: NVIDIA verdict \(signature checked\), 8× HOPPER$/);
+  assert.equal(p.gateway_tcb, null);
+  const v = verifications([{ type: "custom", customType: "chutes-attestation", timestamp: fx.recorded, data: { ...p, provider: "chutes", model: fx.model } }]);
+  assert.deepEqual([v[`chutes/${fx.model}`].flag, v[`chutes/${fx.model}`].brief], ["tcb:up-to-date", "tcb:ok"]);
+  const ood = verifications([{ type: "custom", customType: "chutes-attestation", timestamp: fx.recorded, data: { ...p, model_tcb: ["OutOfDate INTEL-SA-1"], provider: "chutes", model: fx.model } }])[`chutes/${fx.model}`];
+  assert.deepEqual([ood.flag, ood.brief], ["tcb:out-of-date (1 Intel advisory)", "tcb:ood"]);
+});
+
+for (const [name, args, why] of [
+  ["a nonce that is not ours", { nonce: "00".repeat(32) }, /report_data does not bind our nonce and this e2e_pubkey/],
+  ["another ML-KEM key presented for the instance", { inst: { ...fx.instance, e2e_pubkey: otherKey } }, /report_data does not bind our nonce and this e2e_pubkey/],
+  ["a key that is not ML-KEM-768", { inst: { ...fx.instance, e2e_pubkey: Buffer.alloc(32).toString("base64") } }, /not an ML-KEM-768 key/],
+  ["another certificate in the evidence", { ev: { ...fx.evidence, certificate: jwksCert() } }, /does not bind the evidence certificate's key/],
+  ["quote byte flipped", { ev: { ...fx.evidence, quote: b64flip(fx.evidence.quote, 200) } }, /signature is invalid|Invalid/i],
+  ["no GPU evidence", { ev: { ...fx.evidence, gpu_evidence: [] } }, /no GPU evidence/],
+  ["GPUs of mixed architecture", { ev: { ...fx.evidence, gpu_evidence: fx.evidence.gpu_evidence.map((g, i) => (i ? { ...g, arch: "BLACKWELL" } : g)) } }, /mixed architecture/],
+  ["NRAS verdict false (a tampered token)", { http: replay(nrasClaims((c) => ({ ...c, "x-nvidia-overall-att-result": false }))) }, /Chutes attestation: NRAS token signature does not verify/],
+  ["NRAS JWKS unavailable while the signature is required", { http: replay((r) => (r.url.endsWith("/jwks.json") ? { ...r, status: 503 } : r)) }, /NVIDIA verdict signature is required/],
+  ["NRAS unavailable", { http: replay((r) => (r.url.includes("/attest/gpu") ? { ...r, status: 503 } : r)) }, /NVIDIA NRAS answered HTTP 503/],
+]) test(`refused: ${name}`, async () => { await assert.rejects(check(args), why); });
+
+test("refused: measurements in no anchored row", async () => {
+  const rows = anchor.rows, { rtmr3 } = await check();
+  anchor.rows = rows.filter((r) => r.rtmr3 !== rtmr3);
+  try { await assert.rejects(check(), /match no row of anchors\/chutes_measurements.json/); } finally { anchor.rows = rows; }
+});
+
+test("the recorded live reply opens with its one-request key; a flipped byte or another key is refused", () => {
+  const blob = Buffer.from(fx.chat.reply, "base64"), sk = Buffer.from(fx.chat.sk, "base64");
+  assert.equal(JSON.parse(open(blob, sk)).choices[0].message.content, "abalone-chutes-fixture");
+  const bad = Buffer.from(blob); bad[bad.length - 1] ^= 1;
+  assert.throws(() => open(bad, sk), /authenticate|auth/i);
+  assert.throws(() => open(blob, ml_kem768.keygen().secretKey), /authenticate|auth/i);
+});
+
+test("the recorded request on the wire is ciphertext: ML-KEM ct || nonce || sealed gzip, no prompt bytes", () => {
+  const blob = Buffer.from(fx.chat.blob, "base64"), prompt = fx.chat.request.messages[0].content;
+  assert.ok(!blob.includes(prompt) && !blob.includes(fx.model) && !blob.includes("messages"));
+  assert.ok(blob.length > 1088 + 12 + 16);
+});
+
+test("seal/open interoperate with an instance following Chutes' scheme (HKDF salt ct[:16], info labels, gzip)", () => {
+  const instance = ml_kem768.keygen(), body = { model: "m", messages: [{ role: "user", content: "secret prompt" }], tools: [{ type: "function", function: { name: "t" } }] };
+  const { blob, sk } = seal(Buffer.from(instance.publicKey).toString("base64"), body);
+  const kdf = (ss, ct, info) => Buffer.from(crypto.hkdfSync("sha256", ss, ct.subarray(0, 16), info, 32));
+  const aead = (dir, key, iv, data) => { const c = crypto[dir]("chacha20-poly1305", key, iv, { authTagLength: 16 }); if (dir === "createDecipheriv") { c.setAuthTag(data.subarray(data.length - 16)); return Buffer.concat([c.update(data.subarray(0, data.length - 16)), c.final()]); } return Buffer.concat([c.update(data), c.final(), c.getAuthTag()]); };
+  const ct = blob.subarray(0, 1088), got = JSON.parse(zlib.gunzipSync(aead("createDecipheriv", kdf(ml_kem768.decapsulate(ct, instance.secretKey), ct, "e2e-req-v1"), blob.subarray(1088, 1100), blob.subarray(1100))));
+  assert.deepEqual({ ...got, e2e_response_pk: undefined }, { ...body, e2e_response_pk: undefined });
+  assert.ok(!blob.includes("secret prompt"));
+  const enc = ml_kem768.encapsulate(Buffer.from(got.e2e_response_pk, "base64")), iv = crypto.randomBytes(12);
+  const reply = Buffer.concat([enc.cipherText, iv, aead("createCipheriv", kdf(enc.sharedSecret, Buffer.from(enc.cipherText), "e2e-resp-v1"), iv, zlib.gzipSync('{"ok":1}'))]);
+  assert.equal(open(reply, sk), '{"ok":1}');
+});
+
+test.after(() => { Date.now = realNow; });

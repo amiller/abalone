@@ -68,6 +68,12 @@ test("NEAR TCB flags: the model TEE's status is the privacy flag; the gateway's 
   assert.equal(tcbFlag({ gateway_tcb: "UpToDate", model_tcb: ["OutOfDate"] }), "tcb:out-of-date", "no advisory IDs, no count");
   assert.equal(tcbFlag({ gateway_tcb: gw, model_tcb: ["UpToDate"] }, true), "tcb:ok gw-tcb:ood");
   assert.equal(tcbFlag({ gateway_tcb: "UpToDate", model_tcb: ["OutOfDate"] }, true), "tcb:ood");
+  // Chutes has no gateway TEE: gateway_tcb null gives no gw-tcb: flag in either form.
+  assert.equal(tcbFlag({ gateway_tcb: null, model_tcb: ["UpToDate"] }), "tcb:up-to-date");
+  assert.equal(tcbFlag({ gateway_tcb: null, model_tcb: ["UpToDate"] }, true), "tcb:ok");
+  assert.equal(tcbFlag({ gateway_tcb: null, model_tcb: ["OutOfDate INTEL-SA-01192,INTEL-SA-01245"] }), "tcb:out-of-date (2 Intel advisories)");
+  assert.equal(tcbFlag({ gateway_tcb: null, model_tcb: ["OutOfDate"] }), "tcb:out-of-date", "no advisory IDs, no count");
+  assert.equal(tcbFlag({ gateway_tcb: null, model_tcb: ["OutOfDate"] }, true), "tcb:ood");
   const segs = (flag) => [[`◈ attested Qwen/Qwen3.6-35B-A3B-FP8, checked, ${flag}`, `◈ attested Qwen3.6-35B-A3B-FP8 ${flag}`], ["nothing shared", "nothing shared"]];
   const painted = (flag) => (footerLine(segs(flag), 120, themes.ansi).match(SGR) ?? []).length;
   assert.equal(painted("tcb:up-to-date, gw-tcb:out-of-date"), 0, "an out-of-date gateway alone is not painted");

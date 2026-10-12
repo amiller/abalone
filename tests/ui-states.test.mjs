@@ -97,6 +97,19 @@ test("9. the 80-column strip keeps the sharing and canary state after a NEAR TCB
   delete process.env.ABALONE_NO_CANARIES;
 });
 
+test("10. a Chutes instance (no gateway TEE, gateway_tcb null) shows only its own tcb: flag, brief and full", () => {
+  process.env.ABALONE_NO_CANARIES = "1";
+  const id = "moonshotai/Kimi-K2.5-TEE";
+  for (const [mt, brief, full] of [[["UpToDate"], "tcb:ok", "tcb:up-to-date"], [["OutOfDate INTEL-SA-01192"], "tcb:ood", "tcb:out-of-date (1 Intel advisory)"]]) {
+    const e = { type: "custom", customType: "chutes-attestation", timestamp: "2026-10-12T00:00:00Z", data: { provider: "chutes", model: id, gateway_tcb: null, model_tcb: mt } };
+    const segs = segments({ model: { provider: "chutes", id }, entries: [e], session: "test", coupon: null });
+    assert.equal(footerLine(segs, 80, themes.plain), `◈ attested Kimi-K2.5-TEE ${brief} · nothing shared · no canaries`);
+    assert.match(segs[0][0], new RegExp(`${full.replace(/[()]/g, "\\$&")}$`));
+    assert.doesNotMatch(segs[0][0], /gw-tcb/);
+  }
+  delete process.env.ABALONE_NO_CANARIES;
+});
+
 test("remote NEAR coupon is not classified as a model running on this computer", async () => {
   const old = process.env.ABALONE_COUPON_SOCKET;
   process.env.ABALONE_COUPON_SOCKET = "/synthetic-unit/coupon.sock";
