@@ -35,10 +35,10 @@ test("one accepted redeem claims once; installed credit never claims again; lega
     const offer = await manager.inspect(coupon, server.admission);
     assert.equal(offer.state, "offered"); assert.equal(offer.deliveryProfile, "x25519-aesgcm-recipient-v1");
     assert.equal(offer.nominalCapUsd, "5.00"); assert.equal(offer.balance, "unknown"); assert.deepEqual(offer.sponsorPowers, ["revoke", "change_limits"]);
-    assert.equal(offer.claimWindowExpiresAt, "2030-10-10T00:00:00Z"); assert.equal(offer.providerExpiry, "unknown"); assert.equal(offer.requestMaxTokens, 512);
+    assert.equal(offer.claimWindowExpiresAt, "2030-10-10T00:00:00Z"); assert.equal(offer.providerExpiry, "unknown"); assert.equal(offer.requestMaxTokens, 4096);
     assert.equal(offer.provider, "near"); assert.equal(offer.outOfDateException, false); assert.equal(offer.operatorSecretAccess, true); assert.equal(offer.sponsorCanRevoke, true);
     assert.deepEqual(offer.disclosures, ["Nominal cap $5.00 from the offer; provider enforcement is not verified.", "Balance: unknown.",
-      "Sponsor can revoke the credential or change its limits at any time.", "Each request is separately bounded to 512 output tokens.",
+      "Sponsor can revoke the credential or change its limits at any time.", "Each request is separately bounded to 4096 output tokens.",
       "Synthetic content only: the staging operator can access the credential."]);
     await pace();
     await assert.rejects(manager.redeem(id, { offerHash: "00".repeat(32) }), { code: "credit_intent_required" });
@@ -231,7 +231,7 @@ test("saved records bind offer hash, issuer, provider scope, budget, Noise peer,
       legacyProfile: (r) => { r.offer.delivery_profile = "x25519-aesgcm-session-only"; r.offerHash = bundle(r.offer).offer_hash; },
       issuerInfo: (r) => { r.issuerInfo = other.info; },
       approvalRoot: (r) => { r.admission.approvalRoot = otherSigner.rootHex; },
-      providerProfile: (r) => { r.admission.provider.maxTokens = 1024; },
+      providerProfile: (r) => { r.admission.provider.maxTokens = 4097; },
       noiseSeed: (r) => { r.noiseSeed = "11".repeat(32); },
       recipientKey: (r) => { r.recipientKey = crypto.generateKeyPairSync("x25519").privateKey.export({ format: "der", type: "pkcs8" }).toString("base64"); },
       credential: (r) => { r.credential = "replaced-credential-0123456789"; },

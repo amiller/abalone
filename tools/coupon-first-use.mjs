@@ -43,7 +43,6 @@ export function loadTrial(file) {
   if (!exact(b.provider, ["baseUrl", "model", "policy", "maxTokens"])) throw fail("provider_not_admitted", "Supply the exact strict direct NEAR profile and explicit model.");
   validateCouponNearProfile(b.provider);
   if (b.provider.policy.gatewayTcb === OUT_OF_DATE_TRIAL_POLICY && (BigInt(approval.maxCouponNanoUsd) > 5_000_000_000n || BigInt(approval.maxTotalNanoUsd) > 5_000_000_000n)) throw fail("provider_not_admitted", "The explicit OutOfDate exception is limited to a signed synthetic-only $5 trial.");
-  if (b.provider.maxTokens !== 512) throw fail("provider_not_admitted", "The current recipient entrypoint pins a 512-token limit.");
   if (!exact(b.source, ["profile", "files"]) || b.source.profile !== "reviewed-development-source-v1" || !b.source.files || !FIRST_USE_SOURCE_FILES.every((name) => hex(b.source.files[name])) || !Object.entries(b.source.files).every(([name, hash]) => hex(hash) && !path.isAbsolute(name) && !name.split(/[\\/]/).includes(".."))) throw fail("source_inputs_missing", "Supply the reviewed candidate's selected source and dependency/build file hashes.");
   return { bundle: b, base, pin, approval };
 }

@@ -24,7 +24,7 @@ test("selected NEAR profile is immutable and wrong model/auth/endpoint/pre-abort
     supplied.policy.gatewayTcb = "reported";
     assert.ok(Object.isFrozen(adapter.profile.policy)); assert.equal(adapter.profile.policy.gatewayTcb, "UpToDate");
     for (const change of [{ baseUrl: "https://example.invalid/v1" }, { credential: "synthetic-only-not-a-real-provider" }, { policy: { ...options().policy, gatewayTcb: "reported" } }, { policy: { ...options().policy, gpuSignature: "optional" } }]) assert.throws(() => openCouponNearAdapter({ ...options(), ...change }), /provider_admission_refused/);
-    assert.throws(() => validateCouponNearProfile({ ...options(), maxTokens: 0 }));
+    for (const maxTokens of [0, 4097, 512.5, undefined]) assert.throws(() => validateCouponNearProfile({ ...options(), maxTokens }));
     await assert.rejects(adapter.fetch("https://example.invalid/v1/chat/completions", request(body())), /request_refused/);
     await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, { ...request(body()), headers: { authorization: "Bearer ambient-key-must-not-be-used" } }), /request_refused/);
     for (const changed of [{ ...body(), model: "other/model" }, { ...body(), api_key: "wire-key" }, { ...body(), messages: [{ role: "tool", content: "tool arguments" }] }, { ...body(), max_tokens: 129 }])
@@ -242,7 +242,8 @@ test("explicit paired OutOfDate trial adds only that verified status and warns e
   assert.throws(() => couponNearAdmissionWarning({ ...verified, gpu: "GPU: NVIDIA verdict (signature not checked)" }, trialPolicy));
   assert.throws(() => couponNearAdmissionWarning({ ...verified, gateway_tcb_advisory_ids: ["INTEL-SA-01192\nSECRET"] }, trialPolicy));
   for (const policy of [{ ...trialPolicy, modelTcb: "UpToDate" }, { ...trialPolicy, gatewayTcb: "reported" }, { ...trialPolicy, modelTcb: "reported" }]) assert.throws(() => validateCouponNearProfile({ ...options(), policy }));
-  assert.throws(() => validateCouponNearProfile({ ...options(), maxTokens: 513, policy: trialPolicy }));
+  assert.equal(validateCouponNearProfile({ ...options(), maxTokens: 4096, policy: trialPolicy }).maxTokens, 4096);
+  assert.throws(() => validateCouponNearProfile({ ...options(), maxTokens: 4097, policy: trialPolicy }));
   const upToDate = { ...verified, gateway_tcb_status: "UpToDate", model_tcb_statuses: ["UpToDate"], model_tcb_advisory_ids: [[]] };
   assert.equal(couponNearAdmissionWarning(upToDate, options().policy), null);
 });

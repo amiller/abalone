@@ -582,7 +582,7 @@ async function session() {
   }
   const env = { ...process.env, PI_RESUME_HINT: `Resume with: abalone ${/\s/.test(process.cwd()) ? JSON.stringify(process.cwd()) : process.cwd()} --resume {id}`, PI_QUIET_MANAGED_TOOLS: "1", ABALONE_DIR: STATE, PI_CODING_AGENT_DIR: AGENT_DIR, PI_ADMITTED_HOSTS: [...hosts, ...LOOPBACK].join(","), ABALONE_SANDBOX: "1" };
   delete env.ABALONE_COUPON_FD; delete env.ABALONE_COUPON_CONSENT_FD;
-  delete env.ABALONE_COUPON_SOCKET; delete env.ABALONE_COUPON_MODEL; delete env.ABALONE_COUPON_PROVIDER;
+  delete env.ABALONE_COUPON_SOCKET; delete env.ABALONE_COUPON_MODEL; delete env.ABALONE_COUPON_PROVIDER; delete env.ABALONE_COUPON_MAX_TOKENS;
   if (canaries) env.ABALONE_CANARIES = canaries; else env.ABALONE_NO_CANARIES = "1";
   delete env.ABALONE_INCOGNITO; delete env.ABALONE_TRACE_RETAINED;
   if (keepTrace) env.ABALONE_TRACE_RETAINED = "1";
@@ -625,6 +625,7 @@ async function session() {
     const socketPath = path.join(run, "coupon.sock");
     await couponSlot.broker(socketPath, { onState: (state) => console.error(`Coupon session: ${state}. Check /coupon; no alternate key is tried.`) });
     env.ABALONE_COUPON_SOCKET = socketPath; env.ABALONE_COUPON_MODEL = couponSlot.provider.model; env.ABALONE_COUPON_PROVIDER = couponSlot.provider.provider;
+    if (couponSlot.provider.provider === "nearai") env.ABALONE_COUPON_MAX_TOKENS = String(couponSlot.provider.maxTokens);
     loads.push("-e", admit(entries, path.join(ROOT, "curated/coupon-provider.ts"), "coupon provider extension"));
     env.PI_RESUME_HINT = couponSlot.savedCredit ? "This incognito conversation is not resumable. The saved credit remains: abalone credit session --credit <id> starts a fresh one."
       : "Coupon session credentials are session-only and cannot be resumed after exit.";

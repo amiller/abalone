@@ -14,7 +14,7 @@ export default async function (pi: ExtensionAPI) {
   // "synthetic-near": the configured loopback fixture provider (version 3 and v4 fixture profile).
   // "nearai": the strict pinned NEAR profile of the attested v4 debug-staging session — no
   // providers.json inheritance, no ambient key; the launcher's adapter holds the credential.
-  const p = providerId === "nearai" ? admitAttestedCouponNearProvider(selected) : admitCouponSessionProvider(providers(), selected);
+  const p = providerId === "nearai" ? admitAttestedCouponNearProvider(selected, false, Number(process.env.ABALONE_COUPON_MAX_TOKENS)) : admitCouponSessionProvider(providers(), selected);
   const send = couponSocketFetch(socketPath);
   const api = openAICompletionsApi();
   const near = providerId === "nearai";
@@ -24,7 +24,7 @@ export default async function (pi: ExtensionAPI) {
     models: [{ id: p.model, name: near ? p.model : `${p.model} (fixture)`,
       api: "openai-completions", provider: p.provider, baseUrl: "http://127.0.0.1:0/v1", reasoning: false, input: ["text"],
       ...(near ? { compat: NEAR_COUPON_PI_COMPAT } : {}),
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 32768, maxTokens: near ? 512 : 4096 }],
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 32768, maxTokens: near ? p.maxTokens : 4096 }],
     api: { stream: (model: any, context: any, options: any) => api.stream(model, context, { ...options, fetch: send, maxRetries: 0 }),
       streamSimple: (model: any, context: any, options: any) => api.streamSimple(model, context, { ...options, fetch: send, maxRetries: 0 }) },
   }));

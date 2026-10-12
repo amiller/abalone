@@ -21,7 +21,7 @@
         "chainId": 8453
       }
     },
-    "maxTokens": 512
+    "maxTokens": 4096
   },
   "source": {
     "profile": "reviewed-development-source-v1",

@@ -18,7 +18,7 @@ const approvalTerms = { identityPolicySha256: identity.info.identity_policy_sha2
 export const approval = signer.sign({ ...approvalTerms, deliveryProfile: "x25519-aesgcm-recipient-v1" }), legacyApproval = signer.sign(approvalTerms);
 export const pin = () => ({ identityPolicy: structuredClone(identity.policy), expectedIdentityPolicySha256: identity.info.identity_policy_sha256,
   expectedIssuancePolicySha256: identity.info.issuance_policy_sha256, expectedIssuerPublicKeySha256: issuerKeySha });
-export const provider = { baseUrl: "https://cloud-api.near.ai/v1", model: "selected/model", maxTokens: 512,
+export const provider = { baseUrl: "https://cloud-api.near.ai/v1", model: "selected/model", maxTokens: 4096,
   policy: { gatewayTcb: "UpToDate", modelTcb: "UpToDate", gpuSignature: "required", composeRegistry: { rpc: "https://mainnet.base.org", chainId: 8453 } } };
 export const quote = async (hex) => JSON.parse(Buffer.from(hex, "hex").toString());
 export const connect = (addr, options, transport) => couponAttestedClientForTesting(addr, { ...options, syntheticQuoteVerifier: quote }, transport);

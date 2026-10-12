@@ -16,8 +16,8 @@ import { SettingsManager } from "../pi/packages/coding-agent/dist/core/settings-
 const { default: couponProvider } = await jiti.import("../curated/coupon-provider.ts");
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), "coupon-no-replay-"));
 const socket = path.join(directory, "broker.sock");
-const previous = { socket: process.env.ABALONE_COUPON_SOCKET, model: process.env.ABALONE_COUPON_MODEL, provider: process.env.ABALONE_COUPON_PROVIDER };
-process.env.ABALONE_COUPON_SOCKET = socket; process.env.ABALONE_COUPON_MODEL = "Qwen/Qwen3.8-27B"; process.env.ABALONE_COUPON_PROVIDER = "nearai";
+const previous = { socket: process.env.ABALONE_COUPON_SOCKET, model: process.env.ABALONE_COUPON_MODEL, provider: process.env.ABALONE_COUPON_PROVIDER, maxTokens: process.env.ABALONE_COUPON_MAX_TOKENS };
+process.env.ABALONE_COUPON_SOCKET = socket; process.env.ABALONE_COUPON_MODEL = "Qwen/Qwen3.8-27B"; process.env.ABALONE_COUPON_PROVIDER = "nearai"; process.env.ABALONE_COUPON_MAX_TOKENS = "4096";
 let provider, requests = 0, mode = "503";
 await couponProvider({ registerProvider: (p) => { provider = p; } });
 const model = provider.getModels()[0];
@@ -37,9 +37,18 @@ const server = http.createServer((req, res) => {
 await new Promise((resolve) => server.listen(socket, resolve));
 test.after(async () => {
   await new Promise((resolve) => server.close(resolve)); fs.rmSync(directory, { recursive: true, force: true });
-  for (const [key, env] of [["socket", "ABALONE_COUPON_SOCKET"], ["model", "ABALONE_COUPON_MODEL"], ["provider", "ABALONE_COUPON_PROVIDER"]]) {
+  for (const [key, env] of [["socket", "ABALONE_COUPON_SOCKET"], ["model", "ABALONE_COUPON_MODEL"], ["provider", "ABALONE_COUPON_PROVIDER"], ["maxTokens", "ABALONE_COUPON_MAX_TOKENS"]]) {
     if (previous[key] === undefined) delete process.env[env]; else process.env[env] = previous[key];
   }
+});
+
+test("the coupon model's cap is the trial's; a missing or out-of-range cap refuses", async () => {
+  assert.equal(model.maxTokens, 4096);
+  for (const value of [undefined, "0", "4097", "512.5"]) {
+    if (value === undefined) delete process.env.ABALONE_COUPON_MAX_TOKENS; else process.env.ABALONE_COUPON_MAX_TOKENS = value;
+    await assert.rejects(couponProvider({ registerProvider: () => assert.fail("registered") }), { code: "model_not_admitted" });
+  }
+  process.env.ABALONE_COUPON_MAX_TOKENS = "4096";
 });
 
 for (const api of ["stream", "streamSimple"]) test(`coupon ${api} sends once despite caller SDK retry override`, async () => {

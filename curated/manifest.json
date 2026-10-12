@@ -4,7 +4,7 @@
   {
    "kind": "provider",
    "path": "curated/coupon-provider.ts",
-   "sha256": "456f23e109a0e14330d62a6ea7b2a63f55a63530f83bc1e5559fd366f809beb9"
+   "sha256": "de72e941b2ec1f814dd7270331f287612a2cc0202630291266e593d38d9f1cd5"
   },
   {
    "kind": "extension",
@@ -29,7 +29,7 @@
   {
    "kind": "tree",
    "path": "lib",
-   "sha256": "cf4d472e12fae15b5cc916d30b092292d424f44d76381f4634881e4fa554d1b0"
+   "sha256": "47da183bccff189bc8cdec244fa6e4e61e2558772c9a45f01c7e3062a6b29e36"
   },
   {
    "kind": "skill",

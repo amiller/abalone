@@ -59,7 +59,7 @@ for (const run of [1, 2]) {
   assert.equal(r.code, 0, r.err.slice(-2000));
   assert.ok(answer(r.events).includes(`SYNTHETIC FIXTURE ANSWER for ${marker}`), `run ${run}: ${r.err.slice(-1500)}`);
   for (const text of ["SYNTHETIC FIXTURE: NEAR attestation verdict", "Nominal cap $5.00 from the offer", "Balance: unknown.", "Sponsor can revoke the credential or change its limits",
-      "separately bounded to 512 output tokens", "staging operator can access the credential", "Saved credit remains available for a fresh process"]) assert.ok(r.err.includes(text), `run ${run} stderr lacks: ${text}`);
+      "separately bounded to 4096 output tokens", "staging operator can access the credential", "Saved credit remains available for a fresh process"]) assert.ok(r.err.includes(text), `run ${run} stderr lacks: ${text}`);
   if (run === 1) assert.ok(fs.readdirSync(work).length > 1, "canaries were planted automatically");
   assert.ok(!/\$5 |\$5\/|5 trial/.test(r.err), "no fixed $5 trial text");
   for (const secret of [coupon, credential, record.noiseSeed, record.recipientKey]) assert.ok(!r.out.includes(secret) && !r.err.includes(secret) && !r.argv.join(" ").includes(secret));
@@ -68,7 +68,7 @@ for (const run of [1, 2]) {
 const requests = fs.readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l));
 assert.equal(requests.length, 2);
 requests.forEach((q, i) => {
-  assert.equal(q.marker, markers[i]); assert.equal(q.credentialSha256, sha(credential)); assert.equal(q.model, provider.model); assert.equal(q.maxTokens, 512);
+  assert.equal(q.marker, markers[i]); assert.equal(q.credentialSha256, sha(credential)); assert.equal(q.model, provider.model); assert.equal(q.maxTokens, 4096);
   assert.equal(q.url, "https://cloud-api.near.ai/v1/chat/completions"); assert.equal(q.pdfText, true); assert.equal(q.plaintextInBody, false);
 });
 pass("each fresh process uses the original saved credential; the selected synthetic PDF reaches the model only inside the encrypted request");

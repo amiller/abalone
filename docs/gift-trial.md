@@ -80,7 +80,7 @@ not fixture-selected live authority, model, budget or route pins.
 | Issuer | Actual advertised `/p2p` multiaddr and approved route description |
 | Identity pin | Exact `identityPolicy`, `expectedIdentityPolicySha256`, `expectedIssuancePolicySha256`, `expectedIssuerPublicKeySha256` |
 | Staging | Exact canonical signed approval bytes and independently supplied 64-hex Ed25519 root **public** key |
-| Provider | Explicit NEAR model, `https://cloud-api.near.ai/v1`, gateway/model `UpToDate` by default (explicit warning trial below), required GPU signature, Base 8453 at `https://mainnet.base.org`, 512-token bound |
+| Provider | Explicit NEAR model, `https://cloud-api.near.ai/v1`, gateway/model `UpToDate` by default (explicit warning trial below), required GPU signature, Base 8453 at `https://mainnet.base.org`, per-request output bound `maxTokens` (1 to 4096) |
 | Source | Reviewed candidate's selected source/lock/build SHA256 map; curated manifest verifies its complete admitted trees |
 | VPN | `null` for standalone incognito; optional reviewed profile/report only for a separately selected later VPN trial |
 
@@ -92,7 +92,8 @@ synthetic, non-sensitive $5 trial only, the operator may set **both**
 `UpToDate-or-OutOfDate-with-warning` in the public bundle. The wrapper translates
 this explicit choice to `--allow-out-of-date-trial`; the direct coupon command
 accepts that flag only with signed debug staging. A signed approval must cap each
-coupon and the entire trial at no more than 5000000000 nanoUSD; the token bound remains 512.
+coupon and the entire trial at no more than 5000000000 nanoUSD. That dollar cap bounds spending; the
+per-request `maxTokens` bound is the trial's value, at most 4096.
 The strict template stays unchanged. No ambient provider setting selects the
 exception.
 
