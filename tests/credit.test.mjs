@@ -284,6 +284,24 @@ test("each provider response adds its reported usage to the saved 0600 record; a
   } finally { await server.host.stop(); }
 });
 
+test("a usage write that fails after the answer is delivered is a warning; the session state stays installed", { timeout: 30_000 }, async () => {
+  const server = await issuer(), dir = path.join(tempDir(), "credit"), file = path.join(dir, `${id}.json`);
+  let session;
+  try {
+    const reply = `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: "synthetic answer" }, finish_reason: "stop" }] })}\n\ndata: ${JSON.stringify({ choices: [], usage: { prompt_tokens: 1, completion_tokens: "x" } })}\n\ndata: [DONE]\n\n`;
+    const manager = createCreditManagerForTesting({ directory: dir, connect, adapterFactory: () => ({ admit: async () => {}, close: async () => {},
+      fetch: async () => new Response(reply, { headers: { "content-type": "text/event-stream" } }) }) });
+    const offer = await manager.inspect(coupon, server.admission); await pace();
+    await manager.redeem(id, { offerHash: offer.offerHash });
+    session = await manager.session(id); const sock = path.join(tempDir(), "broker.sock"), states = [];
+    await session.broker(sock, { timeoutMs: 3000, onState: (s) => states.push(s) });
+    const res = await couponSocketFetch(sock)("ignored", { body: JSON.stringify({ model: "selected/model", messages: [{ role: "user", content: "synthetic" }] }) });
+    assert.equal(res.status, 200); assert.equal(await res.text(), reply);
+    assert.deepEqual(states, ["installed", "usage_not_recorded"]); assert.equal(session.info().state, "installed");
+    assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).usage, undefined);
+  } finally { await session?.close(); await server.host.stop(); }
+});
+
 test("saved records bind offer hash, issuer, provider scope, budget, Noise peer, recipient key and envelope", { timeout: 30_000 }, async () => {
   const server = await issuer(), dir = path.join(tempDir(), "credit"), file = path.join(dir, `${id}.json`);
   try {
