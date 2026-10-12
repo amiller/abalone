@@ -5,7 +5,13 @@ save model access from a gifted coupon. The [setup skill](../skills/abalone-inco
 is the agent-facing version of the same procedure; [getting started](getting-started.md)
 covers the session itself.
 
-**Availability:** no public release provides `install.sh --credit` and the `abalone credit` commands yet.
+**Availability:** [v0.1.0-preview.6](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.6)
+provides `install.sh --credit` and the `abalone credit` commands. Download
+[install.sh](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.6/install.sh) and
+[FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.6/FRIEND-SHA256SUMS) from that release.
+Its `install.sh` SHA256 is
+`e2299755000240bf64110e2d38b3857e7e15779638e58b6598d1052ffc5df088`. The claim
+deadline is 2026-10-18T18:00:00Z, when its signed issuer approval expires.
 
 ## Conditions before you start
 
