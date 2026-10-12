@@ -244,7 +244,7 @@ export default async function (pi: ExtensionAPI) {
     // The grant as the bridge holds it now; native-tool models get no browser tool in this version (docs/protocols/browser-grant.md).
     const tools = inContent(ctx.model.provider) ? "in-content" : "native";
     return { systemPrompt: systemPrompt({ cwd: ctx.cwd, model: `${ctx.model.provider}/${ctx.model.id}`, place: place(ctx.model.provider), tools,
-      usage: spend({ entries: ctx.sessionManager.getEntries(), coupon: coupon() }), browser: tools === "in-content" ? grantLine(await browser("status")) : null }) + (skills ? `\n\n${skills}` : "") };
+      usage: spend({ entries: ctx.sessionManager.getEntries(), coupon: coupon(), couponSession: COUPON_SESSION }), browser: tools === "in-content" ? grantLine(await browser("status")) : null }) + (skills ? `\n\n${skills}` : "") };
   });
   pi.on("turn_end", async (event, ctx) => {
     const m = event.message as any;
@@ -402,7 +402,7 @@ export default async function (pi: ExtensionAPI) {
       } catch (e) { fail(ctx, e); }
     } });
   pi.registerCommand("cost", { description: "What this session has spent, and the gift balance",
-    handler: async (_a, ctx) => show(ctx, spend({ entries: ctx.sessionManager.getEntries(), coupon: coupon() })) });
+    handler: async (_a, ctx) => show(ctx, spend({ entries: ctx.sessionManager.getEntries(), coupon: coupon(), couponSession: COUPON_SESSION })) });
   pi.registerCommand("privacy", { description: "What abalone keeps, where, and who can see your words (/privacy --details for the technical version)",
     handler: async (a, ctx) => show(ctx, a.trim() === "--details" ? privacy({ cwd: ctx.cwd, model: ctx.model, doc: capsDocument(ctx.cwd) }) : privacyPlain({ cwd: ctx.cwd, model: ctx.model, run: path.basename(process.env.ABALONE_EGRESS!) })) });
   pi.registerCommand("about", { description: "What abalone is built from: Pi, the curated extensions and skills, and their hashes",
@@ -434,7 +434,7 @@ export default async function (pi: ExtensionAPI) {
         : "Use this session's selected model. No alternative credential is tried.";
       const credit = s.restartRecovery ? ` Nominal cap: $${s.nominalCapUsd} from the accepted offer (not a balance). Each request: at most ${s.requestMaxTokens} output tokens.` : "";
       const retention = s.restartRecovery ? "Retention: credential and original keys saved for a fresh session; this conversation is not saved by default." : "Retention: session-only keys; restart recovery unavailable. Ordinary conversation/workspace records may persist.";
-      show(ctx, `Coupon: ${s.state}; profile ${s.profile ?? "synthetic"}; provider ${s.provider}; model ${s.model}.${credit} Balance: unknown; provider expiry: unknown${s.admissionWindow ? `; admission: ${s.admissionWindow}` : ""}. Sponsor may revoke or change limits. ${retention}${staging}\n${action}`);
+      show(ctx, `Coupon: ${s.state}; profile ${s.profile ?? "synthetic"}; provider ${s.provider}; model ${s.model}.${credit} Balance: unknown${s.restartRecovery ? `; usage: ${typeof s.usage === "object" ? `${s.usage.outputTokens} output and ${s.usage.inputTokens} input tokens over ${s.usage.reported} response(s), not priced` : s.usage}` : ""}; provider expiry: unknown${s.admissionWindow ? `; admission: ${s.admissionWindow}` : ""}. Sponsor may revoke or change limits. ${retention}${staging}\n${action}`);
     } });
   // Remote agent tasks (lib/commission.mjs): the launcher runs them, since the session has no network. Only what the
   // command names leaves: the prompt and the files under --repo. This conversation is never sent.

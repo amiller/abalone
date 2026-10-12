@@ -119,6 +119,8 @@ abalone credit recover --credit CREDIT_ID
 
 A nominal cap is not a spent amount, an owned wallet or a verified remaining
 balance. The operator or provider can revoke access; caps can overshoot.
+`abalone credit status` shows the token counts the provider reported for this
+credit, totalled on this computer, or "not reported". They are not priced.
 
 ## Open a session
 

@@ -48,6 +48,7 @@ test("Pi's thinking level sets enable_thinking on coupon requests; the trial's c
   for (const reasoning of [undefined, "medium"]) await provider.streamSimple(model, { messages: [{ role: "user", content: "synthetic request", timestamp: 0 }] }, { apiKey: "coupon-session", reasoning }).result();
   assert.deepEqual(bodies.map((b) => b.chat_template_kwargs), [{ enable_thinking: false }, { enable_thinking: true }]);
   assert.deepEqual(bodies.map((b) => b.max_tokens), [4096, 4096]);
+  assert.deepEqual(bodies.map((b) => b.stream_options), [{ include_usage: true }, { include_usage: true }]);
 });
 
 test("the coupon model's cap is the trial's; a missing or out-of-range cap refuses", async () => {

@@ -5,7 +5,7 @@ import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { openCouponNearAdapter, openCouponNearAdapterForTesting, couponNearCredentialBroker, validateCouponNearProfile, couponNearAdmissionDiagnostic } from "../lib/coupon-near.mjs";
+import { openCouponNearAdapter, openCouponNearAdapterForTesting, couponNearCredentialBroker, validateCouponNearProfile, couponNearAdmissionDiagnostic, sseUsage } from "../lib/coupon-near.mjs";
 import { encrypt, decrypt } from "../lib/near.mjs";
 import { couponSocketFetch } from "../lib/coupon-socket.mjs";
 import { NEAR_COUPON_PI_COMPAT } from "../lib/coupon-attested-session.mjs";
@@ -25,7 +25,8 @@ test("selected NEAR profile is immutable and wrong model/auth/endpoint/pre-abort
     assert.ok(Object.isFrozen(adapter.profile.policy)); assert.equal(adapter.profile.policy.gatewayTcb, "UpToDate");
     for (const change of [{ baseUrl: "https://example.invalid/v1" }, { credential: "synthetic-only-not-a-real-provider" }, { policy: { ...options().policy, gatewayTcb: "reported" } }, { policy: { ...options().policy, gpuSignature: "optional" } }]) assert.throws(() => openCouponNearAdapter({ ...options(), ...change }), /provider_admission_refused/);
     for (const maxTokens of [0, 4097, 512.5, undefined]) assert.throws(() => validateCouponNearProfile({ ...options(), maxTokens }));
-    for (const changed of [{ ...body(), chat_template_kwargs: { enable_thinking: "no" } }, { ...body(), chat_template_kwargs: { enable_thinking: false, preserve_thinking: true } }])
+    for (const changed of [{ ...body(), stream_options: { include_usage: false } }, { ...body(), stream_options: { include_usage: true, extra: 1 } },
+      { ...body(), chat_template_kwargs: { enable_thinking: "no" } }, { ...body(), chat_template_kwargs: { enable_thinking: false, preserve_thinking: true } }])
       await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request(changed)), /request_refused/);
     await assert.rejects(adapter.fetch("https://example.invalid/v1/chat/completions", request(body())), /request_refused/);
     await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, { ...request(body()), headers: { authorization: "Bearer ambient-key-must-not-be-used" } }), /request_refused/);
@@ -113,7 +114,7 @@ const verdict = (state) => ({
 
 test("actual Pi OpenAI request grammar reaches the strict NEAR encrypted adapter", async () => {
   const { streamSimple } = await import("../pi/packages/ai/dist/api/openai-completions.js");
-  const state = { chats: 0, closed: false, mode: "ok", bodies: [], keys: ["chat_template_kwargs", "max_tokens", "messages", "model", "stream"] };
+  const state = { chats: 0, closed: false, mode: "ok", bodies: [], keys: ["chat_template_kwargs", "max_tokens", "messages", "model", "stream", "stream_options"] };
   const adapter = openCouponNearAdapterForTesting({ ...options(), verifiedForTesting: verdict(state) });
   const model = { id: "selected/model", name: "SYNTHETIC near trial", provider: "nearai", api: "openai-completions", baseUrl: "http://127.0.0.1:0/v1",
     reasoning: true, input: ["text"], contextWindow: 32768, maxTokens: 128, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, compat: NEAR_COUPON_PI_COMPAT };
@@ -125,7 +126,8 @@ test("actual Pi OpenAI request grammar reaches the strict NEAR encrypted adapter
       assert.ok(response.content.some((part) => part.type === "text" && part.text.includes("useful synthetic answer")));
     }
     assert.equal(state.chats, 2, "Pi's actual payload passed the strict parser and reached the encrypted synthetic transport");
-    assert.deepEqual(state.bodies.map((b) => [b.chat_template_kwargs, b.max_tokens]), [[{ enable_thinking: false }, 128], [{ enable_thinking: true }, 128]]);
+    assert.deepEqual(state.bodies.map((b) => [b.chat_template_kwargs, b.stream_options, b.max_tokens]),
+      [[{ enable_thinking: false }, { include_usage: true }, 128], [{ enable_thinking: true }, { include_usage: true }, 128]]);
   } finally { await adapter.close(); }
 });
 
@@ -252,6 +254,16 @@ test("explicit paired OutOfDate trial adds only that verified status and warns e
   assert.throws(() => validateCouponNearProfile({ ...options(), maxTokens: 4097, policy: trialPolicy }));
   const upToDate = { ...verified, gateway_tcb_status: "UpToDate", model_tcb_statuses: ["UpToDate"], model_tcb_advisory_ids: [[]] };
   assert.equal(couponNearAdmissionWarning(upToDate, options().policy), null);
+});
+
+test("usage comes from the provider's last usage chunk; none reported is null, malformed counts refuse", () => {
+  const line = (v) => `data: ${JSON.stringify(v)}\n\n`, choice = { choices: [{ index: 0, delta: { content: "x" } }] };
+  assert.equal(sseUsage(line(choice) + "data: [DONE]\n"), null);
+  assert.deepEqual(sseUsage(line(choice) + line({ choices: [], usage: { prompt_tokens: 3, completion_tokens: 101, completion_tokens_details: { reasoning_tokens: 87 } } }) + "data: [DONE]\n"),
+    { inputTokens: 3, outputTokens: 101, reasoningTokens: 87 });
+  assert.deepEqual(sseUsage(line({ ...choice, usage: { prompt_tokens: 1, completion_tokens: 2 } })), { inputTokens: 1, outputTokens: 2, reasoningTokens: 0 });
+  for (const usage of [{ prompt_tokens: -1, completion_tokens: 2 }, { prompt_tokens: 1 }, { prompt_tokens: 1, completion_tokens: 2, completion_tokens_details: { reasoning_tokens: "87" } }])
+    assert.throws(() => sseUsage(line({ choices: [], usage })), /provider_response_refused/);
 });
 
 // Synthetic verdict only; real transport/encryption/deadlines exercise the lifecycle.

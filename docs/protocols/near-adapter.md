@@ -41,6 +41,11 @@ placeholder authorization (`Bearer coupon-session`), model and request shape; ex
 tool request fields are dropped (tools travel in the encrypted text of the in-content
 protocol, never as wire tool calls); responses must be SSE, hex-encrypted in the known
 fields, and are decrypted, byte-bounded and scrubbed of the credential before delivery.
+Optional request fields are limited to `max_tokens` (at most the profile's `maxTokens`),
+`temperature`, `top_p`, `chat_template_kwargs` with exactly a boolean `enable_thinking`
+(Pi sends it from its thinking level), and `stream_options` of exactly
+`{"include_usage": true}`. The broker records the provider's reported token counts;
+a response without usage is counted as "not reported", never as zero tokens.
 A refused endpoint identity at the pinned transport is reported as `transport_refused`,
 distinct from `access_revoked_or_expired`. Every failure is a stable code; upstream
 text, collateral errors and wire payloads never surface.

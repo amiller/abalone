@@ -16,6 +16,7 @@ import { verifyCouponStagingAdmission, COUPON_STAGING_APPROVAL_DOMAIN, MAC_COUPO
 import { MAC_ISSUER_PROFILE, MAC_ISSUER_DOMAIN, macIssuerPolicyHash, macIssuerData, macIssuerPossessionMessage, createMacCouponIssuerVerifierForTesting } from "../lib/mac-coupon-issuer.mjs";
 import { openAttestedCouponSession } from "../lib/coupon-attested-session.mjs";
 import { OUT_OF_DATE_TRIAL_POLICY, OUT_OF_DATE_TRIAL_NOTICE } from "../lib/coupon-near.mjs";
+import { couponSocketFetch } from "../lib/coupon-socket.mjs";
 import { creditStore, creditPreflight, couponInput, privateDirectory, readPrivate } from "../lib/credit-store.mjs";
 import { syntheticIssuerIdentity } from "./fixtures/coupon/issuer-v2.mjs";
 import { syntheticStagingSigner } from "./fixtures/coupon/staging-signer.mjs";
@@ -37,7 +38,7 @@ test("one accepted redeem claims once; installed credit never claims again; lega
     assert.equal(offer.nominalCapUsd, "5.00"); assert.equal(offer.balance, "unknown"); assert.deepEqual(offer.sponsorPowers, ["revoke", "change_limits"]);
     assert.equal(offer.claimWindowExpiresAt, "2030-10-10T00:00:00Z"); assert.equal(offer.providerExpiry, "unknown"); assert.equal(offer.requestMaxTokens, 4096);
     assert.equal(offer.provider, "near"); assert.equal(offer.outOfDateException, false); assert.equal(offer.operatorSecretAccess, true); assert.equal(offer.sponsorCanRevoke, true);
-    assert.deepEqual(offer.disclosures, ["Nominal cap $5.00 from the offer; provider enforcement is not verified.", "Balance: unknown.",
+    assert.deepEqual(offer.disclosures, ["Nominal cap $5.00 from the offer; provider enforcement is not verified.", "Usage: not reported.",
       "Sponsor can revoke the credential or change its limits at any time.", "Each request is separately bounded to 4096 output tokens.",
       "Synthetic content only: the staging operator can access the credential."]);
     await pace();
@@ -212,6 +213,35 @@ test("a separate process reads the durable summary and hands the saved credentia
     assert.deepEqual(fs.readdirSync(dir).sort(), before, "provider use adds no conversation or other files");
     // The real manager never opens a testing record.
     await assert.rejects(createCreditManager({ directory: dir }).status(id), { code: "credit_record_refused" });
+  } finally { await server.host.stop(); }
+});
+
+test("each provider response adds its reported usage to the saved 0600 record; a response without usage is not reported, never zero", { timeout: 30_000 }, async () => {
+  const server = await issuer(), dir = path.join(tempDir(), "credit"), file = path.join(dir, `${id}.json`);
+  try {
+    const sse = (usage) => `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: "synthetic answer" }, finish_reason: "stop" }] })}\n\n${usage ? `data: ${JSON.stringify({ choices: [], usage })}\n\n` : ""}data: [DONE]\n\n`;
+    const replies = [sse(null), sse({ prompt_tokens: 30, completion_tokens: 101, total_tokens: 131, completion_tokens_details: { reasoning_tokens: 87 } }), sse({ prompt_tokens: 5, completion_tokens: 7, total_tokens: 12 })];
+    const manager = createCreditManagerForTesting({ directory: dir, connect, adapterFactory: () => ({ admit: async () => {}, close: async () => {},
+      fetch: async () => new Response(replies.shift(), { headers: { "content-type": "text/event-stream" } }) }) });
+    const offer = await manager.inspect(coupon, server.admission); await pace();
+    await manager.redeem(id, { offerHash: offer.offerHash });
+    const session = await manager.session(id), sock = path.join(tempDir(), "broker.sock");
+    await session.broker(sock, { timeoutMs: 3000 });
+    const ask = async () => (await couponSocketFetch(sock)("ignored", { body: JSON.stringify({ model: "selected/model", messages: [{ role: "user", content: "synthetic" }] }) })).text();
+    await ask();
+    assert.equal((await manager.status(id)).usage, "not reported");
+    assert.ok(session.info().disclosures.includes("Usage: not reported."));
+    await ask(); await ask(); await session.close();
+    const expected = { responses: 3, reported: 2, inputTokens: 35, outputTokens: 108, reasoningTokens: 87 };
+    assert.deepEqual(JSON.parse(fs.readFileSync(file, "utf8")).usage, expected);
+    assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+    const status = await manager.status(id);
+    assert.deepEqual(status.usage, expected); assert.equal(status.balance, "unknown");
+    assert.ok(status.disclosures.includes("Usage recorded on this computer: 108 output tokens (87 reported as reasoning) and 35 input tokens over 2 response(s); 1 response(s) reported no usage. Not priced; balance unknown."));
+    for (const usage of [{ ...expected, reported: 4 }, { ...expected, outputTokens: -1 }, { ...expected, extra: 1 }]) {
+      fs.writeFileSync(file, JSON.stringify({ ...JSON.parse(fs.readFileSync(file, "utf8")), usage }));
+      await assert.rejects(manager.status(id), { code: "credit_record_refused" });
+    }
   } finally { await server.host.stop(); }
 });
 

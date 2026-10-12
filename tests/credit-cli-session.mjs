@@ -58,7 +58,7 @@ for (const run of [1, 2]) {
   const r = await session(marker);
   assert.equal(r.code, 0, r.err.slice(-2000));
   assert.ok(answer(r.events).includes(`SYNTHETIC FIXTURE ANSWER for ${marker}`), `run ${run}: ${r.err.slice(-1500)}`);
-  for (const text of ["SYNTHETIC FIXTURE: NEAR attestation verdict", "Nominal cap $5.00 from the offer", "Balance: unknown.", "Sponsor can revoke the credential or change its limits",
+  for (const text of ["SYNTHETIC FIXTURE: NEAR attestation verdict", "Nominal cap $5.00 from the offer", "Usage: not reported.", "Sponsor can revoke the credential or change its limits",
       "separately bounded to 4096 output tokens", "staging operator can access the credential", "Saved credit remains available for a fresh process"]) assert.ok(r.err.includes(text), `run ${run} stderr lacks: ${text}`);
   if (run === 1) assert.ok(fs.readdirSync(work).length > 1, "canaries were planted automatically");
   assert.ok(!/\$5 |\$5\/|5 trial/.test(r.err), "no fixed $5 trial text");
@@ -72,8 +72,10 @@ requests.forEach((q, i) => {
   assert.equal(q.url, "https://cloud-api.near.ai/v1/chat/completions"); assert.equal(q.pdfText, true); assert.equal(q.plaintextInBody, false);
 });
 pass("each fresh process uses the original saved credential; the selected synthetic PDF reaches the model only inside the encrypted request");
-assert.ok(fs.readFileSync(recordFile).equals(recordBytes)); assert.equal(server.frames.filter((f) => f.op === "claim").length, claims);
-pass("the persisted credit is byte-identical after both sessions and no claim was made");
+const { usage, ...saved } = JSON.parse(fs.readFileSync(recordFile, "utf8"));
+assert.deepEqual(saved, JSON.parse(recordBytes)); assert.equal(server.frames.filter((f) => f.op === "claim").length, claims);
+assert.deepEqual(usage, { responses: 2, reported: 0, inputTokens: 0, outputTokens: 0, reasoningTokens: 0 }); assert.equal(fs.statSync(recordFile).mode & 0o777, 0o600);
+pass("the persisted credit is unchanged after both sessions except its 0600 usage total, and no claim was made");
 const leftovers = [];
 const scan = (dir) => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name);
   if (e.isDirectory()) scan(p); else if (e.isFile() && p !== log && markers.some((m) => fs.readFileSync(p).includes(m))) leftovers.push(path.relative(base, p)); } };
