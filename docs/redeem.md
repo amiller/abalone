@@ -1,11 +1,12 @@
 # Redeem a coupon
 
-This page explains how to obtain a credit-capable Abalone release, check it, and
-save model access from a gifted coupon. The [setup skill](../skills/abalone-incognito/SKILL.md)
-is the agent-facing version of the same procedure; [getting started](getting-started.md)
-covers the session itself.
+Get the release, check it, and save model access from a gift coupon. The
+[setup skill](../skills/abalone-incognito/SKILL.md) gives your coding agent the
+same procedure; [getting started](getting-started.md) covers the session itself.
+[What incognito means here](../README.md#what-incognito-means-here) explains what
+is protected and what is not.
 
-**Availability:** [v0.1.0-preview.6](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.6)
+**Current release:** [v0.1.0-preview.6](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.6)
 provides `install.sh --credit` and the `abalone credit` commands. Download
 [install.sh](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.6/install.sh) and
 [FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.6/FRIEND-SHA256SUMS) from that release.
@@ -23,9 +24,9 @@ deadline is 2026-10-18T18:00:00Z, when its signed issuer approval expires.
   PDF files in a session. Without it, a selected PDF is refused before inference;
   text files need no extra tool.
 - No VPN, provider account, manual API key or funded wallet is needed.
-- **Use synthetic, non-sensitive material with the available NEAR access route.**
-  It accepts verified `OutOfDate` firmware warnings, and the coupon operator can
-  read and revoke the model credential it issues.
+- **Use synthetic, non-sensitive material.** The NEAR access route accepts
+  verified `OutOfDate` firmware warnings, and the coupon operator can read and
+  revoke the model credential it issues.
 - There is no OS isolation: local tools have your account's file and network
   access, the administrator is trusted, and Abalone does not hide your IP
   address. See [security details](security.md).
@@ -44,7 +45,7 @@ deadline is 2026-10-18T18:00:00Z, when its signed issuer approval expires.
 
 ## Check and run the installer
 
-Pick the release whose notes state it provides `install.sh --credit`. Download
+Download
 `install.sh` and `FRIEND-SHA256SUMS` into a new private directory, then:
 
 ```sh
@@ -134,5 +135,4 @@ Continue with [getting started](getting-started.md).
 
 [Releases](https://github.com/amiller/abalone/releases) ·
 [Source](https://github.com/amiller/abalone) ·
-[Dsmack source](https://github.com/amiller/dsmack) ·
-[Acceptance](https://github.com/amiller/abalone/issues/4)
+[Dsmack source](https://github.com/amiller/dsmack)
