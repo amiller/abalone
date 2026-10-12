@@ -1,41 +1,62 @@
 # Abalone
 
-Abalone guides you into an incognito AI session with a gifted inference coupon.
-Your setup agent prepares the reference helper, then hands the terminal to you
-before coupon entry or private input. Dsmack handles redemption; the helper
-verifies the remote provider and encrypts inference directly to it.
+**An incognito session for working with AI.**
 
-**Current preview: synthetic, non-sensitive prompts only.** The
-[friend entry](docs/friend-preview.md) is public. Preview.5 passed aggregate offline coverage, installed runtime checks and unauthenticated public acquisition.
-**Bounded synthetic preview qualified: new claims only before 2026-10-11 23:56:53 UTC. Do not retry a failed or uncertain claim.**
-The installed preview completed one new $0.05 Mac-mini coupon claim, encrypted selected synthetic document request and clean close in 55.7 seconds. The service ledger confirms one delivered $0.05 claim; provider-reported history contains one matching request. Owner useful-document acceptance remains pending.
-Use the current signed trial; expired or historical staging bundles are unusable.
+Abalone is a setup guide and a terminal app for bringing a document or question
+to private inference. A gifted coupon provides model access without a provider
+account or a manually supplied API key. Dsmack handles redemption; Abalone checks
+the remote provider's attestation and encrypts inference directly to the model.
 
-## Start
+Your usual coding agent can explain the setup, inspect the installation, redeem
+a coupon and save access for you. Then open Abalone in your own terminal for the
+conversation. Keep the documents and questions you want private out of your
+setup agent's chat. Saved access and conversation history are separate: closing
+a conversation does not mean throwing away your model credential.
 
-Ask your setup agent to read the
-[Abalone incognito skill](skills/abalone-incognito/SKILL.md).
-[Getting started](docs/getting-started.md) explains supported systems, hidden gift
-entry, selected-file questions and closing. Do not send the setup agent your
-coupon, passphrase or private prompts.
+[Start with a gift](https://amiller.github.io/abalone/redeem) ·
+[Read the setup skill](skills/abalone-incognito/SKILL.md) ·
+[Inspect the architecture](docs/architecture.md)
 
-The selected friend profile uses **Linux x86_64 and Node 24 on a trusted owned
-host, with no OS isolation**. Local tools have your ordinary account's filesystem
-and network access. The setup agent stepping aside is cooperative privacy;
-it does not exclude that agent or your administrator. The current trial admits
-explicit firmware warnings and allows issuer-operator access to issued keys.
-See [security profiles and limits](docs/security.md) before use.
+## From a coupon to useful work
 
-Session-only conversation retention is the default; encrypted retained traces
-are optional. Workspace files and terminal captures can remain after close.
-Incognito provides no IP anonymity.
+1. Ask your coding agent to read the setup skill. It explains what Abalone does
+   and what installation changes before running anything.
+2. Reuse saved access, bring a supported provider credential, or redeem a coupon.
+   Your agent can inspect the offer, redeem when asked and test with synthetic input.
+3. Open a fresh Abalone terminal. Read a document, ask a question, and close when
+   finished. By default, managed conversation history stays in memory for that session.
 
-## Understand and contribute
+[Watch a synthetic PDF become meeting minutes](https://pod.dstack.soc1024.com/artifact-reports-2026c/abalone-coupon-pdf-meeting-minutes--lWMO2qY1hfbnqZdRWwg8cQ/):
+a real coupon, direct NEAR inference and useful output. The recording uses a
+preinstalled app and scripted interaction; it does not show first-time setup.
 
-The helper includes patched Pi, Abalone extensions, verification and a credential
-broker. Installing the skill alone does not supply this runtime or qualify
-stock Pi or Hermes. [Architecture and repository layout](docs/architecture.md)
-explain each component and why it is public.
+## Start deliberately
+
+Read the [setup skill](skills/abalone-incognito/SKILL.md) and
+[access instructions](docs/friend-preview.md) for the supported distribution,
+Linux requirements and current availability. Download and inspect the installer,
+check its published digest, then run the inspected local file. A checksum helps
+identify the bytes; it does not replace understanding what the script does.
+
+The skill guides setup. The app supplies patched Pi, provider verification,
+encryption and credential handling; a skill alone does not add those mechanisms
+to another agent. [Architecture and source layout](docs/architecture.md) explain
+what each component does and what you are trusting.
+
+## What incognito means here
+
+**Use synthetic, non-sensitive material with the available NEAR access route.**
+It accepts verified firmware warnings, and the coupon operator can access and
+revoke the model credential. Check [access conditions](docs/friend-preview.md)
+before redeeming.
+
+Abalone runs on a trusted Linux computer. Local tools have your account's file
+and network access; the administrator remains trusted. Your setup agent stepping
+aside is cooperation, not enforced exclusion. Incognito does not hide your IP
+address. Optional encrypted conversation traces, workspace files and terminal
+captures have separate lifetimes. See [security details](docs/security.md).
+
+## Build and contribute
 
 - [Build and contribute](CONTRIBUTING.md)
 - [Documentation guide](docs/README.md)
@@ -43,5 +64,4 @@ explain each component and why it is public.
 - [Security reporting](SECURITY.md)
 
 First-party code is [MIT licensed](LICENSE); preserve
-[component notices](THIRD_PARTY_NOTICES.md). Source publication, release
-qualification and live-service availability are separate facts.
+[component notices](THIRD_PARTY_NOTICES.md).

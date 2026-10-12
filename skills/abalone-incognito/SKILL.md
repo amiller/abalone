@@ -1,66 +1,140 @@
 ---
 name: abalone-incognito
-description: Open an Abalone incognito inference session from a Dsmack coupon on supported Linux, preparing the pinned helper and handing the terminal to the user. Do not collect secrets or operate the issuer.
+description: Explain Abalone, reuse or obtain model access, redeem a gifted coupon when instructed, and open an incognito session in a fresh user terminal. Keep durable access separate from private conversation content.
 ---
 
 # Abalone incognito
 
-Use this skill to prepare a session, then hand it to the human. Use the published
-[current friend entry](../../docs/friend-preview.md) and explicit trusted-owned-host
-profile. Do not invent a release or use an expired trial. The owner walkthrough
-remains pending; read the [current release status](../../README.md).
+Help the user understand and use Abalone. Start with their purpose, not an install
+command. A request for an explanation does not authorize installation or spending;
+an instruction to set up or redeem does not require repeated permission questions.
 
-Preview.5 passed aggregate offline coverage, installed runtime checks and unauthenticated public acquisition.
-**Bounded synthetic preview qualified: new claims only before 2026-10-11 23:56:53 UTC. Do not retry a failed or uncertain claim.**
-The installed preview completed one new $0.05 Mac-mini coupon claim, encrypted selected synthetic document request and clean close in 55.7 seconds. The service ledger confirms one delivered $0.05 claim; provider-reported history contains one matching request. Owner useful-document acceptance remains pending.
+## Explain before installing
 
-1. **Check support.** Initial profile: ordinary-user Linux x86_64, compatible
-   Node24, bash, curl, tar and sha256sum, with an existing Linux tmpfs.
-   Check Node rather than assume an agent host includes it. If a prerequisite is
-   missing, name the gap before private input. The first release explicitly trusts
-   the owned host and has no OS isolation; never silently substitute profiles.
-2. **Prepare the pinned helper.** Use the current
-   reviewed landing and expected checksums. The installer pins the artifact and
-   all four public files by checksum. The helper verifies the signed issuer controls. Reuse an exact matching installation or prepare
-   it through the reviewed setup path; do not build a private checkout, bypass
-   checks, or introduce operator/provider credentials. Public acquisition and installed runtime checks passed; the installed coupon-to-document-and-close canary passed. Check the current claim window before use; do not retry a failed or uncertain claim. Do not ask a friend to repair its environment.
-3. **Choose retention.** Default session-only use needs no trace passphrase and
-   writes no durable managed prompt/response trace. Use `--keep-trace` only if
-   requested: it retains encrypted traces and needs a user-held passphrase to
-   reopen them; a lost one can leave them unreadable and no recovery is
-   qualified. This protects traces, not the coupon. Workspace files can remain
-   after close.
-4. **Hand off.** The current helper entry after verified acquisition is
-   `sh install.sh --friend` (optionally `--keep-trace`). Open a separate interactive
-   terminal controlled by the user if supported. Otherwise give that launch
-   instruction for the human to run; do not route hidden prompts through agent
-   tool stdin. Stop setup recording and observation before coupon, passphrase
-   or private document entry. Never put them in chat, arguments, URLs, environment
-   values, captures or the setup agent's context. The user reads the offer and
-   confirms CLAIM; keep the same window open during delivery. No automatic consent.
-5. **Explain the boundary briefly.** Current NEAR debug trial: synthetic,
-   non-sensitive documents only; attestation/E2EE required, explicit firmware
-   exceptions shown. The coupon comes from Dsmack's testnet issuer on the
-   operator's Mac mini (Apple Containerization ARM guest, Apple identity-only
-   admission, operator-readable custody); fresh issuer admission is required for each session. The installed coupon-to-document-and-close canary passed. New claims are bounded by the current window; the owner useful-document
-   walkthrough remains pending. Apple identity does not establish operator-resistant key custody. The
-   operator can read created keys/control access. A cap is not a reserved purse
-   or verified balance. `/coupon` provides details. Inside the session a document
-   is named with `@filename.txt` or `@"name with spaces.txt"`; its text goes into
-   the encrypted model request, not to you, and PDF reading is not qualified.
-   There is no VPN/IP anonymity or confidentiality from the host administrator. A
-   same-user setup agent stepping aside is cooperation, not enforced isolation.
-6. **Close normally.** Closing loses live delivery/credential keys; closed-session
-   recovery is not qualified and does not revoke the provider key. Do not read
-   private traces to debug setup. Use deliberate metadata-only diagnostics. Never
-   replay a sent request, replace a coupon after ambiguity, or claim recovery of
-   lost keys. Normal verified admission renewal uses the same live credential.
+Abalone is a curated guide and a terminal app built around Pi. Dsmack exchanges a
+coupon for provider access; it does not relay the conversation. Abalone verifies
+the remote NEAR provider and encrypts inference directly to the model. The setup
+agent can manage the coupon and saved credential. This does not authorize reading
+the user's private documents, prompts, answers or retained conversation traces.
 
-The supporting [reference implementation](../../docs/architecture.md#runtime-path) includes
-patched Pi, Abalone launcher/extensions, verifiers and a credential broker;
-bubblewrap containment and its setup are milestone2 after public release.
-The initial profile trusts the host: local tools have ordinary filesystem/network
-access, while provider verification/E2EE and minimal retention remain required.
-Installing this skill alone does not install them or establish stock Pi/Hermes support. Short instructions do not
-qualify the entire dependency surface. This skill-to-human handoff and time from
-URL/coupon/document to useful review still require an independent walkthrough.
+Explain the relevant limits in ordinary language: the available NEAR route allows
+verified firmware warnings, and its operator can access and revoke credentials;
+use synthetic, non-sensitive material with that route. The Linux computer and
+its administrator are trusted. Local tools have ordinary account filesystem and
+network access. Stepping aside is cooperation, not OS isolation or IP anonymity.
+See [security details](../../docs/security.md).
+
+Before any install, inspect the proposed installer and explain its version,
+download sources, dependencies, installation and state locations, and what will
+be run. Download to a file, inspect it, compare its digest with the published
+manifest, then execute the reviewed local file. A matching checksum establishes
+matching bytes, not safety. Never pipe a download into a shell. Do not install
+merely because the user asked what Abalone does.
+
+## Choose the access path
+
+- **Saved Abalone access:** use `abalone credit status`, select the relevant saved
+  credit, and open a fresh session. Do not redeem another coupon.
+- **Coupon or gift link:** inspect the offer and redeem when instructed, using
+  the commands below. Save delivered access independently of conversation state.
+- **Existing provider credential:** identify its provider and the installed
+  supported adapter/import path. Reuse supported access; do not demand a coupon
+  or send the credential to a different provider. Check the selected release's
+  documented credential interface before importing. If unsupported, explain the
+  precise compatibility gap and available supported route rather than inventing
+  an import command or treating all keys as NEAR keys.
+- **No access yet:** explain the currently available coupon and provider-account
+  options, help the user obtain the chosen supported access, then continue setup.
+  Consult the published access instructions and the user's existing arrangements.
+  Do not invent a checkout, payment address, Zcash funding endpoint or availability
+  claim. A future funding design is not a working acquisition path.
+
+Use the [release/access instructions](../../docs/friend-preview.md) to obtain the
+reviewed distribution and matching signed public trial inputs. Check actual
+availability and expiry there. Use a release exposing the `credit` commands;
+do not substitute an older process-only coupon launcher. Supported recipient:
+trusted Linux x86_64 with the documented Node 24 and system prerequisites. Name a
+missing capability before changing anything; do not silently switch profiles.
+
+## Read a gift link safely
+
+The public entry is `https://amiller.github.io/abalone/redeem`. A supplied gift link
+adds a `#code=` fragment. The code is present in the user's full URL, not in the
+HTTP response: fragments are not sent to the server. Read the instructions at
+the fragment-free page and the code from the user-provided link. If the fragment
+is missing, ask for the original gift link; do not guess it.
+
+The user may give the setup agent the coupon for redemption. Keep it out of public
+posts, command arguments, query strings, request paths and verbose diagnostics.
+Pass the full link or raw code through stdin or a private input file with mode
+0600, in an account-private directory. Do not echo it into terminal recordings.
+No web page fetch or link opening authorizes redemption automatically.
+
+## Inspect, redeem and save access
+
+In the reviewed installed distribution, `abalone` below names its launcher; use
+its absolute path if it is not on PATH. Use the actual signed trial file supplied
+with that version. The following paths are placeholders, not downloadable files.
+
+```sh
+abalone credit inspect --trial /path/to/trial.json --input-file /private/gift.txt
+```
+
+Explain the returned offer's provider, cap, expiry and material restrictions.
+When the user has requested redemption, accept that exact inspected offer using
+its returned hash; no ceremonial confirmation phrase is needed:
+
+```sh
+abalone credit redeem --trial /path/to/trial.json --input-file /private/gift.txt --accept-offer OFFER_HASH
+abalone credit status
+```
+
+`--stdin` is an alternative to `--input-file`; pass input through the tool's stdin,
+not a shell command containing the coupon. Save and use the returned credit ID.
+The credential and delivery/recovery state use account-private durable storage
+at `~/.abalone/credit` (or `$ABALONE_DIR/credit`), with mode 0700 directories and
+0600 files;
+conversation privacy does not require throwing away paid access on process exit.
+A nominal coupon cap is not an amount already spent, an owned wallet, or a
+verified remaining balance. Do not infer credential expiry from an issuer login's
+expiry. Report only observed usage and known provider limits.
+
+If interrupted or uncertain, inspect status and recover the existing credit with
+its saved identity; never create another claim as a blind retry:
+
+```sh
+abalone credit recover --credit CREDIT_ID
+```
+
+A failed or pending recovery is not a new coupon. Preserve the state and report
+the specific issue without posting credentials or promising recovery that failed.
+
+## Test when requested, then open a fresh terminal
+
+A requested test uses bounded synthetic input and the same saved access. Do not
+send a private document as a setup test. Confirm only the result and observed
+usage; never describe the full cap as spent merely because it was redeemed.
+Do not invent a noninteractive prompt protocol: inspect the installed session
+interface before automating a test.
+
+Hand the user a fresh interactive terminal running:
+
+```sh
+abalone credit session --credit CREDIT_ID
+```
+
+If opening a user-controlled terminal is unavailable, give that exact launch
+command. Do not require tmux, reuse of the setup agent's process, another coupon
+or a credential password. Stop capturing/observing before the user's conversation.
+The user selects documents inside Abalone; their contents and the answer do not
+return to the setup agent unless the user deliberately shares them.
+
+By default, closing ends the managed conversation history; saved access remains
+available for a later session. Optional encrypted conversation retention is a
+separate choice. Files, terminal captures and host remnants can remain. Closing
+is not provider revocation or secure erasure. Reopening still requires valid
+provider access and fresh admission, and must never trigger automatic redemption.
+
+The app includes patched Pi, Abalone extensions, verification and a credential
+broker. Installing this skill alone does not install those mechanisms or qualify
+stock Pi/Hermes support. See [architecture](../../docs/architecture.md).
