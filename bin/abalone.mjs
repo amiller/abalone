@@ -643,8 +643,9 @@ async function session() {
   for (const a of p.admitted) {
     delete env[a.keyEnv]; // the agent never holds a provider key of its own
     if (couponSlot) continue; // synthetic sessions cannot fall back to another credential/provider
-    // An ACI provider attests at load; with no node key it could serve nothing, so it is not contacted at all.
-    if (a.transport === "aci/1" && !nodekeys.active(a.id)) continue;
+    // An ACI provider attests at load, and Chutes needs a key to verify anything: with no node key either could serve
+    // nothing, so it is not contacted at all.
+    if ((a.transport === "aci/1" || a.needsKey) && !nodekeys.active(a.id)) continue;
     // Behind an ACI aggregator, only models whose every upstream our policy admits (lib/upstream.mjs, issue 0007).
     // A provider whose listing fails, or that has no admitted model, is not loaded: its models are refused.
     if (a.upstreams) {

@@ -29,7 +29,7 @@
   {
    "kind": "tree",
    "path": "lib",
-   "sha256": "f76f0fd7dbf0c278efb59de6b4924264b144402c9ff817a4045d4cf19f62cd33"
+   "sha256": "210779682e25495fce3583c48d199d21d1e0876a93ba7435c16c62e5df8aa45f"
   },
   {
    "kind": "skill",
@@ -77,9 +77,14 @@
    "sha256": "4e9d026c94a7778bc2ed095ade3878ce2c5228993e2320f7879438aa4802a6e0"
   },
   {
+   "kind": "provider",
+   "path": "curated/chutes-provider.ts",
+   "sha256": "83a8f75fab761e4c92faf11aed9db60e003f459d873e1c13086b8d108e296094"
+  },
+  {
    "kind": "tree",
    "path": "anchors",
-   "sha256": "93e813639079ea814bf7d154ffd0a4f47824aaee1a218ba7eb1be4b0f049d654"
+   "sha256": "e98f1126ff44590e0609330aada418abcb6972240261c7de57048ff7325789f9"
   }
  ]
 }
