@@ -686,3 +686,47 @@ test("a legacy-mode approval refuses a native offer at the client before anythin
     assert.equal(fs.existsSync(path.join(dir, "credit", `${id}.json`)), false);
   } finally { await server.host.stop(); }
 });
+
+test("a native-authority (v3) approval refuses a legacy offer at client.offer(); the native offer is accepted", { timeout: 30_000 }, async () => {
+  const { servePeer } = await import("../lib/p2p.mjs");
+  const { couponAttestedClientForTesting, COUPON_ISSUER_PROTOCOL, COUPON_ISSUER_FRAME_LIMIT, COUPON_PROTOCOL_V4 } = await import("../lib/coupon-attested.mjs");
+  const issuerKey = crypto.generateKeyPairSync("ed25519"), rootKey = crypto.generateKeyPairSync("ed25519"), raw = (k) => k.publicKey.export({ format: "der", type: "spki" }).subarray(-32);
+  const compose = '{"name":"SYNTHETIC ONLY MAC NATIVE ISSUER","services":{}}', composeHash = sha(Buffer.from(compose)), cdhash = "ab".repeat(32);
+  const policy = { version: 1, profile: MAC_ISSUER_PROFILE, app_id: "DC9JH5DRMY.dev.dsmack.provider", challenge_ttl_ms: 30000, max_enrollment_age_seconds: 43200,
+    approved_measurements: [{ cdhash, compose_sha256: composeHash }], custody: "operator-kms-readable" };
+  const info = { version: 2, issuer_public_key_hex: raw(issuerKey).toString("hex"), identity_policy_sha256: macIssuerPolicyHash(policy), issuance_policy_sha256: "cd".repeat(32) };
+  const payload = { version: 3, profile: "debug-staging", app_id: "SYNTHETIC-Mac-runtime", compose_hash: composeHash, identity_policy_sha256: info.identity_policy_sha256,
+    issuance_policy_sha256: info.issuance_policy_sha256, issuer_public_key_sha256: sha(raw(issuerKey)), provider_scope_commitment: "ab".repeat(32),
+    guard: { chain_id: 11155111, address: `0x${"11".repeat(20)}`, code_hash: `0x${"22".repeat(32)}`, issuer_address: `0x${"33".repeat(20)}` },
+    powers: ["operator-secret-access", "application-exec", "debugger", "host-clock"], prompt_policy: "synthetic-only", max_coupon_nano_usd: "5000000000", max_total_nano_usd: "5000000000",
+    expires_at: "2099-01-01T00:00:00Z", generation: 1, issuer_profile: MAC_ISSUER_PROFILE, cdhash, delivery_profile: "x25519-aesgcm-recipient-v1" };
+  const approvalBytes = Buffer.from(canonicalCouponJson({ domain: MAC_COUPON_APPROVAL_DOMAIN, payload,
+    signature_hex: crypto.sign(null, Buffer.from(`${MAC_COUPON_APPROVAL_DOMAIN}\0${canonicalCouponJson(payload)}`), rootKey.privateKey).toString("hex") }));
+  let served;
+  const host = await servePeer({ listen: ["/ip4/127.0.0.1/tcp/0"], evidence: () => () => ({ type: "dev" }), services: {
+    [COUPON_ISSUER_PROTOCOL]: { maxDataLength: COUPON_ISSUER_FRAME_LIMIT, timeoutMs: 3000, handle: async (_lp, send, recv) => {
+      const frame = await recv();
+      await send({ id: frame.id, ok: true, result: frame.op === "info" ? info : { domain: MAC_ISSUER_DOMAIN, binding: frame.binding, app_compose: compose,
+        possession_signature_hex: crypto.sign(null, macIssuerPossessionMessage(frame.binding), issuerKey.privateKey).toString("hex"),
+        runner_evidence: { type: "macrunner", attestation: "AA==", keyId: "AA==", assertion: "AA==", bootClientData: Buffer.from(JSON.stringify({ compose_hash: composeHash })).toString("base64"),
+          assertClientData: Buffer.from(macIssuerData(frame.binding)).toString("base64") } } });
+    } },
+    [COUPON_PROTOCOL_V4]: { timeoutMs: 3000, handle: async (_lp, send, recv) => { const frame = await recv(); await send({ id: frame.id, ok: true, result: served }); } },
+  } });
+  const legacy = { ...terms(host.peerId.toString()), issuer: { peer_id: host.peerId.toString(), policy: MAC_ISSUER_PROFILE, identity_policy_sha256: info.identity_policy_sha256,
+    issuance_policy_sha256: info.issuance_policy_sha256, issuer_public_key_sha256: sha(raw(issuerKey)) }, provider: { id: "near", scope_commitment: "ab".repeat(32) } };
+  const client = () => couponAttestedClientForTesting(String(host.getMultiaddrs()[0]), { identityPolicy: policy, expectedIdentityPolicySha256: info.identity_policy_sha256,
+    expectedIssuancePolicySha256: info.issuance_policy_sha256, expectedIssuerPublicKeySha256: sha(raw(issuerKey)), deliveryProfile: "x25519-aesgcm-recipient-v1",
+    stagingApproval: { bytes: approvalBytes, approvalRoot: raw(rootKey).toString("hex") }, syntheticRunnerVerifier: async () => ({ cdhash, compose_hash: composeHash }) });
+  try {
+    for (const [offer, accepted] of [[legacy, false], [{ ...legacy, provider_expires_at: "2031-01-01T00:00:00Z", sponsor_powers: [] }, true]]) {
+      served = bundle(offer);
+      const c = await client();
+      try {
+        if (accepted) assert.equal((await c.offer(coupon)).offer_hash, served.offer_hash);
+        else await assert.rejects(c.offer(coupon), /^Error: coupon offer request failed$/);
+        assert.equal(c.stagingAdmission.nativeAuthority, true);
+      } finally { await c.close(); }
+    }
+  } finally { await host.stop(); }
+});
