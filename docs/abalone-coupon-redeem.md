@@ -102,7 +102,7 @@ abalone credit inspect --trial /ABS/trial.json --input-file /private/gift.txt
 ```
 
 Read the returned offer: provider, cap, expiry and restrictions. Inspecting
-claims nothing. The offer's `claimWindow` line says when the gift must be
+claims nothing and saves nothing on this computer. The offer's `claimWindow` line says when the gift must be
 redeemed. If that time has passed, the state is `expired` and the line says
 "Claim window closed; the deadline was ... This gift can no longer be redeemed:
 ask the sponsor for a new gift." Redeeming an expired offer is refused before
@@ -116,8 +116,9 @@ abalone credit redeem --trial /ABS/trial.json --input-file /private/gift.txt --a
 abalone credit status
 ```
 
-Redeem reads the issuer's status for the gift before it sends the first claim,
-and stops without claiming if the issuer reports the window closed.
+Redeem saves the gift code and its recovery keys, then reads the issuer's
+status for the gift before it sends the first claim, and stops without claiming
+if the issuer reports the window closed.
 Saved access lives in `~/.abalone/credit/` (or `$ABALONE_DIR/credit/`), in a
 0700 directory with 0600 files owned by your account. These files hold the
 credential and its recovery keys, never conversations. Concurrent commands are
@@ -165,8 +166,9 @@ Inside the session, `/status` shows usage, what is kept and what was verified;
 `/coupon` shows the credit's state and limits.
 
 The conversation is held in memory only and is not saved. The gift code, model
-credential and recovery keys stay in `~/.abalone/credit` until you delete them.
-Deleting them does not revoke the credential; see
+credential and recovery keys stay in `~/.abalone/credit` until you run
+`abalone credit forget --credit CREDIT_ID`, which removes the record and its
+lock file. Forgetting does not revoke the credential; see
 [what is kept](security.md#local-host-and-retention).
 Next time, run `abalone` again (or `abalone credit status` to find the credit ID
 for the explicit form). Each session uses the same credit with fresh provider

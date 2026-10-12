@@ -15,7 +15,7 @@ import { spawn } from "node:child_process";
 import { createCreditManagerForTesting } from "../lib/credit.mjs";
 import { creditStore } from "../lib/credit-store.mjs";
 import { OUT_OF_DATE_TRIAL_POLICY } from "../lib/coupon-near.mjs";
-import { coupon, id, sha, credential, provider, connect, pace, issuer, bundle, terms } from "./lib/credit-fixture.mjs";
+import { coupon, id, sha, credential, provider, connect, pace, issuer } from "./lib/credit-fixture.mjs";
 import { creditId } from "../lib/credit-store.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -25,13 +25,14 @@ const log = path.join(base, "synthetic-near.jsonl"), hook = path.join(root, "tes
 const pass = (name) => console.log(`PASS ${name}`);
 const warnings = (err) => err.split("\n").filter((l) => /warning|⚠|INTEL-SA|out ?of ?date/i.test(l)); // the usability gate's rule (tests/usability/live.mjs)
 
-// Saves one synthetic gift into dir (redeemed unless expiresAt overrides its claim window) and relabels it
-// testing:false so the real CLI opens it. policy overrides the delivered NEAR provider policy.
-async function saved(dir, code, expiresAt, policy = provider.policy) {
+// Redeems one synthetic gift into dir and relabels it testing:false so the real CLI opens it. With expired, the issuer
+// reports the claim window closed at redeem, which saves the record as expired. policy overrides the NEAR provider policy.
+async function saved(dir, code, expired, policy = provider.policy) {
   const server = await issuer(undefined, code), manager = createCreditManagerForTesting({ directory: dir, connect });
-  if (expiresAt) server.state.offer = bundle({ ...terms(server.host.peerId.toString(), undefined, code), claim_expires_at: expiresAt });
+  server.state.claimExpired = !!expired;
   const offer = await manager.inspect(code, { ...server.admission, provider: { ...provider, policy } }); await pace();
-  if (!expiresAt) await manager.redeem(creditId(code), { offerHash: offer.offerHash });
+  const redeem = manager.redeem(creditId(code), { offerHash: offer.offerHash });
+  await (expired ? assert.rejects(redeem, { code: "claim_expired" }) : redeem);
   await server.host.stop();
   const store = creditStore(dir), record = store.read(creditId(code)), unlock = store.lock(record.id);
   try { store.write({ ...record, testing: false }); } finally { unlock(); }
@@ -129,12 +130,12 @@ for (const each of [id, creditId(second)]) assert.ok(several.err.includes(`  aba
 assert.ok(!several.err.includes("Saved credit:"), "no session opened");
 pass("plain abalone with several saved credits lists each with its session command and opens none");
 const late = path.join(base, "late"), lapsed = "e".repeat(43);
-await saved(path.join(late, "credit"), lapsed, "2026-01-01T00:00:00Z");
+await saved(path.join(late, "credit"), lapsed, true);
 const waiting = await plain(late);
 assert.equal(waiting.code, 1);
-assert.ok(waiting.err.includes(`No saved credit is ready to use yet:\n  ${creditId(lapsed)}  expired: Claim window closed; the deadline was 2026-01-01 00:00 UTC. This gift can no longer be redeemed: ask the sponsor for a new gift.\n`), waiting.err);
+assert.ok(waiting.err.includes(`No saved credit is ready to use yet:\n  ${creditId(lapsed)}  expired: Claim window closed; the deadline was 2030-10-10 00:00 UTC. This gift can no longer be redeemed: ask the sponsor for a new gift.\n`), waiting.err);
 assert.ok(waiting.err.includes("https://amiller.github.io/abalone/redeem/"));
-pass("plain abalone with only an expired offer says so, with the deadline and 'ask the sponsor for a new gift'");
+pass("plain abalone with only an expired credit says so, with the deadline and 'ask the sponsor for a new gift'");
 const leftovers = [];
 const scan = (dir) => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name);
   if (e.isDirectory()) scan(p); else if (e.isFile() && p !== log && markers.some((m) => fs.readFileSync(p).includes(m))) leftovers.push(path.relative(base, p)); } };

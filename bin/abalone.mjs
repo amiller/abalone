@@ -45,7 +45,7 @@ const PEER = () => flag("--peer", process.env.ABALONE_PEER);
 let couponSlot = null;
 
 const CREDIT_OPTIONS = { inspect: ["--trial", "--stdin", "--input-file"], redeem: ["--trial", "--stdin", "--input-file", "--accept-offer"],
-  recover: ["--credit"], status: ["--credit"], session: ["--credit", "--mode"] };
+  recover: ["--credit"], status: ["--credit"], session: ["--credit", "--mode"], forget: ["--credit"] };
 // Never echo an argument that may hold a gift code: any 43+ character base64url run, or a gift link.
 const giftLike = (v) => /[A-Za-z0-9_-]{43}/.test(v) || v.includes("#code=");
 const shown = (v) => giftLike(v) ? "(not shown: it looks like a gift code, and gift codes never belong in command arguments)" : JSON.stringify(v);
@@ -64,7 +64,7 @@ const CREDIT_CODES = new Set(["credit_usage", "credit_store_refused", "credit_pr
 // A failed local setup step reports what to repair without raw paths or exception text.
 const creditStep = (code, message, fn) => { try { return fn(); } catch { throw Object.assign(new Error(message), { code }); } };
 const creditArg = (message) => Object.assign(new Error(message), { code: "credit_usage" });
-const creditUsage = () => creditArg("abalone credit takes one of: inspect, redeem, recover, status, session. Usage: abalone credit inspect --trial /abs/trial.json (--stdin | --input-file /abs/private-file); credit redeem (same) --accept-offer <offerHash>; credit recover --credit <id>; credit status [--credit <id>]; credit session --credit <id> [--mode rpc]. Gift codes and keys never belong in command arguments.");
+const creditUsage = () => creditArg("abalone credit takes one of: inspect, redeem, recover, status, session, forget. Usage: abalone credit inspect --trial /abs/trial.json (--stdin | --input-file /abs/private-file); credit redeem (same) --accept-offer <offerHash>; credit recover --credit <id>; credit status [--credit <id>]; credit session --credit <id> [--mode rpc]; credit forget --credit <id>. Gift codes and keys never belong in command arguments.");
 
 async function creditCmd() {
   let next;
@@ -95,6 +95,13 @@ async function creditAction() {
     needCredit();
     creditPreflight();
     return void console.log(JSON.stringify(await manager.redeem(values["--credit"], { recover: true }), null, 2));
+  }
+  if (command === "forget") {
+    needCredit();
+    creditPreflight();
+    manager.forget(values["--credit"]);
+    return void console.log(`Forgot credit ${values["--credit"]}: its saved record and lock file were removed.
+The provider credential was NOT revoked. It stays valid at the provider until it expires or the sponsor or issuer's operator revokes it; revoking would be a request to the issuer that delivered it, which Abalone does not support yet.`);
   }
   if (command === "session") {
     needCredit();
@@ -548,6 +555,7 @@ const HELP = `abalone: an incognito AI session paid for by a gifted credit (Dsma
 ${REDEEM_STEPS.map((l) => `  ${l}`).join("\n")}
   abalone credit status [--credit <id>]   saved credits and their state
   abalone credit recover --credit <id>    finish an interrupted redeem with the same keys
+  abalone credit forget --credit <id>     remove a saved credit and its lock file (does not revoke it)
   abalone credit session --credit <id> [--mode rpc]   open a session with one saved credit
   abalone key add|list|forget <provider>  configure your own provider API key (from stdin, never arguments)
   abalone help                            this text

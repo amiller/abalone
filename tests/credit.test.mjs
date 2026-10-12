@@ -100,14 +100,17 @@ test("a crash before the first claim frame keeps the durable original keys; only
   const server = await issuer(), dir = path.join(tempDir(), "credit");
   try {
     const offer = await createCreditManagerForTesting({ directory: dir, connect }).inspect(coupon, server.admission); await pace();
-    // Async spawn: the issuer fixture runs on this process's event loop.
+    assert.deepEqual(fs.readdirSync(dir), [], "inspect saves nothing");
+    // Async spawn: the issuer fixture runs on this process's event loop. The child inspects and redeems, like the CLI.
     const child = spawn(process.execPath, ["--input-type=module", "-e", `
       import { createCreditManagerForTesting } from ${JSON.stringify(path.join(root, "lib/credit.mjs"))};
       import { couponAttestedClientForTesting } from ${JSON.stringify(path.join(root, "lib/coupon-attested.mjs"))};
       const quote = async (hex) => JSON.parse(Buffer.from(hex, "hex").toString());
       const connect = async (a, o, t) => { const c = await couponAttestedClientForTesting(a, { ...o, syntheticQuoteVerifier: quote }, t);
         return { ...c, claim: () => process.kill(process.pid, "SIGKILL") }; };
-      await createCreditManagerForTesting({ directory: process.argv[1], connect }).redeem(process.argv[2], { offerHash: process.argv[3] });`, dir, id, offer.offerHash],
+      const m = createCreditManagerForTesting({ directory: process.argv[1], connect });
+      await m.inspect(process.argv[4], JSON.parse(process.argv[5]));
+      await m.redeem(process.argv[2], { offerHash: process.argv[3] });`, dir, id, offer.offerHash, coupon, JSON.stringify(server.admission)],
       { stdio: ["ignore", "ignore", "inherit"] });
     const [, signal] = await once(child, "exit");
     assert.equal(signal, "SIGKILL");
@@ -172,8 +175,7 @@ test("an offer past its claim window inspects as expired and redeem refuses it w
     await assert.rejects(manager.redeem(id, { offerHash: offer.offerHash }), { code: "claim_expired",
       message: "This gift's claim window closed at 2026-01-01 00:00 UTC. Nothing was claimed; ask the sponsor for a new gift. If your computer's clock is wrong, correct it and retry." });
     assert.equal(server.frames.length, frames, "no issuer request, no claim");
-    assert.equal(savedRecord(dir).state, "offered", "a local clock reading is never saved as terminal");
-    assert.equal((await manager.status(id)).state, "expired");
+    assert.deepEqual(fs.readdirSync(dir), [], "nothing is saved for a gift whose window closed before redemption started");
   } finally { await server.host.stop(); }
 });
 
@@ -200,7 +202,9 @@ test("record creation is atomic and exclusive: a crash leaves no partial record 
     const stale = path.join(dir, `${id}.json.${"ab".repeat(16)}.tmp`);
     fs.writeFileSync(stale, "{}", { mode: 0o600 });
     const manager = createCreditManagerForTesting({ directory: dir, connect });
-    assert.equal((await manager.inspect(coupon, server.admission)).state, "offered");
+    const offer = await manager.inspect(coupon, server.admission); await pace();
+    assert.equal(offer.state, "offered"); assert.ok(fs.existsSync(stale), "inspect takes no lock and writes nothing");
+    assert.equal((await manager.redeem(id, { offerHash: offer.offerHash })).state, "installed");
     assert.equal(fs.existsSync(stale), false, "the next lock holder removes it");
     const file = path.join(dir, `${id}.json`), before = fs.readFileSync(file, "utf8");
     assert.equal(fs.statSync(file).nlink, 1);
@@ -339,6 +343,48 @@ test("saved records bind offer hash, issuer, provider scope, budget, Noise peer,
   } finally { await server.host.stop(); }
 });
 
+test("inspect writes nothing: no record, lock or temp file exists until redemption starts; a wrong hash writes nothing either", { timeout: 30_000 }, async () => {
+  const server = await issuer(), dir = path.join(tempDir(), "credit");
+  try {
+    const manager = createCreditManagerForTesting({ directory: dir, connect });
+    const offer = await manager.inspect(coupon, server.admission); await pace();
+    assert.equal(offer.state, "offered"); assert.deepEqual(fs.readdirSync(dir), []);
+    await assert.rejects(createCreditManagerForTesting({ directory: dir, connect }).status(id), { code: "credit_store_refused" });
+    await assert.rejects(manager.redeem(id, { offerHash: "00".repeat(32) }), { code: "credit_intent_required" });
+    assert.deepEqual(fs.readdirSync(dir), [], "a wrong offer hash writes nothing");
+    await assert.rejects(manager.redeem(id, { recover: true }), { code: "credit_store_refused" });
+    assert.ok(!server.frames.some((f) => f.op === "claim"));
+    assert.equal((await manager.redeem(id, { offerHash: offer.offerHash })).state, "installed");
+    assert.equal(savedRecord(dir).localPeer, claims(server)[0].peer, "the record holds the keys that claimed");
+  } finally { await server.host.stop(); }
+});
+
+test("credit forget removes the record and its lock file, is refused while a session holds the lock, and says the credential is not revoked", { timeout: 30_000 }, async () => {
+  const server = await issuer(), dir = path.join(tempDir(), "credit");
+  try {
+    const manager = createCreditManagerForTesting({ directory: dir, connect, adapterFactory: () => ({ admit: async () => {}, fetch: async () => new Response(""), close: async () => {} }) });
+    const offer = await manager.inspect(coupon, server.admission); await pace();
+    await manager.redeem(id, { offerHash: offer.offerHash });
+    assert.deepEqual(fs.readdirSync(dir).sort(), [`${id}.json`, `${id}.json.lock`]);
+    const session = await manager.session(id);
+    await assert.rejects(manager.session(id), { code: "credit_locked" });
+    assert.throws(() => manager.forget(id), { code: "credit_locked" });
+    assert.deepEqual(fs.readdirSync(dir).sort(), [`${id}.json`, `${id}.json.lock`], "nothing removed while the session runs");
+    await session.close();
+    manager.forget(id);
+    assert.deepEqual(fs.readdirSync(dir), []);
+    assert.throws(() => manager.forget(id), { code: "credit_unavailable" });
+    assert.deepEqual(fs.readdirSync(dir), [], "forgetting an unknown id creates no lock file");
+  } finally { await server.host.stop(); }
+  // The CLI path, over a real (non-testing) record shape: only the lock and file handling are exercised here.
+  const home = tempDir(), store = creditStore(path.join(home, "state", "credit")), file = path.join(home, "state", "credit", `${id}.json`);
+  const unlock = store.lock(id); fs.writeFileSync(file, "{}", { mode: 0o600 }); unlock();
+  const r = spawnSync(process.execPath, [path.join(root, "bin/abalone.mjs"), "credit", "forget", "--credit", id], { encoding: "utf8", timeout: 20_000, env: { ...process.env, ABALONE_DIR: path.join(home, "state") } });
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(r.stdout.includes(`Forgot credit ${id}: its saved record and lock file were removed.`) && r.stdout.includes("The provider credential was NOT revoked."), r.stdout);
+  assert.deepEqual(fs.readdirSync(path.join(home, "state", "credit")), []);
+});
+
 test("private files refuse FIFOs, symlinks, hard links, loose modes and unsafe directories without chmod", () => {
   const dir = tempDir(), good = path.join(dir, "good");
   fs.writeFileSync(good, "x", { mode: 0o600 });
@@ -378,7 +424,7 @@ test("private files refuse FIFOs, symlinks, hard links, loose modes and unsafe d
   assert.equal(fs.readFileSync(good, "utf8"), "y".repeat(3000));
 });
 
-test("kernel locks exclude a live writer across processes, release on crash and are never unlinked or stolen", { timeout: 20_000 }, async () => {
+test("kernel locks exclude a live writer across processes, release on crash and are never stolen", { timeout: 20_000 }, async () => {
   const dir = path.join(tempDir(), "credit"), store = creditStore(dir), lockFile = path.join(dir, `${id}.json.lock`);
   const unlock = store.lock(id);
   assert.throws(() => store.lock(id), { code: "credit_locked" });
@@ -392,7 +438,7 @@ test("kernel locks exclude a live writer across processes, release on crash and 
     // Two contenders while the holder lives: both refused, and neither removes the live lock.
     for (let i = 0; i < 2; i++) assert.throws(() => creditStore(dir).lock(id), { code: "credit_locked" });
     assert.equal(fs.statSync(lockFile).ino, inode);
-    await assert.rejects(createCreditManagerForTesting({ directory: dir, connect }).inspect(coupon, (await issuerAdmissionOnly())), { code: "credit_locked" });
+    await assert.rejects(createCreditManagerForTesting({ directory: dir, connect }).redeem(id, { recover: true }), { code: "credit_locked" });
     child.kill("SIGKILL"); await once(child, "exit");
     const again = store.lock(id);
     assert.equal(fs.statSync(lockFile).ino, inode, "lock file reused, not replaced");
@@ -459,8 +505,8 @@ test("credit CLI names each argument mistake and what to do next, never echoing 
       [["inspect", "--trial", "/x/t.json", "--input-file", secret], "--input-file needs the full path to the private 0600 file holding your gift code or link, not the gift code itself"],
       [["inspect", "--trial", "/x/t.json", "--stdin", "--input-file", "/x/i"], "Give the gift code exactly one way"], [["inspect", "--stdin"], "credit inspect needs --trial /abs/trial.json"],
       [["redeem", "--trial", "/x/t.json", "--stdin"], "credit redeem needs --accept-offer <offerHash>; run credit inspect first"], [["status", "--credit", secret], "--credit needs a 64-character credit id"],
-      [["status", "--credit", id, "--credit", id], "--credit was given twice"], [["status", "--credit"], "--credit needs a value."], [["recover"], "credit recover needs --credit <id>"],
-      [["claim"], "abalone credit takes one of: inspect, redeem, recover, status, session. Usage: abalone credit"], [["session", "--credit", id, "--mode", "tui"], "--mode accepts only rpc"],
+      [["status", "--credit", id, "--credit", id], "--credit was given twice"], [["status", "--credit"], "--credit needs a value."], [["recover"], "credit recover needs --credit <id>"], [["forget"], "credit forget needs --credit <id>"], [["forget", "--credit", id], "No saved credit has this id"],
+      [["claim"], "abalone credit takes one of: inspect, redeem, recover, status, session, forget. Usage: abalone credit"], [["session", "--credit", id, "--mode", "tui"], "--mode accepts only rpc"],
       [["redeem", `--code=${secret}`], "Unexpected argument (not shown: it looks like a gift code"], [["inspect", "--trial", "/x/t.json", "--stdin", `${secret}.`], "Unexpected argument (not shown: it looks like a gift code"],
       [["inspect", "--trial", `gifts/${secret}`, "--stdin"], "--trial needs the full path to trial.json, as printed by the installer, not the gift code itself"],
       [["inspect", "--trial", "/x/t.json", "--input-file", `./${secret}`], "--input-file needs the full path to the private 0600 file holding your gift code or link, not the gift code itself"]]) {

@@ -72,8 +72,8 @@ sandbox` without `--incognito` keeps a resumable Pi session under
 scrollback have their own lifetimes.
 
 After a session closes, `~/.abalone/credit` keeps the gift code, the model
-credential and the recovery keys until you remove them; no conversation file is
-written by default. A fresh session is not deletion; see
+credential and the recovery keys until `abalone credit forget` removes them; no
+conversation file is written by default. A fresh session is not deletion; see
 [local host and retention](docs/security.md#local-host-and-retention).
 
 Read the installer before running it. A matching checksum shows the bytes are the
