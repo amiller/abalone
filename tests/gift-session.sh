@@ -55,7 +55,7 @@ label="◈ attested (NEAR TEE · via $hop, which sees ciphertext and metadata)"
 
 echo "== the picker (tmux, 220 columns)"
 t=abalone-gift-$$
-tmux new-session -d -s $t -x 220 -y 40 "cd $W/r/work && env -i XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR NO_COLOR=1 ABALONE_NO_CANARIES=1 PATH=$root/bin:$(dirname "$(command -v node)"):/usr/bin:/bin HOME=$W/r/home ABALONE_DIR=$W/r/home/.abalone ABALONE_CONFIG=$W/config TERM=xterm-256color $root/bin/abalone; sleep 30"
+tmux new-session -d -s $t -x 220 -y 40 "cd $W/r/work && env -i XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR NO_COLOR=1 ABALONE_NO_CANARIES=1 PATH=$root/bin:$(dirname "$(command -v node)"):/usr/bin:/bin HOME=$W/r/home ABALONE_DIR=$W/r/home/.abalone ABALONE_CONFIG=$W/config TERM=xterm-256color $root/bin/abalone sandbox; sleep 30"
 for _ in $(seq 60); do tmux capture-pane -t $t -p | grep -q "/model to change" && break; sleep 0.5; done
 tmux send-keys -t $t "/model" Enter; for _ in $(seq 40); do tmux capture-pane -t $t -p | grep -q "\[gift\]" && break; sleep 0.5; done
 tmux capture-pane -t $t -p > "$W/picker.txt"; tmux kill-session -t $t

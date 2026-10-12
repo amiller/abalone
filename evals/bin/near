@@ -22,7 +22,7 @@ entries = lambda: [json.loads(l) for l in session.read_text().splitlines() if l.
 usage = lambda: [e["message"] for e in entries() if e.get("type") == "message" and e["message"].get("usage")]
 tools = ["--tools", a.tools] if a.tools else ["--no-tools"]
 out, err = tempfile.TemporaryFile("w+"), tempfile.TemporaryFile("w+")
-child = subprocess.Popen([str(ROOT / "bin/abalone"), "-p", "--session", str(session), "--model", f"nearai/{a.model}", *tools],
+child = subprocess.Popen([str(ROOT / "bin/abalone"), "sandbox", "-p", "--session", str(session), "--model", f"nearai/{a.model}", *tools],
                          stdin=subprocess.PIPE, stdout=out, stderr=err, text=True, cwd=a.cwd)
 child.stdin.write(sys.stdin.read()); child.stdin.close()
 killed = None

@@ -31,7 +31,7 @@ if (checks.some((c) => Object.keys(c)[0].startsWith("screen_"))) {
   const t = `regress-${process.pid}`, tm = (...a) => spawnSync("tmux", ["-L", t, ...a], { encoding: "utf8" }).stdout; // own server: an attached client cannot resize it
   const env = Object.entries({ NO_COLOR: 1, ABALONE_NO_CANARIES: 1, ...Object.fromEntries(["ABALONE_DIR", "ABALONE_CONFIG", "ABALONE_RUNNER_CLAUDE"].map((k) => [k, process.env[k]])),
     STUB_SCRIPT: path.join(import.meta.dirname, "replay.mjs"), REGRESS_FIXTURE: path.join(dir, "fixture.json") }).map(([k, v]) => `${k}=${v}`).join(" ");
-  tm("new-session", "-d", "-s", t, "-x", "100", "-y", "300", `cd ${cwd} && env ${env} ${path.join(import.meta.dirname, "../../bin/abalone")} --model stub-e2ee/script; sleep 60`);
+  tm("new-session", "-d", "-s", t, "-x", "100", "-y", "300", `cd ${cwd} && env ${env} ${path.join(import.meta.dirname, "../../bin/abalone")} sandbox --model stub-e2ee/script; sleep 60`);
   tm("resize-window", "-t", t, "-x", "100", "-y", "300");
   const settle = async (want) => { let prev = null; for (let i = 0; i < 120; i++) { await new Promise((r) => setTimeout(r, 500)); const cur = tm("capture-pane", "-t", t, "-p");
     if (cur === prev && cur.includes(want)) return; prev = cur; } throw new Error(`tui: the screen never settled on "${want}"`); };
