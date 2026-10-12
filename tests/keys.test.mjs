@@ -129,3 +129,19 @@ test("plain abalone with only a configured key points to abalone sandbox", () =>
   const r = spawnSync(process.execPath, [path.join(root, "bin/abalone.mjs")], { env: { ...process.env, ABALONE_DIR: state }, encoding: "utf8", input: "" });
   assert.match(r.stderr, /A configured key exists; use abalone sandbox \(plain abalone opens coupon credit only, #21\)\./);
 });
+
+test("credit forget refuses a configured key's id and the key side refuses a coupon record; neither is removed", () => {
+  keys.save("chutes", "cross", "secret-cross");
+  const k = keys.list().find((x) => x.label === "cross"), keyFile = path.join(dir, `${k.id}.json`);
+  const r = cli("credit", "forget", "--credit", k.id);
+  assert.equal(r.status, 1); assert.match(r.stderr, /That id is a configured key; use abalone key forget\./);
+  assert.throws(() => createCreditManager({ directory: dir }).forget(k.id), { code: "credit_kind_mismatch" });
+  assert.ok(fs.existsSync(keyFile) && fs.existsSync(`${keyFile}.lock`));
+  const store = creditStore(dir), id = "ab".repeat(32), unlock = store.lock(id);
+  try { store.write({ version: 1, id, state: "installed" }, { create: true }); } finally { unlock(); }
+  assert.throws(() => store.forget(id, "key"), { code: "credit_kind_mismatch", message: "That id is a saved credit; use abalone credit forget." });
+  assert.ok(fs.existsSync(path.join(dir, `${id}.json`)));
+  store.forget(id, "credit");
+  keys.forget("chutes", "cross");
+  assert.ok(!fs.existsSync(keyFile) && !fs.existsSync(`${keyFile}.lock`));
+});

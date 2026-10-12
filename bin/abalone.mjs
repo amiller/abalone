@@ -60,7 +60,7 @@ const CREDIT_CODES = new Set(["credit_usage", "credit_store_refused", "credit_pr
   "credit_admission_changed", "credit_profile_refused", "credit_redemption_incomplete", "credit_unavailable", "coupon_input_refused", "claim_not_reserved",
   "credit_not_claimed", "claim_pending", "claim_expired", "credit_flock_unavailable", "credit_input_refused", "credit_workspace_refused", "credit_runtime_refused",
   "reconciliation_required", "credential_refused", "staging_approval_expired", "issuer_unverified", "bundle_invalid", "issuer_inputs_missing",
-  "issuer_pin_refused", "credit_claim_in_progress", "provider_not_admitted", "source_inputs_missing"]);
+  "issuer_pin_refused", "credit_claim_in_progress", "credit_kind_mismatch", "provider_not_admitted", "source_inputs_missing"]);
 // A failed local setup step reports what to repair without raw paths or exception text.
 const creditStep = (code, message, fn) => { try { return fn(); } catch { throw Object.assign(new Error(message), { code }); } };
 const creditArg = (message) => Object.assign(new Error(message), { code: "credit_usage" });
