@@ -15,7 +15,7 @@ export async function verifyNearModel() {
     const user = body.messages.filter((m) => m.role === "user").map((m) => decrypt(m.content, key)).join("\n");
     const marker = /SYNTHETIC-CLI-[0-9A-F]{12}/.exec(user)?.[0] ?? null;
     // Facts only, never the credential or the conversation text.
-    fs.appendFileSync(process.env.ABALONE_SYNTHETIC_NEAR_LOG, JSON.stringify({ url: String(url), model: body.model, maxTokens: body.max_tokens, marker,
+    fs.appendFileSync(process.env.ABALONE_SYNTHETIC_NEAR_LOG, JSON.stringify({ url: String(url), model: body.model, maxTokens: body.max_tokens, chatTemplateKwargs: body.chat_template_kwargs, marker,
       pdfText: user.includes("Notice of Lease Renewal Offer"), plaintextInBody: options.body.includes("Lease Renewal"),
       credentialSha256: crypto.createHash("sha256").update(headers.get("authorization").replace(/^Bearer /, "")).digest("hex") }) + "\n", { mode: 0o600 });
     const answer = encrypt(`SYNTHETIC FIXTURE ANSWER for ${marker}`, headers.get("x-client-pub-key"));

@@ -68,7 +68,7 @@ for (const run of [1, 2]) {
 const requests = fs.readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l));
 assert.equal(requests.length, 2);
 requests.forEach((q, i) => {
-  assert.equal(q.marker, markers[i]); assert.equal(q.credentialSha256, sha(credential)); assert.equal(q.model, provider.model); assert.equal(q.maxTokens, 4096);
+  assert.equal(q.marker, markers[i]); assert.equal(q.credentialSha256, sha(credential)); assert.equal(q.model, provider.model); assert.equal(q.maxTokens, 4096); assert.deepEqual(q.chatTemplateKwargs, { enable_thinking: false });
   assert.equal(q.url, "https://cloud-api.near.ai/v1/chat/completions"); assert.equal(q.pdfText, true); assert.equal(q.plaintextInBody, false);
 });
 pass("each fresh process uses the original saved credential; the selected synthetic PDF reaches the model only inside the encrypted request");

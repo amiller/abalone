@@ -25,6 +25,8 @@ test("selected NEAR profile is immutable and wrong model/auth/endpoint/pre-abort
     assert.ok(Object.isFrozen(adapter.profile.policy)); assert.equal(adapter.profile.policy.gatewayTcb, "UpToDate");
     for (const change of [{ baseUrl: "https://example.invalid/v1" }, { credential: "synthetic-only-not-a-real-provider" }, { policy: { ...options().policy, gatewayTcb: "reported" } }, { policy: { ...options().policy, gpuSignature: "optional" } }]) assert.throws(() => openCouponNearAdapter({ ...options(), ...change }), /provider_admission_refused/);
     for (const maxTokens of [0, 4097, 512.5, undefined]) assert.throws(() => validateCouponNearProfile({ ...options(), maxTokens }));
+    for (const changed of [{ ...body(), chat_template_kwargs: { enable_thinking: "no" } }, { ...body(), chat_template_kwargs: { enable_thinking: false, preserve_thinking: true } }])
+      await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request(changed)), /request_refused/);
     await assert.rejects(adapter.fetch("https://example.invalid/v1/chat/completions", request(body())), /request_refused/);
     await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, { ...request(body()), headers: { authorization: "Bearer ambient-key-must-not-be-used" } }), /request_refused/);
     for (const changed of [{ ...body(), model: "other/model" }, { ...body(), api_key: "wire-key" }, { ...body(), messages: [{ role: "tool", content: "tool arguments" }] }, { ...body(), max_tokens: 129 }])
@@ -89,7 +91,8 @@ const verdict = (state) => ({
       assert.equal(init.method, "POST"); assert.equal(init.redirect, "manual");
       assert.equal(new Headers(init.headers).get("authorization"), `Bearer ${options().credential}`);
       const body = JSON.parse(init.body);
-      assert.deepEqual(Object.keys(body).sort(), ["max_tokens", "messages", "model", "stream"]);
+      state.bodies?.push(body);
+      assert.deepEqual(Object.keys(body).sort(), state.keys ?? ["max_tokens", "messages", "model", "stream"]);
       assert.equal(body.model, "selected/model"); assert.equal(body.stream, true);
       assert.deepEqual(body.messages.map((m) => ({ role: m.role, content: decrypt(m.content, modelKey) })), [{ role: "user", content: "synthetic qualification content" }]);
       const clientPub = new Headers(init.headers).get("x-client-pub-key");
@@ -110,16 +113,19 @@ const verdict = (state) => ({
 
 test("actual Pi OpenAI request grammar reaches the strict NEAR encrypted adapter", async () => {
   const { streamSimple } = await import("../pi/packages/ai/dist/api/openai-completions.js");
-  const state = { chats: 0, closed: false, mode: "ok" };
+  const state = { chats: 0, closed: false, mode: "ok", bodies: [], keys: ["chat_template_kwargs", "max_tokens", "messages", "model", "stream"] };
   const adapter = openCouponNearAdapterForTesting({ ...options(), verifiedForTesting: verdict(state) });
   const model = { id: "selected/model", name: "SYNTHETIC near trial", provider: "nearai", api: "openai-completions", baseUrl: "http://127.0.0.1:0/v1",
-    reasoning: false, input: ["text"], contextWindow: 32768, maxTokens: 128, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, compat: NEAR_COUPON_PI_COMPAT };
+    reasoning: true, input: ["text"], contextWindow: 32768, maxTokens: 128, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, compat: NEAR_COUPON_PI_COMPAT };
   try {
-    const response = await streamSimple(model, { messages: [{ role: "user", content: "synthetic qualification content", timestamp: Date.now() }] },
-      { apiKey: "coupon-session", maxTokens: 128, fetch: (_url, init) => adapter.fetch(`${options().baseUrl}/chat/completions`, { ...init, body: typeof init.body === "string" ? init.body : String(init.body) }) }).result();
-    assert.equal(state.chats, 1, "Pi's actual payload passed the strict parser and reached the encrypted synthetic transport");
-    assert.notEqual(response.stopReason, "error", response.errorMessage);
-    assert.ok(response.content.some((part) => part.type === "text" && part.text.includes("useful synthetic answer")));
+    for (const reasoning of [undefined, "high"]) {
+      const response = await streamSimple(model, { messages: [{ role: "user", content: "synthetic qualification content", timestamp: Date.now() }] },
+        { apiKey: "coupon-session", maxTokens: 128, reasoning, fetch: (_url, init) => adapter.fetch(`${options().baseUrl}/chat/completions`, { ...init, body: typeof init.body === "string" ? init.body : String(init.body) }) }).result();
+      assert.notEqual(response.stopReason, "error", response.errorMessage);
+      assert.ok(response.content.some((part) => part.type === "text" && part.text.includes("useful synthetic answer")));
+    }
+    assert.equal(state.chats, 2, "Pi's actual payload passed the strict parser and reached the encrypted synthetic transport");
+    assert.deepEqual(state.bodies.map((b) => [b.chat_template_kwargs, b.max_tokens]), [[{ enable_thinking: false }, 128], [{ enable_thinking: true }, 128]]);
   } finally { await adapter.close(); }
 });
 

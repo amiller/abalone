@@ -18,12 +18,12 @@ const directory = fs.mkdtempSync(path.join(os.tmpdir(), "coupon-no-replay-"));
 const socket = path.join(directory, "broker.sock");
 const previous = { socket: process.env.ABALONE_COUPON_SOCKET, model: process.env.ABALONE_COUPON_MODEL, provider: process.env.ABALONE_COUPON_PROVIDER, maxTokens: process.env.ABALONE_COUPON_MAX_TOKENS };
 process.env.ABALONE_COUPON_SOCKET = socket; process.env.ABALONE_COUPON_MODEL = "Qwen/Qwen3.8-27B"; process.env.ABALONE_COUPON_PROVIDER = "nearai"; process.env.ABALONE_COUPON_MAX_TOKENS = "4096";
-let provider, requests = 0, mode = "503";
+let provider, requests = 0, mode = "503", bodies = [];
 await couponProvider({ registerProvider: (p) => { provider = p; } });
 const model = provider.getModels()[0];
 const server = http.createServer((req, res) => {
   assert.equal(req.method, "POST"); assert.equal(req.url, "/v1/chat/completions");
-  requests++; req.resume();
+  requests++; const chunks = []; req.on("data", (c) => chunks.push(c)); req.on("end", () => bodies.push(JSON.parse(Buffer.concat(chunks))));
   if (mode === "503" || mode === "overflow") {
     res.writeHead(mode === "503" ? 503 : 400, { "content-type": "application/json", "retry-after-ms": "1" });
     res.end(JSON.stringify({ error: { message: mode === "503" ? "synthetic ambiguous upstream failure" : "maximum context length exceeded", type: "synthetic_error" } }));
@@ -40,6 +40,14 @@ test.after(async () => {
   for (const [key, env] of [["socket", "ABALONE_COUPON_SOCKET"], ["model", "ABALONE_COUPON_MODEL"], ["provider", "ABALONE_COUPON_PROVIDER"], ["maxTokens", "ABALONE_COUPON_MAX_TOKENS"]]) {
     if (previous[key] === undefined) delete process.env[env]; else process.env[env] = previous[key];
   }
+});
+
+test("Pi's thinking level sets enable_thinking on coupon requests; the trial's cap is the model's max_tokens", async () => {
+  mode = "stop"; bodies = [];
+  assert.equal(model.reasoning, true); assert.equal(model.maxTokens, 4096);
+  for (const reasoning of [undefined, "medium"]) await provider.streamSimple(model, { messages: [{ role: "user", content: "synthetic request", timestamp: 0 }] }, { apiKey: "coupon-session", reasoning }).result();
+  assert.deepEqual(bodies.map((b) => b.chat_template_kwargs), [{ enable_thinking: false }, { enable_thinking: true }]);
+  assert.deepEqual(bodies.map((b) => b.max_tokens), [4096, 4096]);
 });
 
 test("the coupon model's cap is the trial's; a missing or out-of-range cap refuses", async () => {

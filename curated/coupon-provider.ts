@@ -22,7 +22,7 @@ export default async function (pi: ExtensionAPI) {
     name: near ? "NEAR coupon · trial" : "Synthetic coupon fixture",
     auth: { apiKey: { name: "session coupon socket", resolve: async () => ({ auth: { apiKey: "coupon-session" } }) } } as any,
     models: [{ id: p.model, name: near ? p.model : `${p.model} (fixture)`,
-      api: "openai-completions", provider: p.provider, baseUrl: "http://127.0.0.1:0/v1", reasoning: false, input: ["text"],
+      api: "openai-completions", provider: p.provider, baseUrl: "http://127.0.0.1:0/v1", reasoning: near, input: ["text"],
       ...(near ? { compat: NEAR_COUPON_PI_COMPAT } : {}),
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 32768, maxTokens: near ? p.maxTokens : 4096 }],
     api: { stream: (model: any, context: any, options: any) => api.stream(model, context, { ...options, fetch: send, maxRetries: 0 }),
