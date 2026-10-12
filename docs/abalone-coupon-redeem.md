@@ -163,7 +163,9 @@ one firmware line when the provider is first admitted:
 Inside the session, `/status` shows usage, what is kept and what was verified;
 `/coupon` shows the credit's state and limits.
 
-Closing discards the managed conversation by default and keeps saved access.
+The conversation is held in memory only and is not saved. The gift code, model
+credential and recovery keys stay in `~/.abalone/credit` until you delete them; see
+[what is kept](security.md#local-host-and-retention).
 Next time, run `abalone` again (or `abalone credit status` to find the credit ID
 for the explicit form). Each session uses the same credit with fresh provider
 admission and never redeems again. Continue with

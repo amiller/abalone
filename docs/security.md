@@ -51,15 +51,29 @@ workspace files and terminal captures. Cooperative setup-agent handoff ends its
 observation by agreement; it cannot exclude another process with those powers.
 Neither incognito nor provider encryption gives IP anonymity.
 
-Session-only mode discards managed conversation trace appends. Optional
-`--keep-trace` encrypts a durable managed trace with a user-held key; see the
-[trace format and recovery](protocols/trace-store.md). This does not encrypt all
-workspace files or revoke provider credentials. Saved credit under
-`~/.abalone/credit` holds the credential and recovery keys in 0600 files; it
-survives close and is readable by the administrator and same-user processes.
-tmpfs may swap; terminal logs,
-backups, crashes and copied files have their own lifetimes. Deleting files is
-not a guarantee of secure erasure.
+What each mode keeps on this computer:
+
+- `abalone` and `abalone credit session`: Pi runs with `--no-session`, so the
+  conversation exists only in process memory. Pi's settings and logs, harness
+  state and scratch go to a run directory on tmpfs (`/dev/shm/abalone-<uid>`),
+  removed at exit. Nothing is saved to resume; the next session starts fresh.
+- `abalone sandbox --incognito`: Pi also runs with `--no-session` and its agent
+  directory is in the run directory, removed at exit. `--keep-trace` adds an
+  encrypted trace in `.abalone/traces/` under a user-held key; see the
+  [trace format and recovery](protocols/trace-store.md).
+- `abalone sandbox` without `--incognito`: Pi keeps a resumable plaintext
+  session under `~/.abalone/agent` until you delete it.
+- Saved credit: `~/.abalone/credit/<id>.json`, mode 0600, holds the gift code,
+  the delivered model credential, the recovery keys and reported token usage.
+  It survives close. Abalone has no command that removes it; deleting the file
+  does not revoke the credential.
+- The model provider receives each request. Abalone does not verify what the
+  provider retains.
+
+A fresh session is not deletion. The administrator and same-user processes can
+read all of the above while it exists. tmpfs may swap; workspace files, terminal
+scrollback, the egress log's host names, backups, crashes and copied files have
+their own lifetimes. Deleting files is not secure erasure.
 
 ## Disclosure and tool authority
 

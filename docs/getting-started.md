@@ -58,11 +58,12 @@ and places its text in the encrypted model request; a PDF is converted with
 images are not read. A missing `pdftotext`, read or extraction
 failure refuses before inference.
 
-Closing discards the managed conversation by default. It does not delete saved
-access or revoke the upstream credential; the next session reuses the same credit
-with fresh provider admission and never triggers another redemption. Workspace files,
-terminal scrollback, swap and host captures have their own lifetimes; closing is not
-secure erasure.
+The conversation is held in memory only and is not saved; the next session starts
+fresh. Closing does not delete saved access or revoke the upstream credential; the
+next session reuses the same credit with fresh provider admission and never triggers
+another redemption. Workspace files, terminal scrollback, swap and host captures have
+their own lifetimes; closing is not secure erasure. See
+[what is kept](security.md#local-host-and-retention).
 
 Each answer is bounded to the trial's per-request output limit (4096 tokens in
 this trial). An inference may already have been charged when its reply fails; do

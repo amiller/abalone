@@ -16,8 +16,8 @@ and managed public-fetch/outside-runner paths are refused.
 In the bubblewrap profile, the harness uses explicit sandbox mounts and network
 restriction. In the owned-host profile, local tools run with ordinary
 account filesystem/network access. Both profiles use temporary managed agent
-state and discard trace appends by default. With `--keep-trace`, the launcher
-writes the encrypted trace. tmpfs can swap, and workspace files and terminal
+state and write no trace by default. With `--keep-trace`, the launcher
+writes the encrypted trace. See [what is kept](../security.md#local-host-and-retention). tmpfs can swap, and workspace files and terminal
 captures can survive; these are not secure-erasure guarantees.
 
 ## Files
@@ -32,7 +32,7 @@ $ABALONE_DIR/trace-hwm/<id>.json                           high-water mark {id, 
 
 `$ABALONE_DIR` defaults to `~/.abalone`. Neither key file is under the folder, so copying the folder does not copy them. In the bubblewrap profile, Pi sees a tmpfs over `$ABALONE_DIR/keys`, and bash sees a tmpfs over all of `$ABALONE_DIR`. The owned-host profile has no such account-wide confinement.
 
-**With explicit `--keep-trace`, the writer is the launcher.** In default session-only mode `trace-append` is acknowledged and discarded; no transcript is written or indexed. Pi's extension sends each new session entry over the launcher's control socket (`trace-append`, a Unix socket in the run dir, hidden from bash in the bubblewrap profile). The launcher encrypts the entry and appends it. The stream key exists only in the launcher's memory, and each session draws a fresh one. No code path reopens an existing trace for writing, so an explicitly reopened session (`--with-trace`) writes a new trace under a new stream key only if `--keep-trace` is also selected. The managed Pi process receives no trace decryption key; an owned-host process is not confined against same-user memory or filesystem access. The launcher writes the final frame after Pi exits, whatever the exit code, so a Pi crash still closes the trace. Only a launcher killed without a chance to run (SIGKILL, power loss) leaves it unclosed.
+**With explicit `--keep-trace`, the writer is the launcher.** In default session-only mode `trace-append` is acknowledged and not written; no transcript is written or indexed. Pi's extension sends each new session entry over the launcher's control socket (`trace-append`, a Unix socket in the run dir, hidden from bash in the bubblewrap profile). The launcher encrypts the entry and appends it. The stream key exists only in the launcher's memory, and each session draws a fresh one. No code path reopens an existing trace for writing, so an explicitly reopened session (`--with-trace`) writes a new trace under a new stream key only if `--keep-trace` is also selected. The managed Pi process receives no trace decryption key; an owned-host process is not confined against same-user memory or filesystem access. The launcher writes the final frame after Pi exits, whatever the exit code, so a Pi crash still closes the trace. Only a launcher killed without a chance to run (SIGKILL, power loss) leaves it unclosed.
 
 Model tools treat `<folder>/.abalone/` as outside the workspace: the folder listing omits it, in-content `list`/`read`/`grep`/`write` and `@` mentions refuse or skip it, native `read`/`write`/`edit` lack the capability for it, and, in the bubblewrap profile, bash sees it read-only. These managed tool checks are not filesystem confinement on the owned-host profile.
 
