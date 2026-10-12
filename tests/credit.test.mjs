@@ -13,7 +13,7 @@ import { peerIdFromPrivateKey } from "@libp2p/peer-id";
 import { couponAttestedRecipient, couponAttestedRecipientPeerHash, couponDeliveryAad, validateAttestedCouponOffer } from "../lib/coupon-attested.mjs";
 import { createCreditManager, createCreditManagerForTesting, creditOfferBound } from "../lib/credit.mjs";
 import { verifyCouponStagingAdmission, COUPON_STAGING_APPROVAL_DOMAIN, MAC_COUPON_APPROVAL_DOMAIN } from "../lib/coupon-staging.mjs";
-import { MAC_ISSUER_PROFILE } from "../lib/mac-coupon-issuer.mjs";
+import { MAC_ISSUER_PROFILE, MAC_ISSUER_DOMAIN, macIssuerPolicyHash, macIssuerData, macIssuerPossessionMessage, createMacCouponIssuerVerifierForTesting } from "../lib/mac-coupon-issuer.mjs";
 import { openAttestedCouponSession } from "../lib/coupon-attested-session.mjs";
 import { OUT_OF_DATE_TRIAL_POLICY, OUT_OF_DATE_TRIAL_NOTICE } from "../lib/coupon-near.mjs";
 import { creditStore, creditPreflight, couponInput, privateDirectory, readPrivate } from "../lib/credit-store.mjs";
@@ -393,6 +393,9 @@ function producerAdmission(b, approvalBytes = Buffer.from(b.approval.envelope, "
   const info = b.issuer_info.response.result, issuerKey = sha(Buffer.from(info.issuer_public_key_hex, "hex"));
   const approval = verifyCouponStagingAdmission(approvalBytes, { approvalRoot: b.authority.public_key_hex,
     identityPolicySha256: info.identity_policy_sha256, issuancePolicySha256: info.issuance_policy_sha256, issuerPublicKeySha256: issuerKey });
+  const compose = JSON.parse(b.config.envelope).payload.app_compose;
+  assert.equal(compose, b.config.payload.app_compose);
+  if (b.domain === "mac-v2") assert.equal(sha(Buffer.from(compose, "utf8")), approval.composeHash); else assert.equal(compose, undefined);
   return { info, approval, a: { approval, peerId: b.config.payload.issuer_peer_id,
     pin: { identityPolicy: b.domain === "mac-v2" ? { profile: MAC_ISSUER_PROFILE } : {}, expectedIssuerPublicKeySha256: issuerKey } } };
 }
@@ -420,6 +423,32 @@ test("matched producer bundles: signed recipient-v1 approval, exact offer and or
       assert.throws(() => recipient.decryptSavedDelivery(b.coupon, response.result, "00".repeat(32), b.recipient.noise_peer_id), /verification failed/);
       assert.throws(() => couponAttestedRecipient().decryptSavedDelivery(b.coupon, response.result, offerHash, b.recipient.noise_peer_id), /verification failed/);
     }
+  }
+});
+
+test("matched Mac producer bundles: the issuer verifier admits only the raw UTF-8 app_compose behind the signed compose_hash", async () => {
+  for (const name of ["mac-v2-recipient-v1", "mac-v2-session-only"]) {
+    const b = paired(name), { info, approval } = producerAdmission(b), compose = JSON.parse(b.config.envelope).payload.app_compose;
+    const policy = { version: 1, profile: MAC_ISSUER_PROFILE, app_id: "DC9JH5DRMY.dev.dsmack.provider", challenge_ttl_ms: 30000, max_enrollment_age_seconds: 43200,
+      approved_measurements: [{ cdhash: approval.cdhash, compose_sha256: approval.composeHash }], custody: "operator-kms-readable" };
+    const verifier = createMacCouponIssuerVerifierForTesting({ policy, expectedPolicySha256: macIssuerPolicyHash(policy), expectedIssuancePolicySha256: info.issuance_policy_sha256,
+      syntheticRunnerVerifier: async () => ({ cdhash: approval.cdhash, compose_hash: approval.composeHash }) });
+    const pair = crypto.generateKeyPairSync("ed25519"), publicKeyHex = pair.publicKey.export({ format: "der", type: "spki" }).subarray(-32).toString("hex");
+    const peers = { remotePeer: "MacCouponIssuer00001", recipientPeer: "MacCouponRecipient01" };
+    const attempt = (appCompose) => {
+      const binding = verifier.challenge({ ...peers, issuerPublicKeyHex: publicKeyHex });
+      return verifier.verify({ domain: MAC_ISSUER_DOMAIN, binding, app_compose: appCompose,
+        possession_signature_hex: crypto.sign(null, macIssuerPossessionMessage(binding), pair.privateKey).toString("hex"),
+        runner_evidence: { type: "macrunner", attestation: "AA==", keyId: "AA==", assertion: "AA==",
+          bootClientData: Buffer.from(JSON.stringify({ compose_hash: approval.composeHash })).toString("base64"),
+          assertClientData: Buffer.from(macIssuerData(binding)).toString("base64") } }, peers);
+    };
+    assert.equal((await attempt(compose)).composeSha256, approval.composeHash);
+    for (const mutated of [compose + " ", compose + "\n", " " + compose, compose.replace(":", ": ")]) {
+      assert.notEqual(sha(Buffer.from(mutated, "utf8")), approval.composeHash);
+      await assert.rejects(attempt(mutated), /verification refused/);
+    }
+    verifier.close();
   }
 });
 
