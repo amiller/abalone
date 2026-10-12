@@ -425,17 +425,25 @@ test("gift input accepts the code or exact fragment link only", () => {
     assert.throws(() => couponInput(bad), { code: "coupon_input_refused" });
 });
 
-test("credit CLI refuses incompatible or secret argv options and prints static, path-free errors", () => {
+test("credit CLI names each argument mistake and what to do next, never echoing a gift code or raw error detail", () => {
   const home = tempDir(), cli = (...argv) => spawnSync(process.execPath, [path.join(root, "bin/abalone.mjs"), "credit", ...argv],
     { encoding: "utf8", timeout: 20_000, env: { ...process.env, ABALONE_DIR: path.join(home, "state") }, input: "" });
   const secret = "s".repeat(43);
-  for (const argv of [["inspect", "--code", secret], ["redeem", "--trial", "/x/trial.json", "--stdin", secret], ["status", "--accept-offer", "00".repeat(32)],
-      ["session", "--credit", id, "--stdin"], ["recover", "--credit", id, "--trial", "/x/trial.json"], ["inspect", "--trial", "relative.json", "--stdin"],
-      ["inspect", "--trial", "/x/t.json", "--stdin", "--input-file", "/x/i"], ["redeem", "--trial", "/x/t.json", "--stdin"], ["status", "--credit", secret], ["claim"],
-      ["session", "--credit", id, "--mode", "tui"]]) {
-    const r = cli(...argv);
+  for (const [argv, says] of [[["inspect", "--code", secret], 'Unexpected argument "--code" for credit inspect. Options: --trial, --stdin, --input-file.'],
+      [["redeem", "--trial", "/x/trial.json", "--stdin", secret], "Unexpected argument (not shown: it looks like a gift code"],
+      [["status", "--accept-offer", "00".repeat(32)], "credit status does not take --accept-offer. Options: --credit."],
+      [["session", "--credit", id, "--stdin"], "credit session does not take --stdin."], [["recover", "--credit", id, "--trial", "/x/trial.json"], "credit recover does not take --trial."],
+      [["inspect", "--trial", "relative.json", "--stdin"], `--trial path must be absolute: relative.json. Give the full path to trial.json, as printed by the installer, for example --trial "${path.join(root, "relative.json")}".`],
+      [["inspect", "--trial", "/x/t.json", "--input-file", "gift.txt"], `--input-file path must be absolute: gift.txt. Give the full path to the private 0600 file holding your gift code or link, for example --input-file "${path.join(root, "gift.txt")}".`],
+      [["inspect", "--trial", "/x/t.json", "--input-file", secret], "--input-file needs the full path to the private 0600 file holding your gift code or link, not the gift code itself"],
+      [["inspect", "--trial", "/x/t.json", "--stdin", "--input-file", "/x/i"], "Give the gift code exactly one way"], [["inspect", "--stdin"], "credit inspect needs --trial /abs/trial.json"],
+      [["redeem", "--trial", "/x/t.json", "--stdin"], "credit redeem needs --accept-offer <offerHash>; run credit inspect first"], [["status", "--credit", secret], "--credit needs a 64-character credit id"],
+      [["status", "--credit", id, "--credit", id], "--credit was given twice"], [["status", "--credit"], "--credit needs a value."], [["recover"], "credit recover needs --credit <id>"],
+      [["claim"], "abalone credit takes one of: inspect, redeem, recover, status, session. Usage: abalone credit"], [["session", "--credit", id, "--mode", "tui"], "--mode accepts only rpc"]]) {
+    const r = spawnSync(process.execPath, [path.join(root, "bin/abalone.mjs"), "credit", ...argv], { encoding: "utf8", timeout: 20_000, cwd: root, env: { ...process.env, ABALONE_DIR: path.join(home, "state") }, input: "" });
     assert.equal(r.status, 1, argv.join(" "));
-    assert.ok(r.stderr.includes("Usage: abalone credit"), argv.join(" "));
+    assert.ok(r.stderr.includes(says), `${argv.join(" ")}: ${r.stderr}`);
+    assert.ok(!r.stderr.includes("Usage:") || argv[0] === "claim", argv.join(" "));
     assert.ok(!r.stderr.includes(secret) && !r.stdout.includes(secret));
   }
   const missing = cli("status", "--credit", id);

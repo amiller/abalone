@@ -45,9 +45,16 @@ let couponSlot = null;
 
 const CREDIT_OPTIONS = { inspect: ["--trial", "--stdin", "--input-file"], redeem: ["--trial", "--stdin", "--input-file", "--accept-offer"],
   recover: ["--credit"], status: ["--credit"], session: ["--credit", "--mode"] };
-const CREDIT_VALUES = { "--trial": (v) => path.isAbsolute(v), "--input-file": (v) => path.isAbsolute(v), "--credit": (v) => /^[0-9a-f]{64}$/.test(v),
-  "--accept-offer": (v) => /^[0-9a-f]{64}$/.test(v), "--mode": (v) => v === "rpc" };
-// Only these codes carry static, path-free messages; anything else is reported without raw detail.
+// Never echo an argument that may be a gift code.
+const giftLike = (v) => /^[A-Za-z0-9_-]{43}$/.test(v) || v.includes("#code=");
+const shown = (v) => giftLike(v) ? "(not shown: it looks like a gift code, and gift codes never belong in command arguments)" : JSON.stringify(v);
+const absolute = (key, what) => (v) => path.isAbsolute(v) ? null : giftLike(v) ? `${key} needs the full path to ${what}, not the gift code itself; gift codes never belong in command arguments.`
+  : `${key} path must be absolute: ${v}. Give the full path to ${what}, for example ${key} ${JSON.stringify(path.resolve(v))}.`;
+const CREDIT_VALUES = { "--trial": absolute("--trial", "trial.json, as printed by the installer"), "--input-file": absolute("--input-file", "the private 0600 file holding your gift code or link"),
+  "--credit": (v) => /^[0-9a-f]{64}$/.test(v) ? null : "--credit needs a 64-character credit id; abalone credit status lists them.",
+  "--accept-offer": (v) => /^[0-9a-f]{64}$/.test(v) ? null : "--accept-offer needs the 64-character offerHash printed by abalone credit inspect.",
+  "--mode": (v) => v === "rpc" ? null : "--mode accepts only rpc; leave it out for the interactive session." };
+// Only these codes carry static messages (argument errors may repeat a non-secret path); anything else is reported without raw detail.
 const CREDIT_CODES = new Set(["credit_usage", "credit_store_refused", "credit_provider_unsupported", "credit_record_refused", "credit_locked", "credit_intent_required", "credit_offer_refused",
   "credit_admission_changed", "credit_profile_refused", "credit_redemption_incomplete", "credit_unavailable", "coupon_input_refused", "claim_not_reserved",
   "credit_not_claimed", "claim_pending", "claim_expired", "credit_flock_unavailable", "credit_input_refused", "credit_workspace_refused", "credit_runtime_refused",
@@ -55,7 +62,8 @@ const CREDIT_CODES = new Set(["credit_usage", "credit_store_refused", "credit_pr
   "issuer_pin_refused", "provider_not_admitted", "source_inputs_missing"]);
 // A failed local setup step reports what to repair without raw paths or exception text.
 const creditStep = (code, message, fn) => { try { return fn(); } catch { throw Object.assign(new Error(message), { code }); } };
-const creditUsage = () => Object.assign(new Error("Usage: abalone credit inspect --trial /abs/trial.json (--stdin | --input-file /abs/private-file); credit redeem (same) --accept-offer <offerHash>; credit recover --credit <id>; credit status [--credit <id>]; credit session --credit <id> [--mode rpc]. Gift codes and keys never belong in command arguments."), { code: "credit_usage" });
+const creditArg = (message) => Object.assign(new Error(message), { code: "credit_usage" });
+const creditUsage = () => creditArg("abalone credit takes one of: inspect, redeem, recover, status, session. Usage: abalone credit inspect --trial /abs/trial.json (--stdin | --input-file /abs/private-file); credit redeem (same) --accept-offer <offerHash>; credit recover --credit <id>; credit status [--credit <id>]; credit session --credit <id> [--mode rpc]. Gift codes and keys never belong in command arguments.");
 
 async function creditCmd() {
   let next;
@@ -69,21 +77,26 @@ async function creditAction() {
   if (!Object.hasOwn(CREDIT_OPTIONS, command)) throw creditUsage();
   for (let i = 2; i < args.length; i++) {
     const key = args[i];
-    if (!allowed.includes(key) || Object.hasOwn(values, key)) throw creditUsage();
+    if (!allowed.includes(key)) throw creditArg(Object.hasOwn(CREDIT_VALUES, key) || key === "--stdin" ? `credit ${command} does not take ${key}. Options: ${allowed.join(", ")}.`
+      : `Unexpected argument ${shown(key)} for credit ${command}. Options: ${allowed.join(", ")}. Gift codes go in a private file (--input-file) or a pipe (--stdin).`);
+    if (Object.hasOwn(values, key)) throw creditArg(`${key} was given twice; give it once.`);
     if (key === "--stdin") { values[key] = true; continue; }
     const value = args[++i];
-    if (typeof value !== "string" || !CREDIT_VALUES[key](value)) throw creditUsage();
+    if (typeof value !== "string") throw creditArg(`${key} needs a value.`);
+    const wrong = CREDIT_VALUES[key](value);
+    if (wrong) throw creditArg(wrong);
     values[key] = value;
   }
   const manager = createCreditManager({ directory: path.join(STATE, "credit") });
   if (command === "status") return void console.log(JSON.stringify(await manager.status(values["--credit"]), null, 2));
+  const needCredit = () => { if (!values["--credit"]) throw creditArg(`credit ${command} needs --credit <id>; abalone credit status lists saved credit ids.`); };
   if (command === "recover") {
-    if (!values["--credit"]) throw creditUsage();
+    needCredit();
     creditPreflight();
     return void console.log(JSON.stringify(await manager.redeem(values["--credit"], { recover: true }), null, 2));
   }
   if (command === "session") {
-    if (!values["--credit"]) throw creditUsage();
+    needCredit();
     if (process.platform !== "linux" || gift.coupon()) throw Object.assign(new Error("Saved credit sessions need Linux owned-host incognito and no active routed gift; nothing was replaced."), { code: "credit_unavailable" });
     couponSlot = await manager.session(values["--credit"]);
     creditStep("credit_runtime_refused", "The curated runtime or owned-host runtime directories did not verify. Reinstall the reviewed release; nothing was sent.", () => { verified(); runtimeDir(); memoryRoot(); });
@@ -94,16 +107,18 @@ async function creditAction() {
       ...(values["--mode"] ? ["--mode", "rpc"] : []));
     return session;
   }
-  if (!values["--trial"] || !!values["--stdin"] === !!values["--input-file"] || (command === "redeem" && !values["--accept-offer"])) throw creditUsage();
+  if (!values["--trial"]) throw creditArg(`credit ${command} needs --trial /abs/trial.json; the installer printed its full path.`);
+  if (!!values["--stdin"] === !!values["--input-file"]) throw creditArg("Give the gift code exactly one way: --input-file /abs/private-file, or --stdin from a pipe.");
+  if (command === "redeem" && !values["--accept-offer"]) throw creditArg("credit redeem needs --accept-offer <offerHash>; run credit inspect first and review the offer it prints.");
   if (values["--stdin"] && process.stdin.isTTY) throw Object.assign(new Error("--stdin reads a pipe only, so a typed gift code is never echoed. At a terminal, save the code or link in a private 0600 file and use --input-file; nothing was claimed."), { code: "credit_input_refused" });
   creditPreflight();
   const { loadTrial } = await import("../tools/coupon-first-use.mjs");
   const trial = loadTrial(values["--trial"]);
   let input;
-  if (values["--input-file"]) input = readPrivate(values["--input-file"], 2048).toString();
+  if (values["--input-file"]) input = creditStep("credit_input_refused", "--input-file must be a regular file you own with mode 0600 (chmod 600 it), holding only the gift code or redeem link; nothing was claimed.", () => readPrivate(values["--input-file"], 2048).toString());
   else {
     const chunks = []; let size = 0;
-    for await (const chunk of process.stdin) { size += chunk.length; if (size > 2048) throw creditUsage(); chunks.push(chunk); }
+    for await (const chunk of process.stdin) { size += chunk.length; if (size > 2048) throw creditArg("The gift input is longer than 2048 bytes; pipe only the gift code or redeem link. Nothing was claimed."); chunks.push(chunk); }
     input = Buffer.concat(chunks).toString();
   }
   const coupon = couponInput(input);
