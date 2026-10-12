@@ -1,5 +1,5 @@
 """First-screen checks for one tmux capture: screen.py <name> <width> <capture.ansi> <capture-joined.txt>.
-Prints PASS|FAIL <name>-<check>. A near-black block is a run of 8+ cells on one row whose effective background
+Prints PASS|FAIL <name>-<check>; ready needs the editor rule, so an error screen with the wordmark fails. A near-black block is a run of 8+ cells on one row whose effective background
 (after reverse video) is near-black: it clashes with light and tinted terminals."""
 import re, sys, unicodedata
 
@@ -47,6 +47,7 @@ blocks = [n for n, l in enumerate(ansi.split("\n")) if runs(l) >= 8]
 over = [l for l in lines if cols(l.rstrip()) > width]
 warn = [l.strip() for l in lines if re.search(r"warning|⚠|INTEL-SA|out ?of ?date", l, re.I) and not l.startswith("SYNTHETIC FIXTURE")]
 for check, ok, detail in [("wordmark", any(re.match(r"\s*abalone\b", l, re.I) for l in lines), ""),
+                          ("ready", any(re.fullmatch(f"─{{{width // 2},}}", l.rstrip()) for l in lines), "the editor rule is drawn"),
                           ("dark-block", not blocks, f"{len(blocks)} rows with a near-black block"),
                           ("overflow", not over, f"{len(over)} lines wider than {width}"),
                           ("warnings", len(warn) <= 1, f"{len(warn)} warning lines")]:
