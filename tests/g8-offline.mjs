@@ -73,12 +73,12 @@ for (const [name, run, why] of [
 test("explicit firmware trial still verifies recorded cryptography and warns verified statuses; tampering remains refused", async () => {
   const mode = "UpToDate-or-OutOfDate-with-warning";
   const policy = { gatewayTcb: mode, modelTcb: mode, gpuSignature: "required", composeRegistry: { rpc: "https://mainnet.base.org", chainId: 8453 } };
-  const { couponNearAdmissionWarning } = await import("../lib/coupon-near.mjs");
+  const { couponNearAdmissionAdvisories } = await import("../lib/coupon-near.mjs");
   const verified = await checkReport(fx.report, fx.nonce, fx.baseUrl, fx.model, policy, replay());
   try {
     assert.equal(verified.profile.gateway_tcb_status, "OutOfDate");
     assert.ok(verified.profile.model_tcb_statuses.every(s => ["UpToDate", "OutOfDate"].includes(s)));
-    assert.match(couponNearAdmissionWarning(verified.profile, policy), /gateway verified TCB OutOfDate; advisories: INTEL-SA-/);
+    assert.ok(couponNearAdmissionAdvisories(verified.profile, policy).every((id) => /^INTEL-SA-\d{5}$/.test(id)));
   } finally { await verified.transport.close(); }
   for (const [rep, nonce, http, failure] of [
     [fx.report, "00".repeat(32), replay(), /nonce/],

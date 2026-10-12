@@ -231,29 +231,56 @@ test("credential broker hands the sandbox a placeholder-auth socket, explains ad
   assert.equal(fresh.closed, true, "broker close reaches the adapter and its pinned transport");
 });
 
-test("explicit paired OutOfDate trial adds only that verified status and warns each component without weakening signatures", async () => {
-  const { OUT_OF_DATE_TRIAL_POLICY, couponNearAdmissionWarning } = await import("../lib/coupon-near.mjs");
+test("explicit paired OutOfDate trial adds only that verified status and collects its advisories without weakening signatures", async () => {
+  const { OUT_OF_DATE_TRIAL_POLICY, couponNearAdmissionAdvisories, couponNearFirmwareWarning } = await import("../lib/coupon-near.mjs");
   const trialPolicy = { ...options().policy, gatewayTcb: OUT_OF_DATE_TRIAL_POLICY, modelTcb: OUT_OF_DATE_TRIAL_POLICY };
   const verified = { gpu: "GPU: NVIDIA verdict (signature checked)", gateway_tcb_status: "OutOfDate", gateway_tcb_advisory_ids: ["INTEL-SA-01192"], model_tcb_statuses: ["OutOfDate", "UpToDate"], model_tcb_advisory_ids: [["INTEL-SA-01313"], []] };
   assert.equal(validateCouponNearProfile({ ...options(), policy: trialPolicy }).policy.modelTcb, OUT_OF_DATE_TRIAL_POLICY);
-  const warning = couponNearAdmissionWarning(verified, trialPolicy);
-  assert.match(warning, /gateway verified TCB OutOfDate; advisories: INTEL-SA-01192/);
-  assert.match(warning, /model\[0\] verified TCB OutOfDate; advisories: INTEL-SA-01313/);
-  assert.match(warning, /model\[1\] verified TCB UpToDate/);
-  assert.match(warning, /private guarantees are not qualified/);
-  assert.throws(() => couponNearAdmissionWarning(verified, options().policy), /provider_admission_refused/);
+  assert.deepEqual(couponNearAdmissionAdvisories({ ...verified, model_tcb_statuses: ["OutOfDate", "OutOfDate"], model_tcb_advisory_ids: [["INTEL-SA-01313"], ["INTEL-SA-01192"]] }, trialPolicy), ["INTEL-SA-01192", "INTEL-SA-01313"]);
+  assert.equal(couponNearFirmwareWarning(couponNearAdmissionAdvisories(verified, trialPolicy)), "⚠ NEAR firmware out of date (2 Intel advisories); synthetic input only");
+  assert.throws(() => couponNearAdmissionAdvisories(verified, options().policy), /provider_admission_refused/);
   for (const status of ["Revoked", "ConfigurationNeeded", "OutOfDateConfigurationNeeded", "SWHardeningNeeded", "ConfigurationAndSWHardeningNeeded", "Unknown", "OutOfDate extra", undefined]) {
-    assert.throws(() => couponNearAdmissionWarning({ ...verified, gateway_tcb_status: status }, trialPolicy), /provider_admission_refused/);
-    assert.throws(() => couponNearAdmissionWarning({ ...verified, model_tcb_statuses: [status], model_tcb_advisory_ids: [[]] }, trialPolicy), /provider_admission_refused/);
+    assert.throws(() => couponNearAdmissionAdvisories({ ...verified, gateway_tcb_status: status }, trialPolicy), /provider_admission_refused/);
+    assert.throws(() => couponNearAdmissionAdvisories({ ...verified, model_tcb_statuses: [status], model_tcb_advisory_ids: [[]] }, trialPolicy), /provider_admission_refused/);
   }
-  assert.throws(() => couponNearAdmissionWarning({ ...verified, model_tcb_statuses: [] }, trialPolicy));
-  assert.throws(() => couponNearAdmissionWarning({ ...verified, gpu: "GPU: NVIDIA verdict (signature not checked)" }, trialPolicy));
-  assert.throws(() => couponNearAdmissionWarning({ ...verified, gateway_tcb_advisory_ids: ["INTEL-SA-01192\nSECRET"] }, trialPolicy));
+  assert.throws(() => couponNearAdmissionAdvisories({ ...verified, model_tcb_statuses: [] }, trialPolicy));
+  assert.throws(() => couponNearAdmissionAdvisories({ ...verified, gpu: "GPU: NVIDIA verdict (signature not checked)" }, trialPolicy));
+  assert.throws(() => couponNearAdmissionAdvisories({ ...verified, gateway_tcb_advisory_ids: ["INTEL-SA-01192\nSECRET"] }, trialPolicy));
   for (const policy of [{ ...trialPolicy, modelTcb: "UpToDate" }, { ...trialPolicy, gatewayTcb: "reported" }, { ...trialPolicy, modelTcb: "reported" }]) assert.throws(() => validateCouponNearProfile({ ...options(), policy }));
   assert.equal(validateCouponNearProfile({ ...options(), maxTokens: 4096, policy: trialPolicy }).maxTokens, 4096);
   assert.throws(() => validateCouponNearProfile({ ...options(), maxTokens: 4097, policy: trialPolicy }));
   const upToDate = { ...verified, gateway_tcb_status: "UpToDate", model_tcb_statuses: ["UpToDate"], model_tcb_advisory_ids: [[]] };
-  assert.equal(couponNearAdmissionWarning(upToDate, options().policy), null);
+  assert.equal(couponNearAdmissionAdvisories(upToDate, options().policy), null);
+});
+
+// A scoped synthetic verifier reports OutOfDate firmware; every adapter in this module instance shares one process warning.
+test("the firmware warning is one short line per process, not one per admission or renewal", async () => {
+  const { registerHooks } = await import("node:module");
+  const realNear = new URL("../lib/near.mjs", import.meta.url).href;
+  const source = `export {encrypt,decrypt,OUT_OF_DATE_TRIAL_POLICY} from ${JSON.stringify(realNear)};
+    export async function verifyNearModel(base,model,getReport,policy,http,onStage) {
+      await getReport('/v1/attestation/report?model='+encodeURIComponent(model)+'&nonce=n');
+      return {signingPublicKey:'test-only',profile:{gateway_tcb_status:'OutOfDate',gateway_tcb_advisory_ids:['INTEL-SA-01192','INTEL-SA-01245'],model_tcb_statuses:['OutOfDate'],model_tcb_advisory_ids:[['INTEL-SA-01192','INTEL-SA-01313']],gpu:'GPU: NVIDIA verdict (signature checked)'},transport:{close:async()=>{}}};
+    }`;
+  const hook = registerHooks({ resolve(specifier, context, next) {
+    if (specifier === "./near.mjs" && context.parentURL?.endsWith("?firmware-unit")) return { url: "data:text/javascript," + encodeURIComponent(source), shortCircuit: true };
+    return next(specifier, context);
+  } });
+  let isolated;
+  try { isolated = await import(new URL("../lib/coupon-near.mjs?firmware-unit", import.meta.url).href); } finally { hook.deregister(); }
+  const originalFetch = globalThis.fetch, originalWrite = process.stderr.write, written = [];
+  globalThis.fetch = async () => Response.json({});
+  process.stderr.write = (chunk) => { written.push(String(chunk)); return true; };
+  try {
+    const policy = { ...options().policy, gatewayTcb: isolated.OUT_OF_DATE_TRIAL_POLICY, modelTcb: isolated.OUT_OF_DATE_TRIAL_POLICY };
+    assert.equal(isolated.couponNearFirmwareAdvisories(), null);
+    for (let i = 0; i < 3; i++) {
+      const adapter = isolated.openCouponNearAdapter({ ...options(), policy });
+      try { assert.equal((await adapter.admit()).gateway_tcb_status, "OutOfDate"); } finally { await adapter.close(); }
+    }
+  } finally { process.stderr.write = originalWrite; globalThis.fetch = originalFetch; }
+  assert.deepEqual(written.map((l) => l.replace(/\x1b\[[0-9;]*m/g, "")), ["⚠ NEAR firmware out of date (3 Intel advisories); synthetic input only\n"]);
+  assert.deepEqual(isolated.couponNearFirmwareAdvisories(), ["INTEL-SA-01192", "INTEL-SA-01245", "INTEL-SA-01313"]);
 });
 
 test("usage comes from the provider's last usage chunk; none reported is null, malformed counts refuse", () => {
