@@ -36,6 +36,7 @@ import { admitAttestedCouponIssuerPin, admitAttestedCouponSessionIssuer, openAtt
   ATTESTED_COUPON_WAIT, ATTESTED_COUPON_RECOVER } from "../lib/coupon-attested-session.mjs";
 import { couponStagingGuardNotice } from "../lib/coupon-staging.mjs";
 import { createCreditManager } from "../lib/credit.mjs";
+import { couponNearFirmwareAdvisories } from "../lib/coupon-near.mjs";
 import { couponInput, creditId, creditPreflight, readPrivate } from "../lib/credit-store.mjs";
 
 const args = process.argv.slice(2);
@@ -713,7 +714,7 @@ async function session() {
     s.on("data", (d) => (b += d));
     s.on("end", () => {
       const argv = JSON.parse(b);
-      if (couponSlot && !["trace-append", "trace-context"].includes(argv[0])) return s.end(JSON.stringify(argv[0] === "coupon-info" ? { code: 0, out: JSON.stringify(couponSlot.info()) }
+      if (couponSlot && !["trace-append", "trace-context"].includes(argv[0])) return s.end(JSON.stringify(argv[0] === "coupon-info" ? { code: 0, out: JSON.stringify({ ...couponSlot.info(), advisories: couponNearFirmwareAdvisories() }) }
         : { code: 2, out: "", err: "This coupon session does not run outside launcher commands or restart. Its original keys must stay in this process." }));
       if (incognito) {
         if (argv[0] === "trace-append") { if (tw) { for (const e of argv[1]) tw.append({ t: "entry", e }); traced += argv[1].length; } return s.end(JSON.stringify({ code: 0, out: "" })); }

@@ -55,6 +55,7 @@ function session(marker) {
       if (ev.type === "agent_settled") child.stdin.end();
     }
   });
+  child.stdin.write(JSON.stringify({ id: "c1", type: "prompt", message: "/coupon" }) + "\n");
   child.stdin.write(JSON.stringify({ id: "p1", type: "prompt", message: `${marker} In one line, what does @tenancy-renewal.pdf offer?` }) + "\n");
   return new Promise((resolve) => child.on("exit", (code) => resolve({ code, events, out, err, argv })));
 }
@@ -68,9 +69,11 @@ for (const run of [1, 2]) {
   for (const text of ["SYNTHETIC FIXTURE: NEAR attestation verdict", "Nominal cap $5.00 from the offer", "Usage: not reported.", "Sponsor can revoke the credential or change its limits",
       "separately bounded to 4096 output tokens", "staging operator can access the credential", "Saved credit remains available for a fresh process"]) assert.ok(r.err.includes(text), `run ${run} stderr lacks: ${text}`);
   assert.deepEqual(fs.readdirSync(work), ["tenancy-renewal.pdf"], "no decoy file is planted");
+  const shown = r.events.filter((e) => e.type === "extension_ui_request" && e.method === "notify").map((e) => e.message).find((m) => m.startsWith("Coupon: "));
+  assert.ok(shown?.includes("Each request: at most 4096 output tokens. Balance: unknown; usage: ") && !shown.includes("NEAR firmware"), `run ${run} /coupon: ${shown}`);
   assert.ok(!/\$5 |\$5\/|5 trial/.test(r.err), "no fixed $5 trial text");
   for (const secret of [coupon, credential, record.noiseSeed, record.recipientKey]) assert.ok(!r.out.includes(secret) && !r.err.includes(secret) && !r.argv.join(" ").includes(secret));
-  pass(`run ${run}: fresh CLI process answers through the saved credit, discloses amount/balance/sponsor/request facts separately, shows no secret`);
+  pass(`run ${run}: fresh CLI process answers through the saved credit, discloses amount/balance/sponsor/request facts separately, /coupon answers from the launcher, shows no secret`);
 }
 const requests = fs.readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l));
 assert.equal(requests.length, 2);
