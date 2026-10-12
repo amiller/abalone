@@ -5,7 +5,7 @@ interactive incognito Pi session and the strict direct NEAR adapter. It is not
 an installable release. Supported profiles are explicitly selected in `trial.platform`: Linux/Node 24
 with bubblewrap (`linux-node24-bubblewrap`) or the trusted-owned-host profile
 (`linux-node24-owned-host`) without OS isolation. The latter is the current
-friend candidate; it is not a fallback after containment fails. Native macOS recipient parity is not qualified; the existing Mac
+recipient profile; it is not a fallback after containment fails. Native macOS recipient parity is not qualified; the existing Mac
 network participant is a separate role.
 
 Use synthetic, non-sensitive prompts only. The signed debug-staging approval
@@ -66,7 +66,7 @@ separate descriptors. The wrapper forwards them explicitly; never put a gift
 or key in argv, environment values, command history or a model prompt.
 
 The release installer does not start this trial. Its `--credit` option installs
-the durable-credit runtime described in [access and installation](friend-preview.md).
+the durable-credit runtime described in [access and installation](redeem.md).
 
 ## Exact public inputs
 

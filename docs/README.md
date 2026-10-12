@@ -6,7 +6,7 @@ live service.
 
 | Task | Document |
 | --- | --- |
-| Open and close the friend preview | [Getting started](getting-started.md) and [entry skill](../skills/abalone-incognito/SKILL.md) |
+| Redeem a coupon and open a session | [Redeem a coupon](redeem.md), [getting started](getting-started.md) and [entry skill](../skills/abalone-incognito/SKILL.md) |
 | Understand trust, isolation and retention | [Security profiles](security.md) |
 | Understand the code and why it is shipped | [Architecture and layout](architecture.md) |
 | Build, test and contribute | [Contributing](../CONTRIBUTING.md) and [development workflow](development.md) |

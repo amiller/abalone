@@ -1,10 +1,10 @@
 # Prepare an Abalone release
 
-This is the packaging contract for [friend-URL acceptance](https://github.com/amiller/abalone/issues/4).
+This is the packaging contract for [gift-URL acceptance](https://github.com/amiller/abalone/issues/4).
 It prepares files locally; it does not publish source, change visibility or
 authorize provider spending. Runtime/trace-choice changes need independent review.
 
-The friend entry is the static page `site/redeem/index.html` (served by GitHub
+The gift entry is the static page `site/redeem/index.html` (served by GitHub
 Pages) and the [Abalone incognito skill](../skills/abalone-incognito/SKILL.md). The
 setup agent explains Abalone, installs the reviewed release, redeems and saves
 access with `abalone credit`, then opens a fresh user terminal for
@@ -55,7 +55,7 @@ do not regenerate that archive for instructions-only changes.
    or this checksum file.
 
    `sh install.sh --credit` is the recipient's install-only entry for the
-   durable credit procedure in [access and installation](friend-preview.md). It
+   durable credit procedure in [access and installation](redeem.md). It
    downloads the archive and the four public files, checks each pinned SHA256,
    refuses an archive without `abalone credit`, rechecks any existing install,
    saves the files with a receipt under `~/.abalone-app/REV/public-credit/`,
@@ -75,7 +75,7 @@ do not regenerate that archive for instructions-only changes.
    and owner-approved walkthrough are ready. Never expose private workspace/history.
 7. After authorized publication, download every recipient URL without maintainer
    authentication and compare reviewed hashes. Only then replace the availability
-   line in [access and installation](friend-preview.md) with the exact release
+   line in [access and installation](redeem.md) with the exact release
    links. A private repo/404 is not public acquisition.
 8. Publish the entry page separately: select GitHub Actions as the Pages source,
    run `.github/workflows/pages.yml` from reviewed main, and load the page with a
@@ -89,7 +89,7 @@ package qualification and actual user validation are distinct states.
 
 ## Stable entry URL and changing availability
 
-The friend landing/discovery URL should resolve to the current reviewed,
+The gift landing/discovery URL should resolve to the current reviewed,
 versioned installer, artifact and public bundle with exact checksums. Keep each
 version immutable. Updating the public approval or bundle means rendering and
 reviewing a new installer version; it does not require rebuilding unchanged
@@ -111,7 +111,7 @@ as `index.html`. Neither page reads, forwards or redeems a coupon, and neither
 carries version-specific installer links. Do not advertise readiness merely
 because packaging completed.
 
-The current debug-staging friend trial permits synthetic, non-sensitive content
+The current debug-staging gift trial permits synthetic, non-sensitive content
 only, operator-readable issuer custody and explicit firmware warnings. Broader
 private use separately requires reviewed custody/configuration authority, provider
 owner powers, recovery/rollback behavior, retention and relevant settlement

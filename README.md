@@ -7,38 +7,52 @@ to private inference. A gifted coupon provides model access without a provider
 account or a manually supplied API key. Dsmack handles redemption; Abalone checks
 the remote provider's attestation and encrypts inference directly to the model.
 
-Your usual coding agent can explain the setup, inspect the installation, redeem
-a coupon and save access for you. Then open Abalone in your own terminal for the
-conversation. Keep the documents and questions you want private out of your
-setup agent's chat. Saved access and conversation history are separate: closing
-a conversation does not mean throwing away your model credential.
+## Redeem a coupon
 
-[Start with a gift](https://amiller.github.io/abalone/redeem) ·
-[Read the setup skill](skills/abalone-incognito/SKILL.md) ·
-[Inspect the architecture](docs/architecture.md)
+You need a trusted Linux x86_64 computer with Node 24; the
+[full requirements](docs/redeem.md#conditions-before-you-start) list the rest.
+Use synthetic, non-sensitive material.
 
-## From a coupon to useful work
+1. Open the gift link and paste the page's full link into your coding agent. The
+   agent reads the [setup skill](skills/abalone-incognito/SKILL.md), checks the
+   current release's installer digest and runs `sh install.sh --credit`
+   ([installer details](docs/redeem.md#check-and-run-the-installer)). The installer
+   prints the launcher and `trial.json` paths used below.
+2. Keep the gift link in a 0600 file, then inspect the offer: provider, cap,
+   expiry and restrictions.
 
-1. Ask your coding agent to read the setup skill. It explains what Abalone does
-   and what installation changes before running anything.
-2. Reuse saved access, bring a supported provider credential, or redeem a coupon.
-   Your agent can inspect the offer, redeem when asked and test with synthetic input.
-3. Open a fresh Abalone terminal. Read a document, ask a question, and close when
-   finished. By default, managed conversation history stays in memory for that session.
+   ```sh
+   abalone credit inspect --trial /path/to/trial.json --input-file /private/gift.txt
+   ```
 
-[Watch a synthetic PDF become meeting minutes](https://pod.dstack.soc1024.com/artifact-reports-2026c/abalone-coupon-pdf-meeting-minutes--lWMO2qY1hfbnqZdRWwg8cQ/):
-a real coupon, direct NEAR inference and useful output. The recording uses a
-preinstalled app and scripted interaction; it does not show first-time setup.
+3. Accept that exact offer by its hash and check that access was saved:
 
-## Start deliberately
+   ```sh
+   abalone credit redeem --trial /path/to/trial.json --input-file /private/gift.txt --accept-offer OFFER_HASH
+   abalone credit status
+   ```
 
-Read the [setup skill](skills/abalone-incognito/SKILL.md) and
-[access instructions](docs/friend-preview.md) for the supported distribution,
-Linux requirements and current availability. Download and inspect the installer,
-check its published digest, then run the inspected local file. A checksum helps
-identify the bytes; it does not replace understanding what the script does.
+   Keep the returned credit ID. If redemption is interrupted, do not redeem
+   again; run `abalone credit recover --credit CREDIT_ID`.
+4. Open a fresh terminal of your own and start the session:
 
-The skill guides setup. The app supplies patched Pi, provider verification,
+   ```sh
+   abalone credit session --credit CREDIT_ID
+   ```
+
+   Keep the documents and questions you want private out of your setup agent's
+   chat. Closing the session discards the conversation and keeps the saved access.
+
+[Redeem a coupon](docs/redeem.md) has the full procedure. To watch the result,
+see [a synthetic PDF become meeting minutes](https://pod.dstack.soc1024.com/artifact-reports-2026c/abalone-coupon-pdf-meeting-minutes--lWMO2qY1hfbnqZdRWwg8cQ/):
+a real coupon, direct NEAR inference and useful output, from a preinstalled app
+with scripted interaction.
+
+## Before you install
+
+Download and inspect the installer and check its published digest before running
+it. A checksum identifies the bytes; it does not replace reading what the script
+does. The skill guides setup. The app supplies patched Pi, provider verification,
 encryption and credential handling; a skill alone does not add those mechanisms
 to another agent. [Architecture and source layout](docs/architecture.md) explain
 what each component does and what you are trusting.
@@ -47,7 +61,7 @@ what each component does and what you are trusting.
 
 **Use synthetic, non-sensitive material with the available NEAR access route.**
 It accepts verified firmware warnings, and the coupon operator can access and
-revoke the model credential. Check [access conditions](docs/friend-preview.md)
+revoke the model credential. Check [access conditions](docs/redeem.md#conditions-before-you-start)
 before redeeming.
 
 Abalone runs on a trusted Linux computer. Local tools have your account's file

@@ -2,7 +2,7 @@
 
 The client implements four distinct coupon versions. Their accepted terms,
 recipient bindings and delivery domains are incompatible by design. The current
-friend candidate uses version 4 with explicit signed debug-staging authority.
+recipient profile uses version 4 with explicit signed debug-staging authority.
 Older versions remain interoperability fixtures, not alternative release entry
 points. [Getting started](../getting-started.md) is the user path; the
 [development gift trial](../gift-trial.md) specifies source-wrapper inputs.

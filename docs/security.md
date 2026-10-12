@@ -8,9 +8,9 @@ issuer custody, anonymous networking or deletion of retained data.
 
 | Profile | Local boundary | Inference and retention | Qualification |
 | --- | --- | --- | --- |
-| Friend preview: `linux-node24-owned-host` | Trusted ordinary account; **no OS isolation**; tools have its filesystem/network access | Direct admitted NEAR inference; session-only managed conversation retention by default; optional encrypted trace | Selected release candidate; complete public acquisition and handoff tracked in [issue 4](https://github.com/amiller/abalone/issues/4) |
+| Owned host: `linux-node24-owned-host` | Trusted ordinary account; **no OS isolation**; tools have its filesystem/network access | Direct admitted NEAR inference; session-only managed conversation retention by default; optional encrypted trace | Selected release candidate; complete public acquisition and handoff tracked in [issue 4](https://github.com/amiller/abalone/issues/4) |
 | Isolated Linux: `linux-node24-bubblewrap` | Explicit bubblewrap mounts and network namespace; bash has its own restricted sandbox | Selected admitted/local model routes; incognito retention depends on explicit flags | Separate implementation/test profile; its evidence does not qualify the owned-host profile or every machine |
-| Ordinary connected/MCP sessions | Configured disclosure gate and approval store; same-user callers can bypass local file permissions | Can disclose approved payloads; ordinary session, approval and output files can contain plaintext | Separate from the incognito friend journey; see [MCP setup](mcp-quickstart.md) |
+| Ordinary connected/MCP sessions | Configured disclosure gate and approval store; same-user callers can bypass local file permissions | Can disclose approved payloads; ordinary session, approval and output files can contain plaintext | Separate from the incognito gift journey; see [MCP setup](mcp-quickstart.md) |
 | Separate-user MCP | Unix permissions separate the caller from private state; administrator remains trusted | Same disclosure rules and configured providers | Setup prints administrator commands; same-user socket tests do not qualify separate-user deployment |
 
 A profile must be selected explicitly. Missing bubblewrap or a failed admission
@@ -18,7 +18,7 @@ check is never permission to silently weaken it. Runtime capability output must
 be interpreted alongside the selected profile; it is not independent evidence
 of enforcement.
 
-## Current friend trial
+## Current gift trial
 
 The recipient is a Linux client. The selected issuer uses the Mac runner and an
 ordinary Apple Containerization ARM guest. Apple App Attest binds runner code

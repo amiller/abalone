@@ -8,13 +8,13 @@ The storage format is distinct from the selected host boundary; see
 
 `abalone --incognito <folder>` starts a strict-incognito session in `<folder>`. Nothing else turns the mode on: the launcher deletes any inherited `ABALONE_INCOGNITO` and sets it itself. By default no conversation trace is retained and no trace key or passphrase is needed. `--keep-trace` explicitly retains an encrypted trace, creating a passphrase-protected key before any gift entry if absent. The session refuses `--resume`/`--continue`/`--session`, and refuses a `--model` whose provider is not ⌂ local or ◈ admitted.
 
-The incognito managed inference routes exclude outside workers. The friend
+The incognito managed inference routes exclude outside workers. The gift
 wrapper obtains a coupon credential before handing control to Pi; incognito
 is not a claim that every launcher control operation is absent. Browser grants
 and managed public-fetch/outside-runner paths are refused.
 
 In the bubblewrap profile, the harness uses explicit sandbox mounts and network
-restriction. In the owned-host friend profile, local tools run with ordinary
+restriction. In the owned-host profile, local tools run with ordinary
 account filesystem/network access. Both profiles use temporary managed agent
 state and discard trace appends by default. With `--keep-trace`, the launcher
 writes the encrypted trace. tmpfs can swap, and workspace files and terminal

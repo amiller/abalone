@@ -26,7 +26,7 @@ The release is accepted when an independent newcomer can:
 
 A smoke coupon must be separate from the recipient's coupon. Record exact source,
 environment, public inputs, elapsed phases, outcome and any intervention. The
-owner must approve sending the URL to a friend. Local tests or one model reply
+owner must approve sending the URL to a recipient. Local tests or one model reply
 alone do not meet this outcome. The [release procedure](release.md) defines the
 artifact and publication checks.
 
@@ -34,7 +34,7 @@ Current work is tracked in [Abalone issues](https://github.com/amiller/abalone/i
 [status and credit](https://github.com/amiller/abalone/issues/1),
 [responsive entry](https://github.com/amiller/abalone/issues/2),
 [admission lifecycle](https://github.com/amiller/abalone/issues/3),
-[friend URL](https://github.com/amiller/abalone/issues/4) and
+[recipient URL](https://github.com/amiller/abalone/issues/4) and
 [entry guidance and deliberate sharing](https://github.com/amiller/abalone/issues/5).
 
 ## Follow-on work
