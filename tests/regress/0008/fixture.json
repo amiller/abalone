@@ -1,0 +1,17 @@
+{
+ "issue": "0008",
+ "source": "independent review of preview.7.1 (probe 9001): an op named after an Object.prototype member with an <arg_NAME> argument threw in the parser instead of being reported not executed",
+ "model": "nearai/Qwen/Qwen3.8-27B",
+ "protocol": "intools",
+ "redacted": false,
+ "turns": [
+  {
+   "user": "probe",
+   "steps": [
+    {
+     "model": "<tool_call>constructor<arg_x>1</arg_x></tool_call>"
+    }
+   ]
+  }
+ ]
+}

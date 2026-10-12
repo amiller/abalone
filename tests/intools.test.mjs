@@ -42,6 +42,7 @@ test("malformed or ambiguous calls stay as written", () => {
   kept("list<arg_key>path</arg_key>"); // a key with no value
   kept("list<arg_value>.</arg_value>");
   kept("list<arg_path>.</arg_path> trailing words");
+  kept("constructor<arg_x>1</arg_x>"); // an Object.prototype name is not an op with declared arguments
   kept("OUSE: use_tool\n<arg_key>arguments</arg_key>\n<arg_value>{\"command\": \"ls\"}</arg_value>"); // regress 0002
   assert.deepEqual(requests("<tool_call>write<arg_path>a</arg_path><arg_content>x"), ["<tool_call>write<arg_path>a</arg_path><arg_content>x"]);
 });
@@ -56,6 +57,7 @@ test("the recorded preview.7 write runs; a refused one is not executed", async (
   assert.match(fs.readFileSync(path.join(cwd, "rota.txt"), "utf8"), /^Thursday: Joan Castellanos\nFriday: Priya Raman$/m);
   const refused = await respond(cwd, requests("<tool_call>write<arg_path>b.txt</arg_path><arg_content>x</arg_content><arg_path>c.txt</arg_path></tool_call>"), () => {});
   assert.match(refused.line, /^not executed: abalone couldn't read this tool request/);
+  assert.match((await respond(cwd, requests("<tool_call>constructor<arg_x>1</arg_x></tool_call>"), () => {})).line, /^not executed: /);
   assert.deepEqual(fs.readdirSync(cwd), ["rota.txt"]);
   fs.rmSync(cwd, { recursive: true });
 });

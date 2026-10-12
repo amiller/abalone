@@ -102,7 +102,7 @@ async function creditAction() {
     couponSlot = await manager.session(values["--credit"]);
     creditStep("credit_runtime_refused", "The curated runtime or owned-host runtime directories did not verify. Reinstall the reviewed release; nothing was sent.", () => { verified(); runtimeDir(); memoryRoot(); });
     process.stderr.write(`${OWNED_HOST_NOTICE}\n`);
-    // The admission's own firmware line (lib/coupon-near.mjs) reports the OutOfDate condition once; inspect, status and /coupon keep the notice.
+    // The admission's own firmware line (lib/coupon-near.mjs) reports the OutOfDate condition once; inspect and status keep the notice; /coupon shows the admission's firmware and advisories line.
     console.error(["Saved credit:", ...couponSlot.info().disclosures.filter((d) => d !== OUT_OF_DATE_TRIAL_NOTICE), "Fresh incognito conversation; the saved credit remains available after close."].join("\n"));
     // No decoy file: canaries guard the disclosure filter, which a credit session does not use.
     args.splice(0, args.length, "--incognito", "--owned-host", "--no-canaries", "--model", `${couponSlot.provider.provider}/${couponSlot.provider.model}`,
