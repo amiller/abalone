@@ -122,7 +122,7 @@ if the issuer reports the window closed.
 Saved access lives in `~/.abalone/credit/` (or `$ABALONE_DIR/credit/`), in a
 0700 directory with 0600 files owned by your account. These files hold the
 credential and its recovery keys, never conversations. Concurrent commands are
-serialized with a file lock.
+serialized with a file lock, and one session at a time uses a credit.
 
 Keep the returned credit ID. If redemption is interrupted or uncertain, do not
 redeem again; resume the same claim:
