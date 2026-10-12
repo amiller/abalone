@@ -5,25 +5,41 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'self'; script-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="description" content="Turn a gifted inference coupon into an Abalone session. Let your coding agent prepare access, then work in your own terminal.">
-<title>Abalone — a little room to think</title>
+<meta name="description" content="Someone sent you an Abalone gift link. It pays for an incognito AI session in your own terminal, with requests sent only to an attested TEE model. Install Abalone, run abalone and paste the link.">
+<meta property="og:title" content="Abalone — you have a gift link">
+<meta property="og:description" content="It pays for an incognito AI session in your own terminal, with requests sent only to an attested TEE model. Install Abalone, run abalone and paste the link.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://amiller.github.io/abalone/assets/og-1200x630.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Line drawing of an abalone shell beside the words: Abalone, a cypherpunk AI privacy shell.">
+<meta name="twitter:card" content="summary_large_image">
+<title>Abalone — you have a gift link</title>
 <link rel="icon" href="../assets/abalone.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/icon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="../assets/icon-512.png" sizes="512x512" type="image/png">
+<link rel="apple-touch-icon" href="../assets/icon-180.png">
 <link rel="stylesheet" href="../assets/redeem.css">
 <script src="../assets/redeem.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <div class="wrap">
-<header><a class="brand" href="https://github.com/amiller/abalone"><img src="../assets/abalone.svg" alt="" width="36" height="36">Abalone</a><nav aria-label="Main"><a href="#how-it-works">How it works</a><a href="#boundary">Boundary</a><a class="desktop" href="https://github.com/amiller/abalone">Source ↗</a></nav></header>
+<header><a class="brand" href="https://github.com/amiller/abalone"><img src="../assets/abalone.svg" alt="" width="36" height="36">Abalone</a><nav aria-label="Main"><a href="#what-it-prints">What it prints</a><a href="#how-it-works">How it works</a><a href="#boundary">Boundary</a><a class="desktop" href="https://github.com/amiller/abalone">Source ↗</a></nav></header>
 <main id="main">
 <section class="hero" aria-labelledby="hero-title">
 <div>
-<div class="eyebrow">A gift of AI, on your terms</div>
-<h1 id="hero-title">A little room<br>to think.</h1>
-<p class="lead">Turn your coupon into an incognito AI session. Your coding agent prepares access; you open the session in your own terminal and try it with synthetic material.</p>
-<div class="actions"><button class="primary" id="copy-instructions" type="button" hidden>Copy instructions for your agent</button><a href="https://github.com/amiller/abalone/blob/main/skills/abalone-incognito/SKILL.md">Read the setup skill ↗</a></div>
-<p id="copy-status" role="status" aria-live="polite">Paste this page’s full link into your coding agent to get started.</p>
-<noscript><p>Copy this page’s full address, including <code>#code=…</code>, into your coding agent. The instructions below work without JavaScript.</p></noscript>
+<div class="eyebrow">Abalone · a cypherpunk AI privacy shell</div>
+<h1 id="hero-title">You have a gift link.</h1>
+<p class="lead">It pays for an incognito AI session in your own terminal. Three steps:</p>
+<ol class="start">
+<li>Download <code>install.sh</code> from the newest release on the <a href="https://github.com/amiller/abalone/releases">Abalone releases page</a>. Check <code>sha256sum install.sh</code> against the release notes, then run it:
+<pre><span class="p">$ </span>sh install.sh --credit</pre></li>
+<li>Run Abalone in your terminal:
+<pre><span class="p">$ </span>abalone</pre></li>
+<li>Copy this page’s full address, including <code>#code=…</code>, and paste it at the prompt. Nothing is shown as you paste. Abalone prints the offer’s terms; type the 8 characters it shows you to accept, and the session opens.</li>
+</ol>
+<p class="quiet">Needs a Linux x86_64 computer you trust, with Node 24.</p>
 <div class="limits">
 <p><strong>Synthetic, non-sensitive material only.</strong> This access route accepts a verified out-of-date firmware warning.</p>
 <p><strong>The coupon operator can access and revoke the model credential.</strong></p>
@@ -33,57 +49,77 @@
 <div class="hero-art"><svg class="shell" viewBox="27 -344 1026 708" role="img" aria-label="Line drawing of an abalone shell: an asymmetric ear-shaped outline, growth lines, and a row of breathing holes along one edge."><defs><linearGradient id="nacre" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4d686b"/><stop offset=".23" stop-color="#8fbed0"/><stop offset=".44" stop-color="#c8b9d9"/><stop offset=".65" stop-color="#a0dac9"/><stop offset=".85" stop-color="#edf0ce"/><stop offset="1" stop-color="#647b82"/></linearGradient></defs><ellipse class="wash" cx="520" cy="20" rx="440" ry="280" fill="url(#nacre)"/><path class="rim" d="M1030 10l3 -15 0 -15 -3 -14 -4 -14 -4 -15 -4 -14 -4 -14 -4 -13 -6 -14 -5 -13 -5 -13 -5 -14 -5 -13 -8 -12 -10 -11 -11 -10 -11 -10 -11 -10 -9 -10 -9 -11 -10 -9 -12 -9 -12 -8 -12 -8 -12 -7 -14 -6 -15 -5 -15 -3 -16 -4 -14 -4 -14 -5 -13 -5 -15 -4 -16 -1 -17 -1 -16 0 -17 0 -17 0 -16 2 -17 1 -17 2 -17 2 -17 1 -17 1 -17 2 -17 5 -17 5 -17 6 -17 6 -17 4 -17 5 -16 5 -17 6 -17 6 -16 6 -17 5 -16 7 -15 8 -13 9 -14 8 -14 8 -16 6 -15 7 -15 6 -14 8 -12 8 -12 8 -12 8 -12 8 -10 9 -9 8 -9 9 -11 7 -11 8 -11 7 -10 7 -8 8 -5 9 -5 8 -5 8 -5 8 -6 7 -4 8 -4 8 -4 8 -4 7 -4 8 -3 8 0 7 3 8 3 8 2 7 1 8 0 8 1 8 2 7 4 8 5 8 4 8 6 8 7 7 9 8 9 7 8 8 7 8 6 9 7 8 10 9 11 7 12 8 12 7 12 8 12 8 13 7 14 8 13 8 12 8 13 9 13 8 15 8 16 6 17 5 16 6 16 7 15 8 16 7 16 6 16 6 17 6 16 6 17 6 18 4 17 3 17 2 17 3 17 4 17 5 17 4 18 3 17 1 16 0 17 0 16 0 16 0 16 -2 15 -3 16 -2 16 -1 17 -1 16 -2 15 -4 13 -6 13 -7 12 -7 13 -6 14 -7 13 -7 12 -7 12 -9 12 -8 12 -8 11 -10 10 -10 7 -12 6 -13 7 -12 8 -12 9 -11 9 -12 7 -13 6 -13 4 -14 5 -14 4 -14 2 -14 1 -15 0 -14 1 -15 2 -14 3 -15z"/><path class="ring" d="M994 8l2 -14 1 -14 -3 -14 -4 -13 -4 -14 -4 -13 -3 -13 -4 -13 -5 -13 -6 -12 -4 -13 -5 -12 -5 -13 -7 -11 -9 -11 -11 -9 -10 -9 -10 -9 -9 -10 -8 -10 -10 -9 -11 -8 -11 -8 -12 -7 -11 -7 -13 -6 -14 -4 -15 -3 -14 -3 -13 -5 -13 -4 -13 -5 -14 -4 -15 -1 -16 -1 -16 0 -15 0 -16 1 -16 1 -16 1 -15 2 -16 2 -16 0 -16 1 -16 3 -16 4 -16 5 -16 6 -16 5 -16 5 -16 4 -16 5 -15 5 -16 6 -15 5 -16 6 -15 6 -14 7 -13 8 -13 8 -13 7 -15 7 -14 6 -14 6 -13 7 -12 8 -11 8 -12 7 -10 8 -10 8 -9 8 -8 7 -10 8 -11 7 -10 6 -10 7 -7 8 -5 8 -4 8 -5 7 -5 7 -5 8 -4 7 -4 7 -3 7 -5 8 -4 7 -2 7 0 7 3 8 3 7 2 7 0 7 0 7 1 8 2 7 4 8 4 7 5 7 5 8 7 7 8 7 9 7 7 7 6 8 6 8 7 8 9 8 11 7 11 7 12 7 11 7 11 8 12 7 13 7 12 7 12 8 12 9 12 8 14 6 16 6 15 5 16 6 14 7 15 6 14 7 16 6 15 6 16 6 15 5 16 6 16 4 17 2 16 2 16 3 16 4 16 4 16 4 16 3 16 1 16 0 15 0 16 0 15 -1 15 -1 14 -2 15 -2 15 -2 16 -1 15 -2 14 -3 13 -6 12 -6 11 -7 13 -6 12 -6 12 -6 12 -8 11 -7 11 -8 12 -8 11 -9 9 -10 7 -11 5 -12 7 -12 7 -11 9 -10 8 -12 7 -12 5 -12 4 -13 5 -13 3 -13 3 -14 1 -14 0 -13 0 -14 2 -14 3 -13z"/><path class="ring" d="M958 5l2 -13 0 -13 -2 -13 -4 -12 -4 -13 -3 -12 -3 -13 -4 -12 -5 -11 -5 -12 -4 -12 -4 -12 -5 -11 -7 -11 -8 -10 -11 -9 -10 -8 -8 -9 -8 -9 -9 -9 -9 -9 -10 -7 -10 -7 -11 -7 -11 -7 -12 -5 -13 -4 -14 -3 -13 -3 -13 -4 -12 -5 -12 -4 -13 -3 -14 -2 -15 0 -15 0 -14 0 -15 0 -15 1 -15 2 -15 1 -14 2 -15 0 -15 1 -15 2 -16 4 -15 6 -14 5 -15 5 -15 4 -15 4 -15 4 -14 5 -15 6 -15 5 -14 5 -14 6 -13 7 -13 7 -12 8 -12 6 -14 6 -14 6 -13 6 -12 7 -11 7 -10 7 -11 7 -10 7 -9 7 -8 8 -8 7 -9 7 -10 6 -10 7 -9 6 -7 8 -4 7 -5 7 -4 7 -5 7 -5 7 -4 7 -3 7 -3 6 -4 7 -4 7 -2 7 0 6 2 7 3 7 2 7 0 6 0 7 1 7 3 7 3 7 4 7 4 7 5 7 6 6 8 7 8 6 7 7 6 8 5 7 7 8 8 7 10 7 11 6 11 7 10 7 11 7 11 6 12 7 12 7 11 7 11 8 12 8 13 6 14 5 15 5 14 6 14 6 13 6 14 7 14 5 15 6 15 5 14 5 15 5 15 4 15 2 16 2 15 3 15 3 15 5 15 3 15 3 15 1 15 0 14 0 15 0 14 -1 14 -1 13 -2 14 -2 14 -1 15 -1 14 -2 14 -3 11 -6 11 -6 11 -6 12 -5 12 -6 11 -6 11 -7 10 -7 11 -8 11 -7 10 -8 8 -10 7 -10 5 -11 6 -11 7 -11 8 -10 8 -10 6 -11 5 -12 4 -12 4 -13 4 -12 2 -13 1 -12 0 -13 0 -13 2 -13 3 -13z"/><path class="ring" d="M922 3l2 -12 0 -12 -2 -13 -4 -11 -3 -12 -3 -11 -3 -12 -4 -11 -5 -11 -4 -11 -4 -11 -4 -11 -4 -11 -7 -10 -8 -9 -9 -8 -10 -8 -8 -9 -7 -8 -8 -9 -8 -8 -10 -7 -10 -6 -10 -7 -10 -6 -11 -5 -12 -4 -13 -2 -13 -3 -12 -4 -11 -4 -11 -4 -12 -3 -14 -2 -13 0 -14 0 -14 0 -13 0 -14 1 -14 2 -14 1 -14 1 -13 1 -14 1 -15 2 -14 4 -14 5 -14 5 -13 4 -14 4 -14 4 -14 4 -14 5 -13 4 -14 5 -14 5 -13 5 -12 7 -11 7 -12 7 -11 6 -13 6 -13 5 -12 5 -11 7 -10 6 -10 7 -10 7 -10 6 -8 7 -8 7 -7 7 -9 6 -9 6 -9 6 -9 7 -6 6 -4 7 -4 7 -4 6 -5 7 -4 6 -4 7 -3 6 -3 6 -4 6 -3 7 -2 6 0 6 2 7 3 6 1 6 1 7 0 6 1 7 2 6 3 6 4 7 3 6 5 7 6 6 7 6 8 6 6 7 6 6 5 8 6 7 8 6 9 7 10 6 10 6 10 6 10 7 11 6 11 6 10 7 10 7 11 7 11 7 12 6 14 5 13 4 13 5 13 6 13 6 13 6 13 5 14 5 13 5 14 5 14 5 14 3 14 3 14 1 14 3 14 3 15 4 14 3 14 3 14 1 13 0 14 0 14 0 13 -1 13 -1 13 -2 12 -2 14 -1 13 -1 14 -1 12 -4 11 -4 10 -6 11 -6 10 -5 11 -5 11 -6 10 -7 10 -6 10 -7 10 -7 9 -8 8 -9 6 -9 5 -11 5 -10 7 -9 8 -10 7 -10 6 -10 4 -11 4 -12 4 -11 3 -11 2 -12 1 -12 0 -12 0 -12 2 -12 3 -12z"/><path class="ring" d="M886 0l2 -11 0 -11 -2 -11 -3 -11 -4 -11 -3 -11 -3 -10 -3 -11 -4 -10 -4 -10 -4 -11 -4 -10 -4 -10 -5 -9 -8 -9 -9 -7 -9 -8 -7 -7 -7 -8 -7 -8 -8 -7 -9 -7 -9 -6 -9 -6 -10 -6 -10 -4 -12 -4 -11 -3 -12 -2 -11 -3 -11 -4 -10 -4 -12 -3 -12 -1 -12 -1 -13 0 -13 0 -12 1 -13 0 -13 2 -13 1 -13 1 -13 1 -13 1 -13 2 -13 3 -13 5 -13 4 -13 4 -12 4 -13 3 -13 4 -13 5 -13 4 -12 5 -13 4 -12 5 -11 6 -11 7 -11 6 -10 6 -12 5 -12 5 -11 5 -11 6 -9 6 -9 6 -10 6 -8 7 -8 6 -7 6 -7 7 -8 6 -9 5 -8 6 -8 6 -6 6 -4 6 -3 6 -4 7 -4 6 -5 5 -3 6 -3 6 -3 6 -3 6 -3 6 -2 6 0 5 2 6 2 6 2 6 0 6 0 6 1 6 2 6 3 6 3 6 4 6 4 6 6 6 6 5 7 6 6 6 5 6 5 7 6 6 7 7 9 5 9 6 9 6 9 6 10 6 10 6 10 5 10 6 9 7 10 6 10 7 12 5 12 5 13 4 12 5 12 5 12 6 12 5 12 5 13 5 12 5 13 4 13 4 13 4 13 2 13 1 13 3 13 3 13 3 13 4 14 2 13 0 12 1 13 0 12 0 13 -1 12 -1 12 -2 11 -2 13 -1 12 0 13 -2 11 -3 11 -4 9 -6 10 -5 10 -5 10 -5 10 -5 9 -6 9 -6 9 -7 10 -6 8 -7 8 -8 5 -9 5 -10 5 -9 6 -9 7 -9 7 -9 5 -10 5 -10 3 -11 4 -10 3 -11 2 -11 0 -11 0 -11 1 -11 1 -11 3 -12z"/><path class="ring" d="M849 -2l2 -10 0 -11 -1 -10 -3 -10 -3 -10 -3 -10 -3 -10 -3 -10 -4 -9 -4 -9 -3 -10 -3 -9 -4 -10 -5 -8 -7 -8 -9 -7 -8 -7 -7 -7 -6 -7 -7 -8 -7 -6 -8 -6 -8 -6 -9 -5 -9 -6 -9 -4 -11 -3 -11 -3 -11 -2 -10 -3 -9 -4 -10 -3 -11 -3 -11 -1 -11 0 -12 0 -12 0 -12 0 -11 1 -12 1 -12 1 -12 1 -12 1 -12 1 -12 1 -12 4 -12 4 -12 4 -12 4 -12 3 -12 3 -11 4 -12 4 -12 4 -12 4 -11 4 -11 5 -11 5 -10 6 -9 6 -10 6 -11 4 -11 5 -11 5 -9 5 -9 6 -9 6 -8 5 -8 6 -7 6 -7 6 -6 6 -7 5 -8 5 -9 5 -7 6 -5 5 -4 6 -3 6 -3 6 -4 5 -4 6 -3 5 -3 6 -3 5 -3 5 -3 6 -1 5 0 6 2 5 2 5 1 6 1 5 0 6 0 5 2 6 3 5 3 6 3 5 4 6 5 5 6 5 7 6 6 5 4 6 5 6 5 6 6 6 9 5 8 5 9 6 8 5 9 6 9 5 9 5 9 6 9 6 9 6 9 6 11 5 11 4 12 4 11 5 11 5 11 5 11 5 12 4 11 5 12 4 12 4 12 4 12 3 12 2 12 2 12 2 12 2 12 4 12 3 12 2 12 0 12 1 12 0 11 0 12 -1 11 -1 11 -2 11 -1 11 -1 12 -1 11 -1 11 -3 9 -4 9 -5 9 -5 9 -5 9 -4 9 -5 9 -5 8 -6 9 -6 8 -6 9 -7 6 -7 5 -8 5 -9 4 -9 6 -8 7 -8 6 -9 5 -9 4 -9 3 -10 3 -10 3 -10 2 -10 0 -10 0 -10 1 -11 1 -10 2 -10z"/><path class="ring" d="M813 -4l2 -10 0 -9 -1 -10 -3 -9 -3 -9 -3 -9 -2 -9 -3 -9 -3 -9 -4 -9 -3 -8 -3 -9 -4 -8 -4 -8 -7 -7 -7 -7 -8 -6 -6 -6 -6 -7 -6 -7 -7 -6 -7 -6 -8 -5 -8 -5 -8 -5 -8 -3 -10 -3 -10 -3 -10 -2 -9 -3 -9 -3 -9 -3 -10 -3 -10 -1 -11 0 -10 0 -11 0 -11 0 -11 1 -11 1 -10 1 -11 1 -11 1 -11 0 -11 2 -11 3 -11 4 -11 4 -11 3 -11 3 -11 3 -11 3 -10 4 -11 4 -11 4 -11 3 -10 5 -9 5 -9 5 -9 6 -9 5 -10 4 -10 4 -10 4 -9 5 -8 6 -8 5 -7 5 -8 5 -6 6 -6 5 -6 5 -7 6 -7 4 -8 5 -6 5 -5 5 -3 5 -3 6 -3 5 -4 5 -4 5 -2 5 -3 5 -2 5 -3 5 -3 5 -2 5 1 5 1 5 2 5 2 4 0 5 0 5 1 5 1 6 3 5 3 5 3 5 3 5 5 5 6 4 5 5 6 5 4 6 4 5 5 6 6 5 7 5 8 5 8 5 8 5 7 5 9 5 8 4 9 6 8 5 8 6 9 5 9 5 11 4 10 3 11 4 10 5 10 5 10 4 11 4 10 4 11 4 11 4 10 4 12 2 11 2 11 2 11 1 11 3 11 3 11 3 11 2 11 0 11 0 10 1 11 0 11 -1 10 -1 10 -2 10 -1 10 -1 11 -1 10 -1 10 -2 9 -4 8 -5 8 -4 8 -4 9 -4 8 -5 8 -5 8 -5 8 -6 7 -5 8 -6 6 -7 5 -8 4 -8 4 -8 5 -7 6 -8 6 -7 4 -9 4 -8 3 -9 3 -9 2 -9 2 -9 1 -10 0 -9 0 -10 1 -9 2 -9z"/><path class="ring" d="M777 -7l2 -8 0 -9 -2 -9 -2 -8 -3 -8 -2 -9 -2 -8 -3 -8 -3 -8 -3 -8 -3 -7 -3 -8 -3 -8 -4 -7 -6 -7 -7 -5 -7 -6 -5 -6 -6 -6 -5 -6 -6 -6 -7 -5 -7 -5 -7 -4 -8 -4 -8 -4 -8 -3 -9 -2 -9 -2 -9 -2 -8 -3 -8 -3 -9 -3 -9 -1 -10 0 -9 0 -10 0 -10 0 -10 1 -10 1 -10 1 -9 1 -10 1 -10 0 -10 2 -11 2 -9 4 -10 3 -10 3 -10 3 -10 3 -10 3 -10 3 -9 4 -10 3 -10 3 -9 4 -9 5 -8 5 -8 5 -9 4 -8 4 -10 4 -8 4 -8 5 -8 4 -7 5 -7 5 -6 5 -7 4 -5 5 -5 5 -6 5 -7 4 -7 4 -5 5 -5 5 -3 4 -3 5 -3 5 -3 5 -3 4 -3 5 -2 4 -2 5 -3 4 -2 5 -2 4 0 5 2 4 2 5 1 4 0 5 0 4 1 5 1 4 3 5 2 5 3 4 3 5 5 4 5 5 5 4 5 5 4 4 3 5 5 6 5 4 7 5 7 4 7 5 7 4 7 5 8 4 8 5 7 4 8 5 7 5 8 5 9 5 9 3 10 3 9 4 10 4 9 4 9 4 9 4 10 4 10 3 9 4 10 3 10 3 11 1 10 2 10 1 10 3 10 2 10 3 10 1 10 1 10 0 9 0 10 0 9 0 10 -1 9 -1 9 -2 9 0 10 -1 10 -1 8 -3 8 -3 8 -4 7 -4 8 -4 7 -4 8 -4 7 -4 7 -5 7 -5 7 -5 7 -5 6 -7 4 -7 4 -7 3 -7 5 -7 6 -7 5 -7 4 -7 3 -8 3 -8 3 -8 2 -9 1 -8 1 -9 0 -8 0 -9 1 -8 2 -9z"/><path class="ring" d="M741 -9l1 -8 1 -8 -2 -7 -2 -8 -2 -8 -2 -7 -2 -7 -3 -8 -3 -7 -2 -7 -3 -7 -2 -7 -3 -7 -4 -6 -6 -6 -6 -5 -6 -5 -5 -6 -5 -5 -5 -6 -5 -5 -6 -4 -6 -4 -7 -5 -6 -3 -8 -4 -7 -2 -9 -2 -8 -2 -7 -2 -7 -3 -8 -2 -8 -2 -8 -1 -9 -1 -9 0 -8 0 -9 1 -9 0 -9 1 -9 1 -9 1 -9 0 -9 1 -9 1 -9 3 -9 3 -9 3 -8 3 -9 2 -9 3 -9 2 -9 3 -9 4 -8 3 -9 3 -9 3 -7 4 -8 5 -7 4 -8 4 -8 4 -8 3 -8 4 -7 4 -6 4 -7 4 -6 5 -6 4 -6 4 -5 5 -4 4 -6 4 -6 4 -6 4 -5 4 -4 4 -3 5 -2 4 -3 4 -3 4 -3 4 -2 4 -2 4 -2 5 -2 4 -2 4 -2 4 0 4 2 4 1 4 1 4 1 4 0 4 0 4 2 4 2 4 2 4 2 5 3 4 4 4 5 4 5 4 4 4 3 4 4 5 3 4 6 5 6 4 6 3 6 4 7 5 6 4 7 4 7 4 7 4 6 4 7 5 7 4 8 4 9 3 8 3 9 4 8 3 8 4 9 4 8 3 9 4 8 3 9 3 9 3 9 2 9 2 9 1 9 1 9 2 9 3 10 2 9 1 9 1 8 0 9 0 9 0 8 0 9 -1 8 -1 8 -1 8 -1 9 -1 9 -1 8 -2 7 -3 6 -3 7 -4 7 -4 7 -3 7 -4 6 -4 6 -4 7 -4 6 -5 6 -5 5 -5 4 -7 3 -6 4 -7 4 -6 5 -6 5 -6 3 -7 3 -7 3 -7 2 -8 2 -7 2 -8 0 -7 0 -8 0 -8 1 -8 2 -7z"/><path class="ring" d="M705 -12l1 -7 0 -6 -1 -7 -2 -7 -2 -7 -2 -6 -1 -7 -3 -6 -2 -7 -3 -6 -2 -6 -2 -6 -3 -7 -3 -5 -5 -5 -5 -5 -6 -5 -4 -4 -5 -5 -4 -5 -5 -5 -5 -4 -6 -3 -5 -4 -6 -3 -7 -3 -7 -2 -7 -2 -7 -2 -7 -2 -6 -2 -7 -2 -7 -2 -7 -1 -8 0 -8 0 -7 0 -8 0 -8 0 -8 1 -8 1 -8 1 -8 0 -8 1 -8 1 -8 2 -8 3 -8 3 -8 2 -8 2 -7 2 -8 3 -8 3 -8 2 -8 3 -7 3 -8 3 -7 4 -6 4 -7 4 -7 3 -7 3 -7 3 -7 3 -6 4 -6 4 -6 4 -5 3 -6 4 -5 4 -4 4 -4 4 -5 4 -5 3 -6 3 -4 4 -4 4 -2 4 -3 4 -2 3 -3 4 -2 4 -2 3 -2 4 -2 3 -2 4 -2 4 -1 3 0 4 1 3 2 4 1 4 0 3 0 4 0 3 2 4 2 4 2 3 2 4 2 4 4 3 4 4 4 3 4 4 3 4 3 4 3 4 5 4 5 3 6 4 6 3 5 4 6 4 6 3 6 4 6 3 6 4 6 5 6 4 7 3 8 3 8 2 7 3 8 3 7 4 7 3 8 3 8 3 7 3 8 3 8 2 8 2 8 2 8 1 8 1 8 2 8 2 8 2 8 1 8 1 8 0 8 0 8 0 7 0 8 -1 7 -1 7 -1 8 -1 7 0 8 -1 7 -2 6 -3 6 -3 6 -3 6 -3 6 -3 6 -4 6 -3 6 -4 5 -4 6 -4 6 -4 4 -5 3 -6 3 -6 3 -5 4 -6 4 -5 5 -6 3 -6 3 -6 2 -7 2 -6 2 -7 1 -6 0 -7 0 -7 1 -7 1 -7 1 -7z"/><path class="ring" d="M669 -14l1 -6 0 -6 -1 -6 -2 -6 -2 -6 -1 -6 -2 -5 -1 -6 -3 -5 -2 -6 -2 -5 -2 -6 -2 -5 -3 -5 -4 -5 -5 -4 -5 -4 -4 -4 -3 -4 -4 -4 -4 -4 -5 -4 -5 -3 -5 -3 -5 -3 -6 -3 -6 -2 -6 -1 -6 -2 -6 -1 -6 -2 -6 -3 -6 -1 -6 -1 -7 0 -7 0 -7 0 -6 0 -7 1 -7 0 -7 1 -7 1 -7 0 -7 1 -7 1 -7 1 -7 3 -7 2 -7 2 -7 2 -7 2 -7 2 -6 3 -7 2 -7 3 -7 2 -6 3 -6 3 -6 3 -6 4 -6 3 -6 3 -6 2 -6 3 -6 3 -5 4 -5 3 -5 3 -5 4 -4 3 -4 3 -3 4 -4 3 -5 3 -5 3 -4 3 -3 3 -2 4 -2 3 -2 3 -2 4 -3 3 -1 3 -2 3 -1 3 -2 3 -2 3 -1 4 0 3 1 3 1 3 1 3 0 3 0 4 1 3 1 3 1 3 2 3 2 4 2 3 3 3 4 3 4 3 3 3 3 4 2 3 3 4 4 3 5 3 5 3 5 3 5 4 5 3 5 3 6 3 5 3 5 4 5 3 6 4 6 3 6 2 7 2 7 3 6 3 7 3 6 3 7 2 6 3 7 2 7 3 7 2 7 2 7 1 7 1 7 1 7 2 7 2 7 1 7 1 7 1 7 0 7 0 6 0 7 0 6 -1 7 -1 6 -1 7 0 7 -1 6 -1 6 -1 6 -3 5 -2 5 -3 5 -3 6 -3 5 -2 5 -4 5 -3 5 -3 5 -4 5 -4 4 -4 3 -5 2 -5 3 -5 3 -5 4 -5 4 -5 3 -5 2 -5 2 -6 2 -6 1 -5 1 -6 1 -6 0 -6 0 -6 1 -6 1 -6z"/><path class="ring" d="M633 -16l1 -6 0 -5 -1 -5 -2 -5 -1 -5 -1 -5 -2 -5 -1 -5 -2 -4 -2 -5 -2 -5 -2 -4 -1 -5 -3 -4 -4 -4 -4 -4 -4 -3 -3 -3 -3 -4 -4 -4 -3 -3 -4 -3 -4 -3 -5 -3 -4 -2 -5 -2 -5 -2 -5 -1 -6 -1 -5 -2 -5 -2 -5 -2 -5 -1 -5 0 -6 -1 -6 0 -6 0 -6 1 -6 0 -5 1 -6 0 -6 1 -6 0 -6 0 -6 1 -6 2 -6 2 -6 2 -6 2 -6 1 -6 2 -6 2 -6 2 -5 2 -6 2 -6 2 -6 2 -5 3 -5 3 -5 3 -5 3 -5 2 -5 2 -6 3 -4 2 -5 3 -4 3 -4 3 -4 3 -4 3 -3 3 -3 3 -4 2 -4 3 -4 2 -3 3 -3 3 -2 3 -1 3 -2 3 -2 2 -2 3 -2 3 -1 2 -1 3 -2 3 -1 2 -1 3 0 3 1 3 1 2 1 3 0 3 0 2 0 3 1 3 1 3 2 2 2 3 2 3 2 3 3 2 3 3 3 2 3 3 2 3 2 3 4 3 4 3 4 3 4 2 4 3 5 3 4 2 5 3 4 3 5 3 4 3 5 3 5 2 6 2 6 2 5 3 6 2 5 3 6 2 5 2 6 2 6 3 6 2 6 2 6 1 6 1 6 1 6 1 6 1 6 2 6 1 6 1 6 1 6 0 5 0 6 0 6 0 5 -1 6 -1 5 -1 6 0 6 0 5 -1 6 -1 4 -2 5 -3 4 -2 5 -3 4 -2 5 -2 4 -3 4 -3 5 -3 4 -3 4 -3 3 -4 3 -4 2 -4 2 -5 3 -4 3 -4 4 -4 2 -5 2 -4 2 -5 1 -5 2 -5 0 -5 1 -5 0 -5 0 -5 1 -5 1 -5z"/><path class="ring" d="M597 -19l0 -4 1 -4 -1 -5 -1 -4 -2 -4 -1 -4 -1 -4 -1 -4 -2 -4 -1 -4 -2 -4 -1 -4 -2 -4 -2 -3 -3 -3 -3 -3 -4 -3 -3 -3 -2 -3 -3 -3 -3 -3 -3 -2 -4 -3 -3 -2 -4 -2 -4 -2 -4 -1 -5 -1 -4 -1 -4 -2 -4 -1 -4 -2 -5 -1 -4 0 -5 0 -5 0 -5 0 -5 0 -5 0 -5 1 -5 0 -5 1 -4 0 -5 0 -5 1 -5 1 -5 2 -5 2 -5 1 -5 2 -5 1 -5 1 -5 2 -5 2 -4 2 -5 1 -5 2 -4 2 -4 3 -4 2 -5 3 -4 2 -5 1 -4 2 -4 3 -3 2 -4 2 -4 3 -3 2 -3 3 -3 2 -2 2 -3 3 -4 2 -3 2 -3 2 -2 3 -2 2 -1 2 -1 3 -2 2 -2 2 -1 2 -1 3 -1 2 -1 2 -2 2 0 3 0 2 1 2 0 2 1 3 0 2 0 2 0 2 1 3 1 2 2 2 1 3 2 2 2 2 2 2 3 2 2 3 2 2 2 3 2 2 3 3 3 2 4 2 3 2 4 2 3 3 4 2 4 2 4 2 4 3 3 2 4 3 5 2 4 2 5 1 5 2 4 2 5 2 4 2 5 2 5 2 5 2 5 2 5 1 5 1 5 1 5 1 5 1 5 1 5 1 5 2 5 0 5 1 4 0 5 0 5 0 5 0 4 -1 5 -1 4 0 5 -1 5 0 5 -1 4 -1 4 -1 4 -2 3 -2 4 -2 4 -2 4 -2 3 -2 4 -3 3 -2 4 -3 3 -2 3 -4 2 -3 2 -4 2 -3 2 -4 3 -3 2 -4 3 -3 1 -4 2 -4 1 -4 1 -4 1 -5 0 -4 0 -4 0 -4 1 -5 1 -4z"/><ellipse class="pore" cx="470" cy="300" rx="15" ry="10"/><ellipse class="pore" cx="560" cy="300" rx="15" ry="10"/><ellipse class="pore" cx="650" cy="280" rx="15" ry="10"/><ellipse class="pore" cx="740" cy="240" rx="15" ry="10"/><ellipse class="pore" cx="820" cy="190" rx="15" ry="10"/><ellipse class="pore" cx="890" cy="130" rx="15" ry="10"/></svg></div>
 </section>
 
-<section class="section split" aria-labelledby="s1">
-<div><span class="step-no">01 / Install and inspect</span><h2 id="s1">Read the offer first.</h2><p class="quiet">Your agent checks and installs the release, then reads the offer. Inspecting claims nothing and saves nothing on this computer. The gift link stays in a private 0600 file, never in a command argument.</p></div>
+<section class="section split" aria-labelledby="agent-title">
+<div><h2 id="agent-title">Have a coding agent? Copy these instructions.</h2></div>
 <div>
-<pre><span class="p">$ </span>sha256sum -c --ignore-missing FRIEND-SHA256SUMS
+<p class="quiet">Your agent reads the setup skill, explains what installation changes and prepares access. Your documents, questions and answers belong in the session you open afterwards, not in the setup chat.</p>
+<div class="actions"><button class="primary" id="copy-instructions" type="button" hidden>Copy instructions for your agent</button><a href="https://github.com/amiller/abalone/blob/main/skills/abalone-incognito/SKILL.md">Read the setup skill ↗</a></div>
+<p id="copy-status" role="status" aria-live="polite">Or paste this page’s full link into your coding agent.</p>
+<noscript><p>Copy this page’s full address, including <code>#code=…</code>, into your coding agent. The instructions below work without JavaScript.</p></noscript>
+</div>
+</section>
+
+<section class="section split" id="what-it-prints" aria-labelledby="s1">
+<div><span class="step-no">01 / Install</span><h2 id="s1">Check it, then install.</h2><p class="quiet">The installer verifies the release archive and four public files against hashes pinned inside it. It claims nothing and starts nothing. A matching checksum shows the bytes are the published ones, not that they are safe.</p></div>
+<div>
+<pre><span class="p">$ </span>sha256sum install.sh
 <span class="p">$ </span>less install.sh
-<span class="p">$ </span>sh install.sh --credit
-<span class="p">$ </span>abalone credit inspect --trial /ABS/trial.json --input-file /private/gift.txt</pre>
+<span class="p">$ </span>sh install.sh --credit</pre>
 <p class="cli-note">CLI example — not checked by this page.</p>
+<dl class="term">
+<dt>Needs</dt><dd>Linux x86_64, Node 24, curl, tar, bash, sha256sum and flock; run as your ordinary user, not root. macOS is not supported for this install yet</dd>
+<dt>Changes</dt><dd>Adds <code>~/.abalone-app/</code> and the launcher <code>~/.local/bin/abalone</code></dd>
+<dt>Isolation</dt><dd>None: a credit session runs with your account’s file and network access</dd>
+</dl>
+</div>
+</section>
+
+<section class="section split" aria-labelledby="s2">
+<div><span class="step-no">02 / Terms</span><h2 id="s2">Read the offer, then accept that exact offer.</h2><p class="quiet">The 8 characters are the start of the offer’s hash, so your consent binds to the offer on screen. Anything else stops without claiming and saves nothing.</p></div>
+<div>
+<pre><span class="p">$ </span>abalone
+No saved credit yet.
+Two ways in:
+  1. Paste a gift link or code here (or the full path of a private 0600 file holding it).
+  2. Or bring a provider key: abalone key add &lt;provider&gt; …
+Gift link, code or file (hidden as you paste):
+{ …the offer: model, nominal cap, claim window, operator… }
+Review the terms above. To accept and redeem, type 1a2b3c4d; anything else stops here:</pre>
+<p class="cli-note">CLI example — not checked by this page. The 8 characters differ for each offer.</p>
 <dl class="term">
 <dt>Provider</dt><dd>NEAR model. Attestation is checked when a session starts, not at inspect.</dd>
 <dt>Cap</dt><dd>Nominal, from the offer<sup><a href="#fn1" id="r1">1</a></sup></dd>
 <dt>Claim by</dt><dd>The offer’s claim window</dd>
 <dt>Operator</dt><dd>Can access and revoke the model credential</dd>
-</dl>
-<span class="label caution">⚠ Firmware: this route accepts a verified out-of-date warning</span>
-<span class="label">Input: synthetic, non-sensitive only</span>
-<ol class="fn">
-<li id="fn1"><span>1</span><span>A nominal cap is not a spent amount, an owned wallet or a verified remaining balance. The operator or provider can end access at any time; spending can overshoot the cap. <a href="#r1" aria-label="Back to note 1">↩</a></span></li>
-</ol>
-</div>
-</section>
-
-<section class="section split" aria-labelledby="s2">
-<div><span class="step-no">02 / Terms</span><h2 id="s2">Accept that exact offer.</h2><p class="quiet">Redeeming binds to the hash you read. A changed offer is a different offer.</p></div>
-<div>
-<pre><span class="p">$ </span>abalone credit redeem --trial /ABS/trial.json --input-file /private/gift.txt --accept-offer OFFER_HASH
-<span class="p">$ </span>abalone credit status</pre>
-<p class="cli-note">CLI example — not checked by this page.</p>
-<dl class="term">
 <dt>Per request</dt><dd>Bounded to the trial’s output-token limit</dd>
 <dt>Saved</dt><dd>Gift code, model credential and recovery keys in <code>~/.abalone/credit/</code>, 0600 files; never conversations<sup><a href="#fn2" id="r2">2</a></sup></dd>
 <dt>If interrupted</dt><dd>Do not redeem again: <code>abalone credit recover --credit CREDIT_ID</code></dd>
 </dl>
-<span class="label">State after redeem: installed — access saved, no session yet</span>
+<span class="label caution">⚠ Firmware: this route accepts a verified out-of-date warning</span>
+<span class="label">Input: synthetic, non-sensitive only</span>
 <p class="quiet">An expired offer stops here, before anything is sent to the issuer:</p>
 <span class="label fail">× Claim window closed — ask the sponsor for a new gift</span>
+<p class="quiet">The same steps one at a time, for scripts or with the gift in a 0600 file instead of a paste:</p>
+<pre><span class="p">$ </span>abalone credit inspect --trial /ABS/trial.json --input-file /private/gift.txt
+<span class="p">$ </span>abalone credit redeem --trial /ABS/trial.json --input-file /private/gift.txt --accept-offer OFFER_HASH
+<span class="p">$ </span>abalone credit status</pre>
+<p class="cli-note">CLI example — not checked by this page. Inspecting claims nothing and saves nothing.</p>
 <ol class="fn">
+<li id="fn1"><span>1</span><span>A nominal cap is not a spent amount, an owned wallet or a verified remaining balance. The operator or provider can end access at any time; spending can overshoot the cap. <a href="#r1" aria-label="Back to note 1">↩</a></span></li>
 <li id="fn2"><span>2</span><span>Readable by your administrator and by other processes running as you. Redeem creates the record before it sends the first claim, and it survives closing a session. One session at a time uses a credit. <code>abalone credit forget --credit CREDIT_ID</code> removes the record and its lock file. Forgetting does not revoke the credential. <a href="#r2" aria-label="Back to note 2">↩</a></span></li>
 </ol>
 </div>
 </section>
 
 <section class="section split" aria-labelledby="s3">
-<div><span class="step-no">03 / Open your session</span><h2 id="s3">Access saved.<br>Open your own terminal.</h2><p class="quiet">Your documents, questions and answers belong in the session you open next, not in the setup chat.</p></div>
+<div><span class="step-no">03 / Open your session</span><h2 id="s3">Redeemed and saved.<br>The session opens.</h2><p class="quiet">Your documents, questions and answers belong in this session, not in a setup chat.</p></div>
 <div>
-<pre><span class="p">$ </span>abalone credit session --credit CREDIT_ID</pre>
+<pre>Redeemed and saved. Opening the session.</pre>
 <p class="cli-note">CLI example — not checked by this page. Each line below summarises a separate result the session reports at start.</p>
 <span class="label">◈ Attestation: NEAR model checked before the first prompt byte</span>
 <span class="label caution">⚠ NEAR firmware out of date (N Intel advisories); synthetic input only</span>
 <span class="label">Input: synthetic, non-sensitive only</span>
-<p class="quiet">Next time, run plain <code>abalone</code> in your own terminal. With one saved credit ready, it opens that session.</p>
+<p class="quiet">Next time, run plain <code>abalone</code>. With one saved credit ready, it opens that session. <code>abalone credit session --credit CREDIT_ID</code> opens a chosen one.</p>
 <pre><span class="p">$ </span>abalone</pre>
 <p class="cli-note">CLI example — not checked by this page.</p>
 <dl class="term">
