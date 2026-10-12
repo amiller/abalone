@@ -6,11 +6,9 @@ import { createProvider, envApiKeyAuth } from "@earendil-works/pi-ai";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/compat";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { providers } from "../lib/config.mjs";
-import { API, open, seal, verifyInstance } from "../lib/chutes.mjs";
+import { API, open, pick, seal, strip, verifyInstance } from "../lib/chutes.mjs";
 import { untrusted } from "../lib/near.mjs";
 
-const RED = (s: string) => `\x1b[31m${s}\x1b[39m`;
-const strip = (p: any) => `◈ chutes ${p.model} · ${p.model_tcb.every((t: string) => t.startsWith("UpToDate")) ? "tcb:up-to-date" : RED(`tcb:out-of-date (${p.model_tcb.join("; ")})`)} · instance ${p.instance_id.slice(0, 8)} · Chutes sees ciphertext, sizes and timing; its serving code is not measured`;
 const refuse = (status: number, message: string) => new Response(JSON.stringify({ error: { message } }), { status, headers: { "content-type": "application/json" } });
 
 // One sealed chat.completion as the stream pi reads: a single chunk carrying the whole message, then [DONE].
@@ -30,9 +28,7 @@ export default async function (pi: ExtensionAPI) {
     if (!r.ok) throw new Error(`✗ refused: Chutes ${p.split("?")[0]} answered HTTP ${r.status}: ${untrusted(await r.text())}; nothing was sent`);
     return r.json();
   };
-  // instance_id + e2e_pubkey → its verification. Chutes lists a changing subset of a chute's instances, so a request
-  // goes to a listed instance already verified in this process, or the first listed one is verified now.
-  const verified = new Map<string, Promise<any>>();
+  const verified = new Map<string, Promise<any>>(); // instance_id + e2e_pubkey → its verification (lib/chutes.mjs pick)
 
   const fetchE2ee: typeof fetch = async (_input, init) => {
     const body = JSON.parse(String(init!.body)), m = models.find((x: any) => x.id === body.model)!;
@@ -40,14 +36,11 @@ export default async function (pi: ExtensionAPI) {
     try {
       const listed = (await get(`/e2e/instances/${m.chuteId}`)).instances.filter((i: any) => i.nonces?.length);
       if (!listed.length) throw new Error(`✗ refused: Chutes lists no instance of ${body.model} that takes encrypted requests; nothing was sent`);
-      inst = listed.find((i: any) => verified.has(i.instance_id + i.e2e_pubkey)) ?? listed[0];
-      const k = inst.instance_id + inst.e2e_pubkey;
-      if (!verified.has(k)) verified.set(k, verifyInstance(inst, get, cfg.policy).then((p: any) => {
+      [inst, profile] = await pick(listed, verified, (i: any) => verifyInstance(i, get, cfg.policy).then((p: any) => {
         const prof = { ...p, model: body.model, chute_id: m.chuteId, place: "◈ attested", code: cfg.axes.code, observer: cfg.observer, custody: "unchecked" };
         pi.appendEntry("chutes-attestation", { ...prof, provider: "chutes" });
         return prof;
       }));
-      profile = await verified.get(k);
     } catch (e: any) { return refuse(403, e.message); } // the OpenAI client would report a thrown fetch only as "Connection error."
     ui?.setStatus("chutes", strip(profile));
     delete body.stream_options;

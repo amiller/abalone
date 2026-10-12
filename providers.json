@@ -91,7 +91,7 @@
       "tools": "sealed with the request",
       "transport": "chutes-e2ee (per instance)",
       "axes": {
-        "hw": "per instance: TDX quote (Intel PCS, TCB UpToDate), report_data binds our nonce with the ML-KEM key the request is sealed to and the evidence certificate's SPKI, MRTD+RTMR0-3 match a row of anchors/chutes_measurements.json, GPU NRAS verdict with its signature checked",
+        "hw": "per instance: TDX quote (Intel PCS, TCB UpToDate), report_data binds our nonce with the ML-KEM key the request is sealed to and the evidence certificate's SPKI, MRTD+RTMR0-3 match a row of anchors/chutes_measurements.json (a reviewed snapshot of Chutes' own unauthenticated, unsigned /servers/tee/measurements list), GPU NRAS verdict with its signature checked; the instance id is Chutes' label, not attested (the quote binds the ML-KEM key, not the id)",
         "code": "Chutes' VM image is measured; the chute's serving code that reads the decrypted prompt is not, and nothing binds which model answers (chutesai/chutes#75)",
         "operator": "S0",
         "custody": "unchecked"

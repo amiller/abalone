@@ -12,7 +12,7 @@ import { ml_kem768 } from "@noble/post-quantum/ml-kem.js";
 import { ROOT } from "../lib/config.mjs";
 
 globalThis.fetch = (url) => { throw new Error(`network is cut in this test: ${url}`); };
-const { anchor, checkEvidence, open, seal } = await import("../lib/chutes.mjs");
+const { anchor, checkEvidence, open, pick, seal, strip } = await import("../lib/chutes.mjs");
 const { verifications } = await import("../lib/status.mjs");
 const fx = JSON.parse(fs.readFileSync(path.join(ROOT, "tests/fixtures/chutes/attestation.json"), "utf8"));
 const realNow = Date.now;
@@ -91,6 +91,46 @@ test("seal/open interoperate with an instance following Chutes' scheme (HKDF sal
   const enc = ml_kem768.encapsulate(Buffer.from(got.e2e_response_pk, "base64")), iv = crypto.randomBytes(12);
   const reply = Buffer.concat([enc.cipherText, iv, aead("createCipheriv", kdf(enc.sharedSecret, Buffer.from(enc.cipherText), "e2e-resp-v1"), iv, zlib.gzipSync('{"ok":1}'))]);
   assert.equal(open(reply, sk), '{"ok":1}');
+});
+
+test("an unknown policy.tcb is refused before any check, not read as \"admit every status\"", async () => {
+  for (const tcb of ["reportd", "uptodate", ""]) await assert.rejects(check({ policy: { ...fx.policy, tcb } }), /policy\.tcb .* is not UpToDate or reported/);
+  assert.deepEqual((await check({ policy: { ...fx.policy, tcb: "reported" } })).model_tcb_statuses, ["UpToDate"]);
+});
+
+test("private-work describes a verified Chutes instance as checked, with its own TCB and no NEAR gateway policy", async () => {
+  const { route, verification } = await import("../lib/private-work.mjs");
+  const r = route(`chutes/${fx.model}`);
+  assert.doesNotMatch(r.text, /gatewayTcb|modelTcb|undefined|out-of-date/);
+  assert.match(route("nearai/z-ai/glm-5.3-flash").text, /gatewayTcb "reported", modelTcb "reported"/);
+  assert.equal(verification([], r), "remote, NOT verified (no verifier output in this session)");
+  const p = await check(), e = { type: "custom", customType: "chutes-attestation", timestamp: fx.recorded, data: { ...p, provider: "chutes", model: fx.model, code: "c" } };
+  assert.equal(verification([e], r), `remote, checked by abalone ${fx.recorded} (instance TDX, GPU: NVIDIA verdict (signature checked), 8× HOPPER; instance ${p.instance_id.slice(0, 8)} is Chutes' label, not attested), tcb:up-to-date; code: c`);
+});
+
+test("the instance id is shown as Chutes' label, not as attested", async () => {
+  const p = await check();
+  assert.match(p.instance_id_source, /Chutes' label, not attested/);
+  assert.match(strip({ ...p, model: fx.model }), new RegExp(`instance ${p.instance_id.slice(0, 8)} \\(Chutes' label\\)`));
+  const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, "providers.json"), "utf8")).admitted.find((a) => a.id === "chutes");
+  assert.match(cfg.axes.hw, /instance id is Chutes' label, not attested/);
+  assert.match(cfg.axes.hw, /unsigned \/servers\/tee\/measurements/);
+});
+
+test("a failed verification is not kept: the next listed instance is tried once, then the request is refused", async () => {
+  const inst = (n) => ({ instance_id: `i${n}`, e2e_pubkey: "k" }), calls = [];
+  const verify = (ok) => async (i) => { calls.push(i.instance_id); if (!ok.includes(i.instance_id)) throw new Error(`✗ refused: Chutes attestation: ${i.instance_id} bad`); return { id: i.instance_id }; };
+  const verified = new Map();
+  assert.deepEqual(await pick([inst(1), inst(2), inst(3)], verified, verify(["i2"])), [inst(2), { id: "i2" }]);
+  assert.deepEqual([calls, [...verified.keys()]], [["i1", "i2"], ["i2k"]]);
+  calls.length = 0;
+  assert.deepEqual(await pick([inst(1), inst(2)], verified, verify([])), [inst(2), { id: "i2" }]);
+  assert.deepEqual(calls, []);
+  await assert.rejects(pick([inst(1), inst(3), inst(4)], new Map(), verify(["i4"])), { message: "✗ refused: Chutes attestation: i1 bad; next listed instance: Chutes attestation: i3 bad" });
+  assert.deepEqual(calls, ["i1", "i3"]);
+  calls.length = 0;
+  assert.deepEqual(await pick([inst(1)], verified, verify(["i1"])), [inst(1), { id: "i1" }]);
+  assert.deepEqual(calls, ["i1"]);
 });
 
 test.after(() => { Date.now = realNow; });

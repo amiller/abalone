@@ -22,7 +22,7 @@ const replay = (edit = (r) => r) => async (url, init = {}) => {
   const e = edit({ ...r, body: Buffer.from(r.body, "base64") });
   return new Response(e.body, { status: e.status, headers: e.headers });
 };
-const check = (rep, http = replay(), nonce = fx.nonce) => checkReport(rep, nonce, fx.baseUrl, fx.model, fx.policy, http);
+const check = (rep, http = replay(), nonce = fx.nonce, policy = fx.policy) => checkReport(rep, nonce, fx.baseUrl, fx.model, policy, http);
 const copy = (f) => { const r = structuredClone(fx.report); f(r); return r; };
 const flipHex = (h, i) => h.slice(0, i) + (h[i] === "0" ? "1" : "0") + h.slice(i + 1);
 const nrasFalse = (r) => {
@@ -45,6 +45,10 @@ test("NVIDIA's JWKS unreachable: the verdict is shown as not checked, with the r
 test("selected coupon profile requires NVIDIA signature even when the ordinary profile reports unavailable JWKS", async () => {
   await assert.rejects(checkReport(fx.report, fx.nonce, fx.baseUrl, fx.model, { ...fx.policy, gpuSignature: "required" },
     replay((r) => (r.url.endsWith("/jwks.json") ? { ...r, status: 503 } : r))), /NVIDIA verdict signature is required/);
+});
+test("an unknown gatewayTcb or modelTcb policy value is refused, not read as \"admit every status\"", async () => {
+  await assert.rejects(check(fx.report, replay(), fx.nonce, { ...fx.policy, gatewayTcb: "reportd" }), /gateway TCB policy "reportd" is not UpToDate, reported or UpToDate-or-OutOfDate-with-warning/);
+  await assert.rejects(check(fx.report, replay(), fx.nonce, { ...fx.policy, modelTcb: "Reported" }), /model TCB policy "Reported" is not/);
 });
 test("selected coupon profile refuses a gateway TCB the ordinary profile merely reports", async () => {
   await assert.rejects(checkReport(fx.report, fx.nonce, fx.baseUrl, fx.model,
