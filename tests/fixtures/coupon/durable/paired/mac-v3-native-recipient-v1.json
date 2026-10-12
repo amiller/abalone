@@ -1,0 +1,257 @@
+{
+  "approval": {
+    "domain": "dsmack-coupon-mac-approval-v1",
+    "envelope": "{\"domain\":\"dsmack-coupon-mac-approval-v1\",\"payload\":{\"app_id\":\"SOFTWARE_TEST_ONLY.mac-coupon\",\"cdhash\":\"cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\",\"compose_hash\":\"208a0d89a818f15a0073aec46d40cc1e6ba235cd930e4895edcc9b5f3a3e4d56\",\"delivery_profile\":\"x25519-aesgcm-recipient-v1\",\"expires_at\":\"2099-01-01T00:00:00Z\",\"generation\":1,\"guard\":{\"address\":\"0x1111111111111111111111111111111111111111\",\"chain_id\":8453,\"code_hash\":\"0x07ad118d6cc8642c86c03827f276d8b791a65e5c99a3845faf186be720a1455d\",\"confirmation\":{\"block_tag\":\"safe\",\"l1_finality_verified\":false,\"profile\":\"base-mainnet-rpc-safe-debug-v1\",\"reorg_action\":\"quarantine-no-retry\",\"rpc_url\":\"https://mainnet.base.org\",\"trust\":\"configured-rpc\",\"version\":1},\"issuer_address\":\"0x5975c152fe58cdcb7e25586a3c9b994a16dbb615\"},\"identity_policy_sha256\":\"0202020202020202020202020202020202020202020202020202020202020202\",\"issuance_policy_sha256\":\"0303030303030303030303030303030303030303030303030303030303030303\",\"issuer_profile\":\"mac-appattest-coupon-v1\",\"issuer_public_key_sha256\":\"9a92d2b54a9a5402de3e65a07a5cb12a8dc6758bd8e8c2ec459563d6b2c081c4\",\"max_coupon_nano_usd\":\"5000000000\",\"max_total_nano_usd\":\"5000000000\",\"powers\":[\"operator-secret-access\",\"application-exec\",\"debugger\",\"host-clock\"],\"profile\":\"debug-staging\",\"prompt_policy\":\"synthetic-only\",\"provider_scope_commitment\":\"d1d892ea26d3f7ffd2f47d9dd9deff19368780f2b85297cf1647eff1b15492cd\",\"version\":3},\"signature_hex\":\"060a516b817266718cc60e6b21e716c7c2f1968767c12f265ef0e37f4e616ec747e4488f4a5d158618ae959460e902b9b6f63cde8e82368ac378974fa1fbcf07\"}",
+    "payload": {
+      "app_id": "SOFTWARE_TEST_ONLY.mac-coupon",
+      "cdhash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+      "compose_hash": "208a0d89a818f15a0073aec46d40cc1e6ba235cd930e4895edcc9b5f3a3e4d56",
+      "delivery_profile": "x25519-aesgcm-recipient-v1",
+      "expires_at": "2099-01-01T00:00:00Z",
+      "generation": 1,
+      "guard": {
+        "address": "0x1111111111111111111111111111111111111111",
+        "chain_id": 8453,
+        "code_hash": "0x07ad118d6cc8642c86c03827f276d8b791a65e5c99a3845faf186be720a1455d",
+        "confirmation": {
+          "block_tag": "safe",
+          "l1_finality_verified": false,
+          "profile": "base-mainnet-rpc-safe-debug-v1",
+          "reorg_action": "quarantine-no-retry",
+          "rpc_url": "https://mainnet.base.org",
+          "trust": "configured-rpc",
+          "version": 1
+        },
+        "issuer_address": "0x5975c152fe58cdcb7e25586a3c9b994a16dbb615"
+      },
+      "identity_policy_sha256": "0202020202020202020202020202020202020202020202020202020202020202",
+      "issuance_policy_sha256": "0303030303030303030303030303030303030303030303030303030303030303",
+      "issuer_profile": "mac-appattest-coupon-v1",
+      "issuer_public_key_sha256": "9a92d2b54a9a5402de3e65a07a5cb12a8dc6758bd8e8c2ec459563d6b2c081c4",
+      "max_coupon_nano_usd": "5000000000",
+      "max_total_nano_usd": "5000000000",
+      "powers": [
+        "operator-secret-access",
+        "application-exec",
+        "debugger",
+        "host-clock"
+      ],
+      "profile": "debug-staging",
+      "prompt_policy": "synthetic-only",
+      "provider_scope_commitment": "d1d892ea26d3f7ffd2f47d9dd9deff19368780f2b85297cf1647eff1b15492cd",
+      "version": 3
+    },
+    "sha256": "b7afc901437a491c5e785e7b211f4c534b05805c9c3c844ddd2630d563fdb10c"
+  },
+  "authority": {
+    "public_key_hex": "332ebe8d27cb7323b3a401c1c13b5dd64bccc0e10ecda1c2b5d11a03779a85e5",
+    "seed_hex_for_regeneration_only": "9999999999999999999999999999999999999999999999999999999999999999"
+  },
+  "claim": {
+    "pending_response": {
+      "id": "claim",
+      "ok": true,
+      "result": {
+        "automatic_retry_allowed": false,
+        "deposit_release_authorized": false,
+        "state": "in_progress"
+      }
+    },
+    "request": {
+      "coupon": "IYN9Sha0GamyRxx24prFQdfmEfXoVO0-MpCXjG840L0",
+      "id": "claim",
+      "offer_hash": "47a8c80d91350447d6e7a82510aae6ef6ff34d9be11da26ee0f636269228e946",
+      "op": "claim",
+      "recipient_key": "rZCKinCKygdYjNp8TtPkTUlmqAqauy8eS7rFPGdBTjQ="
+    }
+  },
+  "config": {
+    "domain": "dsmack-coupon-mac-config-v1",
+    "envelope": "{\"domain\":\"dsmack-coupon-mac-config-v1\",\"payload\":{\"app_compose\":\"{\\\"egress\\\":{\\\"tcp\\\":[{\\\"host\\\":\\\"127.0.0.1\\\",\\\"port\\\":18998},{\\\"host\\\":\\\"mainnet.base.org\\\",\\\"port\\\":443}]},\\\"name\\\":\\\"SOFTWARE_TEST_ONLY MAC NATIVE COUPON ISSUER\\\",\\\"services\\\":{}}\",\"approval_sha256\":\"b7afc901437a491c5e785e7b211f4c534b05805c9c3c844ddd2630d563fdb10c\",\"delivery_profile\":\"x25519-aesgcm-recipient-v1\",\"finality_profile\":{\"chain_id\":8453,\"execution_rpc\":\"https://mainnet.base.org\",\"guard_address\":\"0x1111111111111111111111111111111111111111\",\"guard_code_hash\":\"0x07ad118d6cc8642c86c03827f276d8b791a65e5c99a3845faf186be720a1455d\",\"issuance_policy_hash\":\"0x0303030303030303030303030303030303030303030303030303030303030303\",\"issuer_address\":\"0x5975c152fe58cdcb7e25586a3c9b994a16dbb615\",\"max_safe_age_seconds\":1200,\"timeout_seconds\":30,\"trust_profile\":\"base-mainnet-rpc-safe-debug-v1\",\"version\":1},\"gas_price_wei\":1000,\"issuer_peer_id\":\"IssuerPeer00000001\",\"job_deadline_seconds\":120,\"max_active_jobs\":1,\"observer_subject\":\"operator:observer\",\"peers\":{\"ObserverPeer0001\":{\"roles\":[\"observer\"],\"subject\":\"operator:observer\"},\"SponsorPeer0000001\":{\"roles\":[\"sponsor\"],\"subject\":\"operator:sponsor\"}},\"provider\":{\"authority_cdhash\":\"6363636363636363636363636363636363636363636363636363636363636363\",\"authority_port\":18998,\"genesis_digest\":\"6161616161616161616161616161616161616161616161616161616161616161\",\"key_lifetime_seconds\":2592000,\"mode\":\"native-authority\",\"policy_digest\":\"6262626262626262626262626262626262626262626262626262626262626262\",\"workspace_id\":\"11111111-1111-4111-8111-111111111111\"},\"scope_salt_hex\":\"6666666666666666666666666666666666666666666666666666666666666666\",\"sponsor_subject\":\"operator:sponsor\",\"state_dir\":\"/tmp/dsmack-paired-fixture-SOFTWARE_TEST_ONLY/mac-v3-native-recipient-v1/state\",\"version\":1},\"signature_hex\":\"5f07b8066aa975e5fa557adb9064ec5461d0fef7141813fd3043bcc63d18d43bc8722aef9bbe0d998ce65495cecac3d2670d3677a68d67633df23c5b3d66f50b\"}",
+    "payload": {
+      "app_compose": "{\"egress\":{\"tcp\":[{\"host\":\"127.0.0.1\",\"port\":18998},{\"host\":\"mainnet.base.org\",\"port\":443}]},\"name\":\"SOFTWARE_TEST_ONLY MAC NATIVE COUPON ISSUER\",\"services\":{}}",
+      "approval_sha256": "b7afc901437a491c5e785e7b211f4c534b05805c9c3c844ddd2630d563fdb10c",
+      "delivery_profile": "x25519-aesgcm-recipient-v1",
+      "finality_profile": {
+        "chain_id": 8453,
+        "execution_rpc": "https://mainnet.base.org",
+        "guard_address": "0x1111111111111111111111111111111111111111",
+        "guard_code_hash": "0x07ad118d6cc8642c86c03827f276d8b791a65e5c99a3845faf186be720a1455d",
+        "issuance_policy_hash": "0x0303030303030303030303030303030303030303030303030303030303030303",
+        "issuer_address": "0x5975c152fe58cdcb7e25586a3c9b994a16dbb615",
+        "max_safe_age_seconds": 1200,
+        "timeout_seconds": 30,
+        "trust_profile": "base-mainnet-rpc-safe-debug-v1",
+        "version": 1
+      },
+      "gas_price_wei": 1000,
+      "issuer_peer_id": "IssuerPeer00000001",
+      "job_deadline_seconds": 120,
+      "max_active_jobs": 1,
+      "observer_subject": "operator:observer",
+      "peers": {
+        "ObserverPeer0001": {
+          "roles": [
+            "observer"
+          ],
+          "subject": "operator:observer"
+        },
+        "SponsorPeer0000001": {
+          "roles": [
+            "sponsor"
+          ],
+          "subject": "operator:sponsor"
+        }
+      },
+      "provider": {
+        "authority_cdhash": "6363636363636363636363636363636363636363636363636363636363636363",
+        "authority_port": 18998,
+        "genesis_digest": "6161616161616161616161616161616161616161616161616161616161616161",
+        "key_lifetime_seconds": 2592000,
+        "mode": "native-authority",
+        "policy_digest": "6262626262626262626262626262626262626262626262626262626262626262",
+        "workspace_id": "11111111-1111-4111-8111-111111111111"
+      },
+      "scope_salt_hex": "6666666666666666666666666666666666666666666666666666666666666666",
+      "sponsor_subject": "operator:sponsor",
+      "state_dir": "/tmp/dsmack-paired-fixture-SOFTWARE_TEST_ONLY/mac-v3-native-recipient-v1/state",
+      "version": 1
+    }
+  },
+  "coupon": "IYN9Sha0GamyRxx24prFQdfmEfXoVO0-MpCXjG840L0",
+  "delivery": {
+    "aad_utf8": "{\"coupon_digest\":\"3e1a9be74f46a2d25cde840780d6c96b5319bcdf3265367f0b8f50428c065772\",\"domain\":\"dsmack-coupon-delivery-v4\",\"key_id\":\"7c1e2d4a-0000-4000-8000-0149237dc85e\",\"offer_hash\":\"47a8c80d91350447d6e7a82510aae6ef6ff34d9be11da26ee0f636269228e946\",\"recipient_key_sha256\":\"bd0cb780ba3f1dccb3583c7752c2a9efc6960e71d7fd2164076232dd513f8cbe\",\"recipient_peer_sha256\":\"7cab1cdfef648a0c946520c77b12d7d9c1fc1e442e203b7d6287406dd66c7b8a\",\"version\":4}",
+    "plaintext_synthetic": "synthetic-live-secret",
+    "recovery_response": {
+      "id": "recover",
+      "ok": true,
+      "result": {
+        "envelope": "{\"aad\": \"eyJjb3Vwb25fZGlnZXN0IjoiM2UxYTliZTc0ZjQ2YTJkMjVjZGU4NDA3ODBkNmM5NmI1MzE5YmNkZjMyNjUzNjdmMGI4ZjUwNDI4YzA2NTc3MiIsImRvbWFpbiI6ImRzbWFjay1jb3Vwb24tZGVsaXZlcnktdjQiLCJrZXlfaWQiOiI3YzFlMmQ0YS0wMDAwLTQwMDAtODAwMC0wMTQ5MjM3ZGM4NWUiLCJvZmZlcl9oYXNoIjoiNDdhOGM4MGQ5MTM1MDQ0N2Q2ZTdhODI1MTBhYWU2ZWY2ZmYzNGQ5YmUxMWRhMjZlZTBmNjM2MjY5MjI4ZTk0NiIsInJlY2lwaWVudF9rZXlfc2hhMjU2IjoiYmQwY2I3ODBiYTNmMWRjY2IzNTgzYzc3NTJjMmE5ZWZjNjk2MGU3MWQ3ZmQyMTY0MDc2MjMyZGQ1MTNmOGNiZSIsInJlY2lwaWVudF9wZWVyX3NoYTI1NiI6IjdjYWIxY2RmZWY2NDhhMGM5NDY1MjBjNzdiMTJkN2Q5YzFmYzFlNDQyZTIwM2I3ZDYyODc0MDZkZDY2YzdiOGEiLCJ2ZXJzaW9uIjo0fQ==\", \"ciphertext\": \"VpadL067CITpStTQN4kYLWr61Us70N8SSYsIW+kdAi8BCHPaqQ==\", \"ephemeral\": \"N+3SXpeI3Lbu8mj/kga4x4IyyrKyuwHNO0Ou4utEET8=\", \"nonce\": \"MOHtMveNmYZnJ20h\", \"version\": 1}",
+        "key_id": "7c1e2d4a-0000-4000-8000-0149237dc85e"
+      }
+    },
+    "replay_response": {
+      "id": "replay",
+      "ok": true,
+      "result": {
+        "envelope": "{\"aad\": \"eyJjb3Vwb25fZGlnZXN0IjoiM2UxYTliZTc0ZjQ2YTJkMjVjZGU4NDA3ODBkNmM5NmI1MzE5YmNkZjMyNjUzNjdmMGI4ZjUwNDI4YzA2NTc3MiIsImRvbWFpbiI6ImRzbWFjay1jb3Vwb24tZGVsaXZlcnktdjQiLCJrZXlfaWQiOiI3YzFlMmQ0YS0wMDAwLTQwMDAtODAwMC0wMTQ5MjM3ZGM4NWUiLCJvZmZlcl9oYXNoIjoiNDdhOGM4MGQ5MTM1MDQ0N2Q2ZTdhODI1MTBhYWU2ZWY2ZmYzNGQ5YmUxMWRhMjZlZTBmNjM2MjY5MjI4ZTk0NiIsInJlY2lwaWVudF9rZXlfc2hhMjU2IjoiYmQwY2I3ODBiYTNmMWRjY2IzNTgzYzc3NTJjMmE5ZWZjNjk2MGU3MWQ3ZmQyMTY0MDc2MjMyZGQ1MTNmOGNiZSIsInJlY2lwaWVudF9wZWVyX3NoYTI1NiI6IjdjYWIxY2RmZWY2NDhhMGM5NDY1MjBjNzdiMTJkN2Q5YzFmYzFlNDQyZTIwM2I3ZDYyODc0MDZkZDY2YzdiOGEiLCJ2ZXJzaW9uIjo0fQ==\", \"ciphertext\": \"VpadL067CITpStTQN4kYLWr61Us70N8SSYsIW+kdAi8BCHPaqQ==\", \"ephemeral\": \"N+3SXpeI3Lbu8mj/kga4x4IyyrKyuwHNO0Ou4utEET8=\", \"nonce\": \"MOHtMveNmYZnJ20h\", \"version\": 1}",
+        "key_id": "7c1e2d4a-0000-4000-8000-0149237dc85e"
+      }
+    }
+  },
+  "delivery_profile": "x25519-aesgcm-recipient-v1",
+  "domain": "mac-v3-native",
+  "environment": "SOFTWARE_TEST_ONLY",
+  "issuer_info": {
+    "request": {
+      "id": "info",
+      "op": "info"
+    },
+    "response": {
+      "id": "info",
+      "ok": true,
+      "result": {
+        "identity_policy_sha256": "0202020202020202020202020202020202020202020202020202020202020202",
+        "issuance_policy_sha256": "0303030303030303030303030303030303030303030303030303030303030303",
+        "issuer_public_key_hex": "db995fe25169d141cab9bbba92baa01f9f2e1ece7df4cb2ac05190f37fcc1f9d",
+        "version": 2
+      }
+    }
+  },
+  "note": "SOFTWARE_TEST_ONLY: synthetic published authority and recipient secrets; no quote, hardware, provider, chain or admission. Recorded from one worker run.",
+  "offer_frame": {
+    "request": {
+      "coupon": "IYN9Sha0GamyRxx24prFQdfmEfXoVO0-MpCXjG840L0",
+      "id": "offer",
+      "op": "offer"
+    },
+    "response": {
+      "id": "offer",
+      "ok": true,
+      "result": {
+        "offer": {
+          "budget_nano_usd": "1000000000",
+          "cap_semantics": "nominal-provider-limit",
+          "claim_expires_at": "2026-10-13T11:19:41Z",
+          "claim_policy": "first-authenticated-bearer",
+          "coupon_digest": "3e1a9be74f46a2d25cde840780d6c96b5319bcdf3265367f0b8f50428c065772",
+          "delivery_profile": "x25519-aesgcm-recipient-v1",
+          "issuer": {
+            "identity_policy_sha256": "0202020202020202020202020202020202020202020202020202020202020202",
+            "issuance_policy_sha256": "0303030303030303030303030303030303030303030303030303030303030303",
+            "issuer_public_key_sha256": "9a92d2b54a9a5402de3e65a07a5cb12a8dc6758bd8e8c2ec459563d6b2c081c4",
+            "peer_id": "IssuerPeer00000001",
+            "policy": "mac-appattest-coupon-v1"
+          },
+          "provider": {
+            "id": "near",
+            "scope_commitment": "d1d892ea26d3f7ffd2f47d9dd9deff19368780f2b85297cf1647eff1b15492cd"
+          },
+          "provider_expires_at": "2026-11-11T11:19:41Z",
+          "sponsor_powers": [],
+          "version": 4
+        },
+        "offer_hash": "47a8c80d91350447d6e7a82510aae6ef6ff34d9be11da26ee0f636269228e946"
+      }
+    }
+  },
+  "producer": {
+    "function": "produce",
+    "module": "experiments.coupon_redemption.test_paired_fixture",
+    "source_sha256": {
+      "async_service_v4.py": "d33b19079038325a25a457e1724210d69a10e0ee7a3b0c2f2d5c6ce2e437bf95",
+      "authority_wire.py": "1eb9bdf81bdedcd0b4e9c47473b5f5abae84a9d6026fe0d1106efec3b661f71c",
+      "issuance_guard.py": "5e39fee50b651e860c37bb848c643648013f22b46b5df93212fa4046e5c151c6",
+      "live_worker.py": "b39d0bfce3f050c600784c0faa6b6b7a84c8054e765475178b0491108fcbc2ad",
+      "mac_issuer_identity.py": "bb9d301e0980a544e4ab9c728d483e09f19e86c035eabbb00d688e6c08ba86e9",
+      "mac_live_worker.py": "b7b341b31b0a88a29d49ff103e2cc1310cf31c509fad83c680f2a447de2dcbee",
+      "mac_transport.py": "b39f5effd3e213c7653a948ad1516c8e9cd39613e97b866c7f010fab6bf3f694",
+      "near.py": "5046ff92568ad4256553a05cca3da7645ba69cd5d54eac81779b8bc3d3141ffd",
+      "offer_v4.py": "39d69122314b33f5527f8f2a480b10ffa89f3355f1fee2bb96658f605e6f1c6b",
+      "service_v4.py": "1be3f0b589459cf2174caffc365f44a12ce090d33e94bb1ca2f3aa48fc8eff3a",
+      "spike.py": "711f6f420013df3133ae86b5af928154c9e03e06ee386e990e1331d411c387ca",
+      "staging_approval.py": "5fe58d9ccd1b95075ec15c4488940a620d7f7e664d67e49686a3b37d6c414077"
+    },
+    "worker": "MacLiveWorker"
+  },
+  "provision": {
+    "offer": {
+      "budget_nano_usd": "1000000000",
+      "cap_semantics": "nominal-provider-limit",
+      "claim_expires_at": "2026-10-13T11:19:41Z",
+      "claim_policy": "first-authenticated-bearer",
+      "coupon_digest": "3e1a9be74f46a2d25cde840780d6c96b5319bcdf3265367f0b8f50428c065772",
+      "delivery_profile": "x25519-aesgcm-recipient-v1",
+      "issuer": {
+        "identity_policy_sha256": "0202020202020202020202020202020202020202020202020202020202020202",
+        "issuance_policy_sha256": "0303030303030303030303030303030303030303030303030303030303030303",
+        "issuer_public_key_sha256": "9a92d2b54a9a5402de3e65a07a5cb12a8dc6758bd8e8c2ec459563d6b2c081c4",
+        "peer_id": "IssuerPeer00000001",
+        "policy": "mac-appattest-coupon-v1"
+      },
+      "provider": {
+        "id": "near",
+        "scope_commitment": "d1d892ea26d3f7ffd2f47d9dd9deff19368780f2b85297cf1647eff1b15492cd"
+      },
+      "provider_expires_at": "2026-11-11T11:19:41Z",
+      "sponsor_powers": [],
+      "version": 4
+    },
+    "offer_hash": "47a8c80d91350447d6e7a82510aae6ef6ff34d9be11da26ee0f636269228e946"
+  },
+  "ready": {
+    "approval_sha256": "b7afc901437a491c5e785e7b211f4c534b05805c9c3c844ddd2630d563fdb10c",
+    "environment": "debug-staging",
+    "issuer_peer_id": "IssuerPeer00000001",
+    "noise_seed_hex": "4242424242424242424242424242424242424242424242424242424242424242",
+    "ready": true,
+    "sponsor_peer": "SponsorPeer0000001"
+  },
+  "recipient": {
+    "noise_peer_id": "ClaimantPeer000001",
+    "peer_sha256": "7cab1cdfef648a0c946520c77b12d7d9c1fc1e442e203b7d6287406dd66c7b8a",
+    "x25519_private_hex_synthetic": "5151515151515151515151515151515151515151515151515151515151515151",
+    "x25519_public_b64": "rZCKinCKygdYjNp8TtPkTUlmqAqauy8eS7rFPGdBTjQ="
+  },
+  "schema": "dsmack-coupon-paired-producer-fixture-v1"
+}

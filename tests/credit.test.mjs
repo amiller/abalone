@@ -11,10 +11,11 @@ import { once } from "node:events";
 import { generateKeyPair } from "@libp2p/crypto/keys";
 import { peerIdFromPrivateKey } from "@libp2p/peer-id";
 import { couponAttestedRecipient, couponAttestedRecipientPeerHash, couponDeliveryAad, validateAttestedCouponOffer } from "../lib/coupon-attested.mjs";
-import { createCreditManager, createCreditManagerForTesting, creditOfferBound } from "../lib/credit.mjs";
+import { createCreditManager, createCreditManagerForTesting, creditOfferBound, creditSummary } from "../lib/credit.mjs";
+import { canonicalCouponJson } from "../lib/coupon-offer.mjs";
 import { verifyCouponStagingAdmission, COUPON_STAGING_APPROVAL_DOMAIN, MAC_COUPON_APPROVAL_DOMAIN } from "../lib/coupon-staging.mjs";
 import { MAC_ISSUER_PROFILE, MAC_ISSUER_DOMAIN, macIssuerPolicyHash, macIssuerData, macIssuerPossessionMessage, createMacCouponIssuerVerifierForTesting } from "../lib/mac-coupon-issuer.mjs";
-import { openAttestedCouponSession } from "../lib/coupon-attested-session.mjs";
+import { openAttestedCouponSession, attestedCouponSessionOfferText } from "../lib/coupon-attested-session.mjs";
 import { OUT_OF_DATE_TRIAL_POLICY, OUT_OF_DATE_TRIAL_NOTICE } from "../lib/coupon-near.mjs";
 import { couponSocketFetch } from "../lib/coupon-socket.mjs";
 import { creditStore, creditPreflight, couponInput, privateDirectory, readPrivate } from "../lib/credit-store.mjs";
@@ -516,9 +517,10 @@ function producerAdmission(b, approvalBytes = Buffer.from(b.approval.envelope, "
     identityPolicySha256: info.identity_policy_sha256, issuancePolicySha256: info.issuance_policy_sha256, issuerPublicKeySha256: issuerKey });
   const compose = JSON.parse(b.config.envelope).payload.app_compose;
   assert.equal(compose, b.config.payload.app_compose);
-  if (b.domain === "mac-v2") assert.equal(sha(Buffer.from(compose, "utf8")), approval.composeHash); else assert.equal(compose, undefined);
+  const mac = b.domain.startsWith("mac-");
+  if (mac) assert.equal(sha(Buffer.from(compose, "utf8")), approval.composeHash); else assert.equal(compose, undefined);
   return { info, approval, a: { approval, peerId: b.config.payload.issuer_peer_id,
-    pin: { identityPolicy: b.domain === "mac-v2" ? { profile: MAC_ISSUER_PROFILE } : {}, expectedIssuerPublicKeySha256: issuerKey } } };
+    pin: { identityPolicy: mac ? { profile: MAC_ISSUER_PROFILE } : {}, expectedIssuerPublicKeySha256: issuerKey } } };
 }
 
 test("matched producer bundles: signed recipient-v1 approval, exact offer and original-key delivery agree on both approval domains", () => {
@@ -606,4 +608,81 @@ test("matched producer bundles refuse legacy, cross-profile, cross-domain, unkno
     for (const value of ["x25519-aesgcm-session-only", "x25519-aesgcm-recipient-v2"])
       refusedApproval(Buffer.from(durable.approval.envelope.replace('"delivery_profile":"x25519-aesgcm-recipient-v1"', `"delivery_profile":"${value}"`)), {}, `unsigned ${value}`);
   }
+});
+
+// Native-authority producer bundles (Mac approval v3): exact provider key expiry, no sponsor powers, same hash/AAD/envelope.
+const offerHashV4 = (offer) => sha(Buffer.concat([Buffer.from("dsmack-coupon-offer-v4\0"), Buffer.from(canonicalCouponJson(offer), "ascii")]));
+const summaryOf = (offer, offerHash) => creditSummary({ id: "c", state: "offered", provider: "near", offer, offerHash,
+  admission: { provider: { model: "m", maxTokens: 512, policy: { gatewayTcb: "UpToDate" } } } });
+
+test("native producer bundles: v3 approval, native offer and original-key delivery agree; disclosures state key expiry and no sponsor powers", () => {
+  for (const name of ["mac-v3-native-recipient-v1", "mac-v3-native-session-only"]) {
+    const b = paired(name), { info, approval, a } = producerAdmission(b), { offer, offer_hash: offerHash } = b.offer_frame.response.result;
+    assert.equal(b.environment, "SOFTWARE_TEST_ONLY"); assert.equal(approval.domain, MAC_COUPON_APPROVAL_DOMAIN);
+    assert.equal(approval.payload.version, 3); assert.equal(approval.nativeAuthority, true); assert.equal(approval.deliveryProfile, b.delivery_profile);
+    for (const pinned of [b.approval.sha256, b.ready.approval_sha256, b.config.payload.approval_sha256]) assert.equal(approval.approval_sha256, pinned);
+    assert.deepEqual(offer, b.provision.offer); assert.equal(offerHash, b.provision.offer_hash); assert.equal(b.claim.request.offer_hash, offerHash);
+    assert.deepEqual(offer.sponsor_powers, []); assert.equal(offer.provider_expires_at, "2026-11-11T11:19:41Z"); assert.equal(offer.provider.id, "near");
+    validateAttestedCouponOffer({ offer, offer_hash: offerHash }, { coupon: b.coupon, peerId: a.peerId, issuerInfo: info, issuerProfile: MAC_ISSUER_PROFILE, deliveryProfile: b.delivery_profile });
+    if (b.delivery_profile === "x25519-aesgcm-recipient-v1") creditOfferBound("near", offer, offerHash, b.coupon, info, a);
+    const recipient = couponAttestedRecipient(x25519Recovery(b.recipient.x25519_private_hex_synthetic));
+    assert.equal(recipient.publicKey, b.recipient.x25519_public_b64); assert.equal(b.claim.request.recipient_key, recipient.publicKey);
+    const keyId = b.delivery.recovery_response.result.key_id;
+    assert.equal(couponDeliveryAad({ offerHash, coupon: b.coupon, keyId, recipientKey: Buffer.from(recipient.publicKey, "base64"), recipientPeer: b.recipient.noise_peer_id }).toString("utf8"), b.delivery.aad_utf8);
+    for (const response of [b.delivery.recovery_response, b.delivery.replay_response]) {
+      assert.equal(recipient.decryptSavedDelivery(b.coupon, response.result, offerHash, b.recipient.noise_peer_id), b.delivery.plaintext_synthetic, name);
+      assert.throws(() => recipient.decryptSavedDelivery(b.coupon, response.result, offerHash, "OtherClaimantPeer1"), /verification failed/);
+    }
+    const summary = summaryOf(offer, offerHash);
+    assert.equal(summary.providerExpiry, "2026-11-11T11:19:41Z"); assert.equal(summary.sponsorCanRevoke, false); assert.deepEqual(summary.sponsorPowers, []);
+    assert.ok(summary.disclosures.includes("Provider key expires 2026-11-11T11:19:41Z.") && summary.disclosures.includes("The sponsor cannot revoke or change limits."));
+    assert.ok(!summary.disclosures.some((line) => line.startsWith("Sponsor can revoke")));
+    const text = attestedCouponSessionOfferText({ offer, offer_hash: offerHash }, { admission: { profile: "fixture-local", provider: { provider: "near", model: "m", baseUrl: "https://x", policy: {} } } });
+    assert.ok(text.includes("provider key expires 2026-11-11T11:19:41Z") && text.includes("the sponsor cannot revoke or change limits") && !text.includes("provider expiry: unknown"));
+  }
+  // Legacy pairs keep their disclosures and approval mode.
+  for (const name of ["mac-v2-recipient-v1", "dstack-v1-recipient-v1"]) {
+    const b = paired(name), { approval } = producerAdmission(b), { offer, offer_hash: offerHash } = b.offer_frame.response.result;
+    assert.equal(approval.nativeAuthority, false);
+    const summary = summaryOf(offer, offerHash);
+    assert.equal(summary.providerExpiry, "unknown"); assert.equal(summary.sponsorCanRevoke, true);
+    assert.ok(summary.disclosures.includes("Sponsor can revoke the credential or change its limits at any time.") && !summary.disclosures.some((line) => line.includes("cannot revoke")));
+    const text = attestedCouponSessionOfferText({ offer, offer_hash: offerHash }, { admission: { profile: "fixture-local", provider: { provider: "near", model: "m", baseUrl: "https://x", policy: {} } } });
+    assert.ok(text.includes("provider expiry: unknown; balance: unknown.\nSponsor powers: revoke, change_limits."));
+  }
+});
+
+test("native offers: exactly the legacy or native pair is accepted, under a matching approval mode", () => {
+  const b = paired("mac-v3-native-recipient-v1"), N = producerAdmission(b), native = b.offer_frame.response.result;
+  const v2 = paired("mac-v2-recipient-v1"), L = producerAdmission(v2), legacy = v2.offer_frame.response.result;
+  const check = (offer, offerHash = offerHashV4(offer)) => validateAttestedCouponOffer({ offer, offer_hash: offerHash },
+    { coupon: b.coupon, peerId: N.a.peerId, issuerInfo: N.info, issuerProfile: MAC_ISSUER_PROFILE, deliveryProfile: "x25519-aesgcm-recipient-v1" });
+  const refused = (change, label) => assert.throws(() => check({ ...native.offer, ...change }), /verification failed/, label);
+  check({ ...native.offer, provider_expires_at: "2099-01-01T00:00:00Z" });
+  check({ ...native.offer, provider_expires_at: null, sponsor_powers: ["revoke", "change_limits"] });
+  refused({ provider_expires_at: null }, "null + []");
+  refused({ sponsor_powers: ["revoke", "change_limits"] }, "timestamp + [revoke, change_limits]");
+  refused({ provider_expires_at: native.offer.claim_expires_at }, "expiry equal to claim expiry");
+  refused({ provider_expires_at: "2026-10-13T11:19:40Z" }, "expiry before claim expiry");
+  for (const value of ["2026-11-11T11:19:41.000Z", "2026-11-11 11:19:41Z", "2026-11-11T11:19:41+00:00", "2027-02-30T00:00:00Z", "2026-11-11T24:00:00Z", "", 1794482381, undefined])
+    refused({ provider_expires_at: value }, `malformed ${value}`);
+  for (const value of [["revoke"], ["change_limits", "revoke"], [""], null, {}, "[]"]) refused({ sponsor_powers: value }, `powers ${JSON.stringify(value)}`);
+  assert.throws(() => check({ ...native.offer, provider_expires_at: "2099-01-01T00:00:00Z" }, native.offer_hash), /verification failed/, "terms changed under the produced hash");
+  // The signed approval version fixes the mode: v3 admits only native offers, v2 only legacy ones.
+  const refusal = (e) => e.code === "credit_record_refused" || e.message === "coupon offer verification failed";
+  assert.throws(() => creditOfferBound("near", native.offer, native.offer_hash, b.coupon, N.info, { ...N.a, approval: { ...N.approval, nativeAuthority: false } }), refusal);
+  assert.throws(() => creditOfferBound("near", legacy.offer, legacy.offer_hash, v2.coupon, L.info, { ...L.a, approval: { ...L.approval, nativeAuthority: true } }), refusal);
+  creditOfferBound("near", legacy.offer, legacy.offer_hash, v2.coupon, L.info, L.a);
+  // Version is signed: editing it breaks the signature, and unknown versions refuse.
+  for (const version of [2, 4]) assert.throws(() => verifyCouponStagingAdmission(Buffer.from(b.approval.envelope.replace('"version":3', `"version":${version}`)), { approvalRoot: b.authority.public_key_hex }), { code: "staging_admission_refused" });
+});
+
+test("a legacy-mode approval refuses a native offer at the client before anything is saved or claimed", { timeout: 15_000 }, async () => {
+  const server = await issuer(), dir = tempDir(), manager = createCreditManagerForTesting({ directory: path.join(dir, "credit"), connect });
+  server.state.offer = bundle({ ...server.state.offer.offer, provider_expires_at: "2031-01-01T00:00:00Z", sponsor_powers: [] });
+  try {
+    await assert.rejects(manager.inspect(coupon, server.admission), { code: "credit_offer_refused", message: /did not offer/ });
+    assert.deepEqual(server.frames.map((f) => f.op), ["offer"]);
+    assert.equal(fs.existsSync(path.join(dir, "credit", `${id}.json`)), false);
+  } finally { await server.host.stop(); }
 });

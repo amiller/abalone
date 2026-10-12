@@ -32,7 +32,7 @@ test("the service's signed approval verifies against the pinned test root with e
   const payload = JSON.parse(bytes.toString("utf8")).payload;
   assert.deepEqual(verdict, { domain: COUPON_STAGING_APPROVAL_DOMAIN, approval_sha256: meta.valid.approval_sha256,
     profile: "debug-staging", powers: ["operator-secret-access", "application-exec", "debugger", "host-clock"],
-    promptPolicy: "synthetic-only", deliveryProfile: "x25519-aesgcm-session-only", operatorSecretAccess: true, privateIssuanceQualified: false,
+    promptPolicy: "synthetic-only", deliveryProfile: "x25519-aesgcm-session-only", nativeAuthority: false, operatorSecretAccess: true, privateIssuanceQualified: false,
     rollbackQualified: false, settlementApproval: false, appId: payload.app_id, composeHash: payload.compose_hash,
     guard: payload.guard, maxCouponNanoUsd: payload.max_coupon_nano_usd, maxTotalNanoUsd: payload.max_total_nano_usd,
     expiresAtMs: Date.parse(payload.expires_at), generation: payload.generation, payload });
