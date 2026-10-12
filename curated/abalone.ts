@@ -14,7 +14,7 @@ import { coupon } from "../lib/gift.mjs";
 import { ATTESTED_OWNERS } from "../lib/near.mjs";
 import { listing, mediate, mentions } from "../lib/mediate.mjs";
 import { decide as decideRoute, resolve as resolveUrl } from "../lib/fetch.mjs";
-import { about, header, privacy, privacyPlain, spend, systemPrompt } from "../lib/welcome.mjs";
+import { about, header, privacy, privacyPlain, spend, systemPrompt, usage } from "../lib/welcome.mjs";
 import { document as capsDocument } from "../lib/caps.mjs";
 import { MAX_CALLS, inContent, requests, respond } from "../lib/intools.mjs";
 import { evidence, footerLine, labels, remember, segments, sentTo, verifications } from "../lib/status.mjs";
@@ -202,7 +202,7 @@ export default async function (pi: ExtensionAPI) {
     log("agents.jsonl", { event: "spawn", id: sessionId, run: path.basename(process.env.ABALONE_EGRESS!), parent: process.env.ABALONE_PARENT ?? "user", domain: "private", place: ctx.model ? place(ctx.model.provider) : null, model: ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : null });
     refresh(ctx);
     if (ctx.mode === "tui") ctx.ui.setHeader((_tui: any, th: any) => ({ invalidate() {},
-      render: (w: number) => ["", ...header({ cwd: ctx.cwd, model: segs?.[0][0] ?? "no model selected", width: w - 2 }).map((l, i) => ` ${i === 2 ? th.fg("dim", l) : l}`)] }));
+      render: (w: number) => ["", ...header({ cwd: ctx.cwd, model: segs?.[COUPON_SESSION && INCOGNITO ? 1 : 0][0] ?? "no model selected", width: w - 2 }).map((l, i) => ` ${i === 2 ? th.fg("dim", l) : l}`)] }));
     if (ctx.mode === "tui") ctx.ui.setFooter((tui: any) => {
       render = () => tui.requestRender();
       return { invalidate() {}, render: (w: number) => [line(w)] };
@@ -323,7 +323,10 @@ export default async function (pi: ExtensionAPI) {
 
   const show = (ctx: any, text: string) => ctx.ui.notify(text, "info");
   const fail = (ctx: any, e: any) => ctx.ui.notify(e.message, "error");
-  pi.registerCommand("evidence", { description: "Full verifier output and where each resource runs",
+  // A credit session lists only what works in it; information topics fold into /status, and gift/notebook commands are legacy.
+  const CREDIT_COMMANDS = ["status", "folder", "fetch", "report", "coupon"];
+  const command = (name: string, spec: any) => { if (!COUPON_SESSION || CREDIT_COMMANDS.includes(name)) pi.registerCommand(name, spec); };
+  command("evidence", { description: "Full verifier output and where each resource runs",
     handler: async (_a, ctx) => show(ctx, evidence({ model: ctx.model, entries: ctx.sessionManager.getEntries() })) });
   // Recent folders, newest first, for the /folder picker (<STATE>/folders.json).
   const FOLDERS = path.join(STATE, "folders.json");
@@ -335,7 +338,7 @@ export default async function (pi: ExtensionAPI) {
     ctx.ui.notify("To work in another folder, type /folder to pick a recent one or a path, or /folder <path>.", "info");
     return { action: "handled" };
   });
-  pi.registerCommand("folder", { description: "Work in another folder: pick a recent one or type a path (abalone restarts there; only that folder is visible)",
+  command("folder", { description: "Work in another folder: pick a recent one or type a path (abalone restarts there; only that folder is visible)",
     handler: async (arg, ctx) => {
       try {
         const TYPE = "Type a path…";
@@ -348,7 +351,7 @@ export default async function (pi: ExtensionAPI) {
       } catch (e) { fail(ctx, e); }
     } });
   // /fetch <url> | arxiv:<id>: only the user runs it. The URL is a disclosure, so the route is decided and explained first.
-  pi.registerCommand("fetch", { description: "Bring a public document into this folder: /fetch arxiv:2410.12345 or /fetch <https url>",
+  command("fetch", { description: "Bring a public document into this folder: /fetch arxiv:2410.12345 or /fetch <https url>",
     handler: async (arg, ctx) => {
       try {
         const url = resolveUrl(arg.trim()), d = decideRoute(url, ctx.cwd);
@@ -369,7 +372,7 @@ export default async function (pi: ExtensionAPI) {
       } catch (e) { fail(ctx, e); }
     } });
   const BROWSER_SUBS = ["take", "give", "stop", "detach", "reconnect", "revoke"];
-  pi.registerCommand("browser", { description: "Let the agent use one browser tab: /browser grant [--attach <port>] [--open <url>] [--sites a,b] [--actions observe,navigate,click,type] [--minutes n]; then take | give | stop | detach | reconnect | revoke",
+  command("browser", { description: "Let the agent use one browser tab: /browser grant [--attach <port>] [--open <url>] [--sites a,b] [--actions observe,navigate,click,type] [--minutes n]; then take | give | stop | detach | reconnect | revoke",
     handler: async (a, ctx) => {
       try {
         const [sub = "", ...rest] = a.trim().split(/\s+/).filter(Boolean);
@@ -401,21 +404,21 @@ export default async function (pi: ExtensionAPI) {
         refresh(ctx);
       } catch (e) { fail(ctx, e); }
     } });
-  pi.registerCommand("cost", { description: "What this session has spent, and the gift balance",
+  command("cost", { description: "What this session has spent, and the gift balance",
     handler: async (_a, ctx) => show(ctx, spend({ entries: ctx.sessionManager.getEntries(), coupon: coupon(), couponSession: COUPON_SESSION })) });
-  pi.registerCommand("privacy", { description: "What abalone keeps, where, and who can see your words (/privacy --details for the technical version)",
+  command("privacy", { description: "What abalone keeps, where, and who can see your words (/privacy --details for the technical version)",
     handler: async (a, ctx) => show(ctx, a.trim() === "--details" ? privacy({ cwd: ctx.cwd, model: ctx.model, doc: capsDocument(ctx.cwd) }) : privacyPlain({ cwd: ctx.cwd, model: ctx.model, run: path.basename(process.env.ABALONE_EGRESS!) })) });
-  pi.registerCommand("about", { description: "What abalone is built from: Pi, the curated extensions and skills, and their hashes",
+  command("about", { description: "What abalone is built from: Pi, the curated extensions and skills, and their hashes",
     handler: async (_a, ctx) => show(ctx, about()) });
-  pi.registerCommand("notebook", { description: "Your private notebook: list | show <id>[:L<n>] | export <dir> | rm <source-id>",
+  command("notebook", { description: "Your private notebook: list | show <id>[:L<n>] | export <dir> | rm <source-id>",
     handler: async (a, ctx) => { try { show(ctx, cli(["notebook", ...(a.trim() ? a.trim().split(/\s+/) : ["list"])])); } catch (e) { fail(ctx, e); } } });
-  pi.registerCommand("search", { description: "Search your private notebook (local index only)",
+  command("search", { description: "Search your private notebook (local index only)",
     handler: async (a, ctx) => { try { show(ctx, cli(["notebook", "search", ...a.trim().split(/\s+/)])); } catch (e) { fail(ctx, e); } } });
-  pi.registerCommand("decide", { description: "Record your decision about a notebook record: /decide <id> <text>",
+  command("decide", { description: "Record your decision about a notebook record: /decide <id> <text>",
     handler: async (a, ctx) => { try { show(ctx, cli(["notebook", "decide", ...a.trim().split(/\s+/)])); } catch (e) { fail(ctx, e); } } });
-  pi.registerCommand("redeem", { description: "Set up a gift on this computer: /redeem --peer <multiaddr> <code>",
+  command("redeem", { description: "Set up a gift on this computer: /redeem --peer <multiaddr> <code>",
     handler: async (a, ctx) => { try { show(ctx, `${await launcher(["redeem", ...a.trim().split(/\s+/)])}\nabalone restarts with the gift's models in /model; this conversation continues.`); ctx.shutdown(); } catch (e) { fail(ctx, e); } } });
-  if (COUPON_SESSION) pi.registerCommand("coupon", { description: "Show this coupon's state; /coupon forget closes the session (session-only coupons lose their keys)",
+  if (COUPON_SESSION) command("coupon", { description: "Show this coupon's state; /coupon forget closes the session (session-only coupons lose their keys)",
     handler: async (a, ctx) => {
       let s: any;
       try { s = JSON.parse(await launcher(["coupon-info"])); } catch { return show(ctx, "Coupon state is unavailable. Preserve the original process; do not claim with new keys."); }
@@ -434,11 +437,15 @@ export default async function (pi: ExtensionAPI) {
         : "Use this session's selected model. No alternative credential is tried.";
       const credit = s.restartRecovery ? ` Nominal cap: $${s.nominalCapUsd} from the accepted offer (not a balance). Each request: at most ${s.requestMaxTokens} output tokens.` : "";
       const retention = s.restartRecovery ? "Retention: credential and original keys saved for a fresh session; this conversation is not saved by default." : "Retention: session-only keys; restart recovery unavailable. Ordinary conversation/workspace records may persist.";
-      show(ctx, `Coupon: ${s.state}; profile ${s.profile ?? "synthetic"}; provider ${s.provider}; model ${s.model}.${credit} Balance: unknown${s.restartRecovery ? `; usage: ${typeof s.usage === "object" ? `${s.usage.outputTokens} output and ${s.usage.inputTokens} input tokens over ${s.usage.reported} response(s), not priced` : s.usage}` : ""}; provider expiry: unknown${s.admissionWindow ? `; admission: ${s.admissionWindow}` : ""}. Sponsor may revoke or change limits. ${retention}${staging}\n${action}`);
+      const firmware = s.advisories ? `\nNEAR firmware out of date; Intel advisories: ${s.advisories.join(", ") || "none listed"}. Synthetic input only; private guarantees are not qualified.` : "";
+      show(ctx, `Coupon: ${s.state}; profile ${s.profile ?? "synthetic"}; provider ${s.provider}; model ${s.model}.${credit} Balance: unknown${s.restartRecovery ? `; usage: ${typeof s.usage === "object" ? `${s.usage.outputTokens} output and ${s.usage.inputTokens} input tokens over ${s.usage.reported} response(s), not priced` : s.usage}` : ""}; provider expiry: unknown${s.admissionWindow ? `; admission: ${s.admissionWindow}` : ""}. Sponsor may revoke or change limits. ${retention}${staging}${firmware}\n${action}`);
     } });
+  if (COUPON_SESSION) command("status", { description: "What this session has used, what abalone keeps and who can see it, and what was verified",
+    handler: async (_a, ctx) => show(ctx, [usage(ctx.sessionManager.getEntries(), true), privacyPlain({ cwd: ctx.cwd, model: ctx.model, run: path.basename(process.env.ABALONE_EGRESS!) }),
+      evidence({ model: ctx.model, entries: ctx.sessionManager.getEntries() })].join("\n\n")) });
   // Remote agent tasks (lib/commission.mjs): the launcher runs them, since the session has no network. Only what the
   // command names leaves: the prompt and the files under --repo. This conversation is never sent.
-  pi.registerCommand("commission", { description: "Commission an agent task on the gift's worker: /commission --repo <dir> --label open|released --cap <amount>usd [--check <cmd>] <task> (no args: show the offer)",
+  command("commission", { description: "Commission an agent task on the gift's worker: /commission --repo <dir> --label open|released --cap <amount>usd [--check <cmd>] <task> (no args: show the offer)",
     handler: async (a, ctx) => {
       try {
         if (!a.trim()) return show(ctx, await launcher(["offers"]));
@@ -448,7 +455,7 @@ export default async function (pi: ExtensionAPI) {
         show(ctx, await launcher(["commission", "--detach", ...words]));
       } catch (e) { fail(ctx, e); }
     } });
-  pi.registerCommand("tasks", { description: "Your commissioned tasks: /tasks | /tasks attach|status|stop|collect <id>",
+  command("tasks", { description: "Your commissioned tasks: /tasks | /tasks attach|status|stop|collect <id>",
     handler: async (a, ctx) => {
       const [sub = "list", id] = a.trim().split(/\s+/).filter(Boolean);
       if (sub !== "attach") { try { show(ctx, await launcher(["tasks", sub, ...(id ? [id] : [])])); } catch (e) { fail(ctx, e); } return; }
@@ -462,7 +469,7 @@ export default async function (pi: ExtensionAPI) {
       });
       show(ctx, result);
     } });
-  pi.registerCommand("report", { description: "File a problem with this session's last turn as a local issue and replay fixture (nothing is sent): /report [title]",
+  command("report", { description: "File a problem with this session's last turn as a local issue and replay fixture (nothing is sent): /report [title]",
     handler: async (a, ctx) => {
       try {
         const c = await ctx.ui.select("Report this session's last turn as tasks/issues/ and tests/regress/ files on this computer. Nothing is sent. Your text and file contents are replaced by placeholders unless you include them.", ["redacted", "include text"]);
@@ -470,7 +477,7 @@ export default async function (pi: ExtensionAPI) {
         show(ctx, await launcher(["report", ctx.sessionManager.getSessionFile(), ...(c === "include text" ? ["--include-text"] : []), ...(a.trim() ? ["--title", a.trim()] : [])]));
       } catch (e) { fail(ctx, e); }
     } });
-  pi.registerCommand("gift", { description: "Give credit: /gift <amount> --peer <multiaddr> [--from name] [--days n]",
+  command("gift", { description: "Give credit: /gift <amount> --peer <multiaddr> [--from name] [--days n]",
     handler: async (a, ctx) => { try { show(ctx, await launcher(["gift", ...a.trim().split(/\s+/)])); } catch (e) { fail(ctx, e); } } });
 
   // The attestation behind this private agent's answers, for the caller's disclosure record (ask_abalone).
