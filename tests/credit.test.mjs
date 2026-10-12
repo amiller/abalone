@@ -62,6 +62,8 @@ test("one accepted redeem claims once; installed credit never claims again; lega
     assert.equal((await manager.inspect(coupon, server.admission)).state, "installed");
     assert.equal(server.frames.filter((f) => f.op === "claim").length, claims, "no second claim");
     await assert.rejects(manager.inspect(coupon, { ...server.admission, provider: { ...provider, model: "other/model" } }), { code: "credit_admission_changed" });
+    await assert.rejects(manager.inspect(coupon, { ...server.admission, provider: { ...provider, maxTokens: 512 } }),
+      { code: "credit_admission_changed", message: /use the trial\.json you installed with, or run `abalone credit status`\. The saved credit keeps its original limits\./ });
   } finally { await legacy.host.stop(); await server.host.stop(); }
 });
 
