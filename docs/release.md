@@ -41,7 +41,8 @@ do not regenerate that archive for instructions-only changes.
    ```
 
    Substitute real reviewed values in the prepared output. It pins the artifact
-   and each public file. Without `--trial-dir`, `--friend` refuses before gift entry.
+   and each public file. It accepts only the `linux-node24-owned-host` profile;
+   without `--trial-dir`, `--credit` refuses before downloading.
    Place the rendered output as `install.sh` beside the four public files, then
    create the landing's checksum file from those exact reviewed bytes:
 
@@ -60,10 +61,9 @@ do not regenerate that archive for instructions-only changes.
    saves the files with a receipt under `~/.abalone-app/REV/public-credit/`,
    links `~/.local/bin/abalone` and prints the absolute paths. It needs `flock`,
    not bubblewrap, and requires pins for the `linux-node24-owned-host` profile.
-   It redeems nothing and starts nothing. `sh install.sh --friend` remains the
-   process-only `tools/coupon-first-use.mjs` flow, which does not save access;
-   bare `sh install.sh` installs, prints a legacy redeem hint and asks about
-   canaries. The release notes must say the release provides `--credit`.
+   It redeems nothing and starts nothing. Bare `sh install.sh` installs, prints
+   a legacy redeem hint and asks about canaries; it has no other options. The
+   release notes must say the release provides `--credit`.
 5. Rehearse the actual installer on a clean supported Linux machine as nonroot.
    Verify no ambient account/operator credentials, pre-bearer readiness, human
    input, bounded redemption, first request, admission expiry, trace choices and

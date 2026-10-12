@@ -65,20 +65,8 @@ Automation may supply the gift on a dedicated anonymous descriptor through
 separate descriptors. The wrapper forwards them explicitly; never put a gift
 or key in argv, environment values, command history or a model prompt.
 
-For a checksum-pinned built artifact, the operator supplies the actual release
-URL, installer digest and public trial bundle. Download and inspect the installer
-before running it; do not use an unverified pipe-to-shell command. Its first-use
-option is:
-
-```sh
-sh /ABS/reviewed-install.sh --trial /ABS/trial.json
-```
-
-This installs the pinned artifact and starts the same `/4` incognito wrapper.
-Gift entry remains hidden. The legacy `redeem` installer option is a separate
-historical path and does not implement this trial. The operator must provision
-the selected retention mode and source/build pins for the actual artifact before handing it
-to a recipient. No published artifact URL is asserted by these source instructions.
+The release installer does not start this trial. Its `--credit` option installs
+the durable-credit runtime described in [access and installation](friend-preview.md).
 
 ## Exact public inputs
 
