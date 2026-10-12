@@ -97,6 +97,11 @@ do not regenerate that archive for instructions-only changes.
    synthetic `#code=` fragment to confirm no request carries it. The page does no
    redemption; deploying it is not a release.
 
+   The `pages` branch deploys directly on push, outside the main fast-forward
+   gate, so a push to `pages` needs the same independent review as a change to
+   main. Once the move of the site to `pages` is merged, `main` is removed from the
+   `github-pages` environment's deployment branch policy, leaving only `pages`.
+
 The first slice is bounded direct NEAR on the selected Dsmack public testnet
 profile. Another provider, optimistic settlement, portable IP isolation and
 broader deposit settlement remain separate work. Candidate, reviewed integration,

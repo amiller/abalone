@@ -4,26 +4,30 @@ Abalone, a cypherpunk AI privacy shell. Give your user an incognito session usin
 
 A session sends each request encrypted to a model whose attestation Abalone has
 checked. Around the agent, Abalone also controls the environment: a bubblewrap
-sandbox, egress limited to admitted hosts, and canary values that the release gate
-refuses to send out. In this release these come from two launchers:
+sandbox, egress limited to admitted hosts, and canary values that the disclosure
+gate refuses to send out. In this release these come from two launchers:
 
 - `abalone credit session`: the coupon route. Direct NEAR inference, the
   conversation kept in memory only, run as your own user without a sandbox or
   canaries (the owned-host profile in [security details](docs/security.md)).
 - `abalone sandbox [folder]`: the bubblewrap session, with egress limited to
-  admitted hosts and canaries required in the folder (`abalone canary init`). Models come from
+  admitted hosts and canaries required in the folder (`abalone canary init`)
+  unless started with `--no-canaries`. Models come from
   [providers.json](providers.json).
 
-In both, the session's model is an admitted provider whose attestation Abalone
-verifies, or a local model. There is no mode for an unverified provider key yet.
+The credit session's model is NEAR, attested. The sandbox's model is an admitted
+provider whose attestation Abalone verifies, or a local model. Without
+`--incognito`, the sandbox can also send text to a frontier model through
+`ask_frontier`, after the disclosure gate approves it; the canaries guard that
+path. There is no mode for an unverified provider key yet.
 
 You need a Linux x86_64 computer you trust, with Node 24. Use synthetic,
 non-sensitive material.
 
 ## Run abalone
 
-Plain `abalone` opens your saved access. With one saved credit it starts that
-credit's session; with several it lists them. With nothing saved it says how to
+Plain `abalone` opens your saved access. With one ready (installed) credit it
+starts that credit's session; with several it lists them. With nothing saved it says how to
 get a credit from a gift: install with `install.sh --credit`, then
 `abalone credit inspect` and `abalone credit redeem`. `abalone help` lists every
 command.
@@ -53,14 +57,21 @@ What others can still do:
 - The coupon operator can read and revoke the model credential. The operator or
   provider can end access at any time, and spending can overshoot the cap.
 - The current NEAR route accepts verified out-of-date firmware warnings. This is
-  why it is for synthetic material only.
+  one reason it is for synthetic material only.
 - Your own computer is trusted. Local tools have your account's file and network
   access, and the administrator can inspect the session's memory. Nothing enforces
   that your setup agent stays out of the session; it stays out by following the skill.
 
-Abalone does not hide your IP address. By default the conversation is kept in
-memory for the session; optional encrypted traces, files you write and terminal
-scrollback have their own lifetimes. See [security details](docs/security.md).
+Abalone does not hide your IP address. `abalone credit session` and
+`abalone sandbox --incognito` keep the conversation in memory only; `abalone
+sandbox` without `--incognito` keeps a resumable Pi session under
+`~/.abalone/agent`. Optional encrypted traces, files you write and terminal
+scrollback have their own lifetimes.
+
+After a session closes, `~/.abalone/credit` keeps the gift code, the model
+credential and the recovery keys until you remove them; no conversation file is
+written by default. A fresh session is not deletion; see
+[local host and retention](docs/security.md#local-host-and-retention).
 
 Read the installer before running it. A matching checksum shows the bytes are the
 published ones, not that they are safe.
