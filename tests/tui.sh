@@ -9,7 +9,7 @@ tmux() { command tmux -L "abalone-tui-$$" "$@"; }
 export STUB_SCRIPT="$root/tests/fixtures/scripts/first-crack.mjs"
 standing claude '[]'
 mkdir -p "$ABALONE_DIR/work" && cp "$root/tests/fixtures/docs/tenancy-renewal.txt" "$ABALONE_DIR/work/"
-fail=0; declare -A art
+fail=0
 check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fail=1; fi; }
 (cd "$ABALONE_DIR/work" && "$root/bin/abalone" ask --model stub/script tenancy-renewal.txt "When is the form due?" > ../ask.txt 2>&1) || cat "$ABALONE_DIR/ask.txt"
 t=abalone-tui-$$
@@ -100,12 +100,11 @@ tmux send-keys -t $t-tools "what's in this folder?" Enter
 for _ in $(seq 60); do tmux capture-pane -t $t-tools -p | grep -q "From abalone's tool result" && break; sleep 0.5; done
 tmux capture-pane -t $t-tools -p > "$ABALONE_DIR/screen-tools.txt"; tmux kill-session -t $t-tools
 check "tool use shows as a readable step (Completed · listed .) and no raw protocol text" 'grep -q "Completed · listed \." "$ABALONE_DIR/screen-tools.txt" && ! grep -q "<abalone-tool>\|<tool_call>\|arg_key" "$ABALONE_DIR/screen-tools.txt"'
-# Nacre arrival art: in color with room for all of it (80x34); not at 80x24 or 70x34 (and never with NO_COLOR, above).
-for size in 80x34 80x24 70x34; do
+# Arrival: the wordmark line is the first thing on screen, in color, at 80x34 and 80x24; no art above it.
+for size in 80x34 80x24; do
   tmux new-session -d -s $t-art -x ${size%x*} -y ${size#*x} "cd $ABALONE_DIR/work && env -u NO_COLOR ABALONE_DIR=$ABALONE_DIR ABALONE_CONFIG=$ABALONE_CONFIG STUB_SCRIPT=$STUB_SCRIPT ABALONE_NO_CANARIES=1 TERM=xterm-256color $root/bin/abalone --model stub/script; sleep 60"
   for _ in $(seq 60); do tmux capture-pane -t $t-art -p | grep -q "nothing shared" && break; sleep 0.5; done
-  art[$size]=$(tmux capture-pane -t $t-art -p -e -S -60 | grep -cP "\x1b\[[34]8;2;")
   tmux capture-pane -t $t-art -p > "$ABALONE_DIR/screen-art-$size.txt"; tmux kill-session -t $t-art
 done
-check "Nacre art at arrival: all 16 rows at 80x34 (${art[80x34]}), none at 80x24 (${art[80x24]}) or 70x34 (${art[70x34]}); the wordmark line always" '[[ ${art[80x34]} == 16 && ${art[80x24]} == 0 && ${art[70x34]} == 0 ]] && grep -q "^ abalone · " "$ABALONE_DIR/screen-art-80x24.txt" && grep -q "^ abalone · " "$ABALONE_DIR/screen-art-80x34.txt"'
+check "arrival: the wordmark line comes first at 80x34 and 80x24" '(for s in 80x34 80x24; do grep -m1 . "$ABALONE_DIR/screen-art-$s.txt" | grep -q "^ abalone · " || exit 1; done)'
 echo "tui: $([[ $fail == 0 ]] && echo PASS || echo FAIL)"; exit $fail

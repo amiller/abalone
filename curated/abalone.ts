@@ -14,7 +14,7 @@ import { coupon } from "../lib/gift.mjs";
 import { ATTESTED_OWNERS } from "../lib/near.mjs";
 import { listing, mediate, mentions } from "../lib/mediate.mjs";
 import { decide as decideRoute, resolve as resolveUrl } from "../lib/fetch.mjs";
-import { about, art, header, privacy, privacyPlain, spend, systemPrompt } from "../lib/welcome.mjs";
+import { about, header, privacy, privacyPlain, spend, systemPrompt } from "../lib/welcome.mjs";
 import { document as capsDocument } from "../lib/caps.mjs";
 import { MAX_CALLS, inContent, requests, respond } from "../lib/intools.mjs";
 import { evidence, footerLine, labels, remember, segments, sentTo, verifications } from "../lib/status.mjs";
@@ -202,7 +202,7 @@ export default async function (pi: ExtensionAPI) {
     log("agents.jsonl", { event: "spawn", id: sessionId, run: path.basename(process.env.ABALONE_EGRESS!), parent: process.env.ABALONE_PARENT ?? "user", domain: "private", place: ctx.model ? place(ctx.model.provider) : null, model: ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : null });
     refresh(ctx);
     if (ctx.mode === "tui") ctx.ui.setHeader((_tui: any, th: any) => ({ invalidate() {},
-      render: (w: number) => ["", ...art({ columns: w, rows: process.stdout.rows, color: theme().name === "ansi" }).map((l) => `  ${l}`), ...header({ cwd: ctx.cwd, model: segs?.[0][0] ?? "no model selected", width: w - 2 }).map((l, i) => ` ${i === 2 ? th.fg("dim", l) : l}`)] }));
+      render: (w: number) => ["", ...header({ cwd: ctx.cwd, model: segs?.[0][0] ?? "no model selected", width: w - 2 }).map((l, i) => ` ${i === 2 ? th.fg("dim", l) : l}`)] }));
     if (ctx.mode === "tui") ctx.ui.setFooter((tui: any) => {
       render = () => tui.requestRender();
       return { invalidate() {}, render: (w: number) => [line(w)] };
