@@ -560,14 +560,15 @@ test("plain abalone without saved credit explains the two ways in; help describe
   const none = run();
   assert.equal(none.status, 2, "without a terminal there is nowhere to paste");
   assert.ok(none.stderr.startsWith("No saved credit yet.\nTwo ways in:\n"), none.stderr);
-  for (const text of ["Paste a gift link or code here", `abalone key add <provider> saves it for abalone sandbox, not plain abalone; see ${path.join(root, "guides/acquiring-private-inference/README.md")}`, "abalone help lists every command."])
+  assert.ok(!none.stderr.includes("Paste a gift link or code here"), "nowhere to paste without a terminal");
+  for (const text of ["standard input here is not a terminal", "abalone credit inspect --trial /abs/trial.json --input-file /abs/gift.txt", `abalone key add <provider> saves it for abalone sandbox, not plain abalone; see ${path.join(root, "guides/acquiring-private-inference/README.md")}`, "abalone help lists every command."])
     assert.ok(none.stderr.includes(text), text);
   assert.ok(!/canar|bubblewrap|providers\.json/.test(none.stderr), "never the legacy sandboxed session");
   assert.equal(fs.existsSync(path.join(home, "state", "credit")), false, "listing creates no credit directory");
   assert.equal(run("--trial", "relative.json").stderr.trim(), `--trial path must be absolute: relative.json. Give the full path to trial.json, as printed by the installer, for example --trial "${path.join(root, "relative.json")}".`);
   // At a terminal, a source checkout has no installed trial: refused after the explanation, before any gift is read.
   const tty = spawnSync("script", ["-qec", `${process.execPath} ${path.join(root, "bin/abalone.mjs")}`, "/dev/null"], { encoding: "utf8", timeout: 20_000, env: { ...process.env, ABALONE_DIR: path.join(home, "state") }, input: "" });
-  assert.equal(tty.status, 1, tty.stdout); assert.ok(tty.stdout.includes("Two ways in:") && tty.stdout.includes("has no installed credit trial. Install it with sh install.sh --credit"), tty.stdout);
+  assert.equal(tty.status, 1, tty.stdout); assert.ok(tty.stdout.includes("Two ways in:") && tty.stdout.includes("Paste a gift link or code here") && tty.stdout.includes("has no installed credit trial. Install it with sh install.sh --credit"), tty.stdout);
   for (const flag of ["--help", "-h", "help"]) {
     const r = run(flag);
     assert.equal(r.status, 0); assert.equal(r.stderr, "");

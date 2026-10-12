@@ -97,10 +97,12 @@ asks for the gift: paste the link, the code or the full path of a 0600 file
 holding it (the input is not echoed). It prints the same offer as
 `credit inspect` below and asks you to type the first 8 characters of its
 `offerHash`. Typing them redeems that offer and opens the session; anything else
-stops without claiming. An interrupted redemption ends with the recover message
-below. Without a terminal, plain `abalone` prints the two ways in and exits with
-status 2. It uses the `trial.json` installed with it; `abalone --trial
-/ABS/trial.json` selects another.
+stops without claiming and saves nothing. Any further lines of a multi-line paste
+are discarded, so they answer no prompt. An interrupted redemption ends with the
+recover message below and the exact `abalone credit recover --credit CREDIT_ID`
+command. Without a terminal, plain `abalone` prints the two ways in, with the
+step-by-step commands below, and exits with status 2. It uses the `trial.json`
+installed with it; `abalone --trial /ABS/trial.json` selects another.
 
 The steps one at a time: put the gift link or code in a 0600 file in a private directory, or
 pass it on standard input with `--stdin`. Never put it in a command argument,

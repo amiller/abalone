@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 
 const inputModule = new URL('../lib/coupon-input.mjs', import.meta.url).href;
@@ -58,4 +58,14 @@ test('missing terminal and malformed descriptor refuse without echoing descripto
     assert.match(out,fd===undefined?/requires your terminal/:/Invalid coupon input descriptor/);
     assert.ok(!out.includes('malformed-private-input'));
   }
+});
+
+test('terminalLine discards what follows the line and names too-long input, ended input and missing bash', () => {
+  const code = `import fs from 'node:fs';import {terminalLine} from ${JSON.stringify(inputModule)};
+try{const line=await terminalLine('Prompt: ');console.log(JSON.stringify({line,rest:fs.readFileSync(0,'utf8')}))}catch(e){console.log(JSON.stringify({error:e.message,code:e.code}))}`;
+  const run = (input, env = process.env) => JSON.parse(spawnSync(process.execPath, ['--input-type=module', '-e', code], { input, env, encoding: 'utf8' }).stdout);
+  assert.deepEqual(run('first line\nsecond line\nthird'), { line: 'first line', rest: '' });
+  assert.deepEqual(run(`${'x'.repeat(2000)}\n`), { error: 'That line is longer than 1024 bytes, so it was refused; run the command again and enter one line.', code: 'credit_input_refused' });
+  assert.deepEqual(run(''), { error: 'Terminal input ended before a line was entered; run the command again.', code: 'credit_input_refused' });
+  assert.deepEqual(run('line\n', { ...process.env, PATH: '/nonexistent' }), { error: 'Reading the terminal needs bash, which could not be started; install bash and run the command again.', code: 'credit_input_refused' });
 });

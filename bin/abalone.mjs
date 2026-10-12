@@ -32,7 +32,7 @@ import { report } from "../lib/report.mjs";
 import * as trace from "../lib/trace.mjs";
 import * as task from "../lib/commission.mjs";
 import { admitCouponSessionIssuer, openCouponSession } from "../lib/coupon-session.mjs";
-import { couponEntry } from "../lib/coupon-input.mjs";
+import { couponEntry, terminalLine } from "../lib/coupon-input.mjs";
 import { admitAttestedCouponIssuerPin, admitAttestedCouponSessionIssuer, openAttestedCouponSession, readAttestedCouponAdmissionFile,
   ATTESTED_COUPON_WAIT, ATTESTED_COUPON_RECOVER } from "../lib/coupon-attested-session.mjs";
 import { couponStagingGuardNotice } from "../lib/coupon-staging.mjs";
@@ -294,8 +294,7 @@ async function attestedCouponSessionCmd(peerAddr) {
 async function passphrase(prompt) {
   if (process.env.ABALONE_PASSPHRASE_FD) return fs.readFileSync(Number(process.env.ABALONE_PASSPHRASE_FD), "utf8").split("\n")[0];
   if (!process.stdin.isTTY) throw new Error("no terminal to ask for the trace key passphrase (or set ABALONE_PASSPHRASE_FD)");
-  // Read by a child, so this process never consumes stdin that the session (Pi) inherits next.
-  return spawnSync("bash", ["-c", 'IFS= read -rs -p "$1" p; echo >&2; printf %s "$p"', "_", prompt], { stdio: ["inherit", "pipe", "inherit"], encoding: "utf8" }).stdout;
+  return terminalLine(prompt, { hidden: true });
 }
 
 async function readSecret(prompt) {
@@ -581,15 +580,9 @@ const NEXT = { offered: (c) => `${c.claimWindow} Redeem it with abalone credit r
   claiming: (c) => `A claim may be in progress; finish it with abalone credit recover --credit ${c.creditId}`, reconciliation_required: () => "The issuer's operator must reconcile this claim before it can be used.",
   refused: (c) => `This saved credit was refused (${c.code}); abalone credit status --credit ${c.creditId} shows why.` };
 NEXT.uncertain = NEXT.claiming;
-const WAYS_IN = ["Two ways in:", "  1. Paste a gift link or code here (or the full path of a private 0600 file holding it).", `  2. Or bring a provider key: abalone key add <provider> saves it for abalone sandbox, not plain abalone; see ${KEY_GUIDE}`,
-  "abalone help lists every command."];
-
-// Reads one line at the terminal; hidden input is not echoed.
-function terminalLine(prompt, hidden = false) {
-  const r = spawnSync("bash", ["-c", `IFS= read -r${hidden ? "s" : ""} -p "$1" p; ${hidden ? "echo >&2; " : ""}printf %s "$p"`, "_", prompt], { stdio: ["inherit", "pipe", "inherit"], encoding: "utf8", maxBuffer: 4096 });
-  if (r.status !== 0) throw Object.assign(new Error("Input ended before anything was entered; nothing was claimed. Run abalone again."), { code: "credit_input_refused" });
-  return r.stdout;
-}
+const waysIn = (tty) => ["Two ways in:", ...(tty ? ["  1. Paste a gift link or code here (or the full path of a private 0600 file holding it)."]
+  : ["  1. Paste a gift link or code into abalone at your terminal; standard input here is not a terminal. From a script, redeem it step by step:", ...REDEEM_STEPS.map((l) => `  ${l}`)]),
+  `  2. Or bring a provider key: abalone key add <provider> saves it for abalone sandbox, not plain abalone; see ${KEY_GUIDE}`, "abalone help lists every command."];
 
 function installedTrial() {
   const dir = path.join(ROOT, "..", "public-credit"), found = fs.existsSync(dir) ? fs.readdirSync(dir).map((b) => path.join(dir, b, "trial.json")).filter((f) => fs.existsSync(f)) : [];
@@ -608,7 +601,7 @@ async function frontDoor() {
   if (ready.length) throw new Error([`You have ${ready.length} saved credits. Open one with:`,
     ...ready.map((c) => `  abalone credit session --credit ${c.creditId}   (${c.model}, $${c.nominalCapUsd} nominal cap)`)].join("\n"));
   const text = [waiting.length ? "No saved credit is ready to use yet:" : "No saved credit yet.", ...waiting.map((c) => `  ${c.creditId}  ${c.state}: ${NEXT[c.state](c)}`),
-    ...(keys.list().length ? ["A configured key exists; use abalone sandbox (plain abalone opens coupon credit only, #21)."] : []), ...WAYS_IN].join("\n");
+    ...(keys.list().length ? ["A configured key exists; use abalone sandbox (plain abalone opens coupon credit only, #21)."] : []), ...waysIn(process.stdin.isTTY)].join("\n");
   if (!process.stdin.isTTY) throw Object.assign(new Error(text), { exit: 2 });
   console.error(text);
   return creditCmd(() => redeemPasted(trialFile ?? installedTrial()));
@@ -616,15 +609,16 @@ async function frontDoor() {
 
 async function redeemPasted(trialFile) {
   creditPreflight();
-  const admission = await trialAdmission(trialFile), coupon = giftPaste(terminalLine("Gift link, code or file (hidden as you paste): ", true));
+  const admission = await trialAdmission(trialFile), coupon = giftPaste(await terminalLine("Gift link, code or file (hidden as you paste): ", { hidden: true }));
   const manager = createCreditManager({ directory: path.join(STATE, "credit") }), offer = await manager.inspect(coupon, admission);
   console.log(JSON.stringify(offer, null, 2));
   if (offer.state !== "installed") {
     if (offer.state !== "offered") throw Object.assign(new Error(NEXT[offer.state](offer)), { code: "credit_unavailable" });
     const consent = offer.offerHash.slice(0, 8);
-    if (terminalLine(`Review the terms above. To accept and redeem, type ${consent}; anything else stops here: `).trim() !== consent)
+    if ((await terminalLine(`Review the terms above. To accept and redeem, type ${consent}; anything else stops here: `, { fresh: true })).trim() !== consent)
       throw Object.assign(new Error("Not accepted, so nothing was claimed. Run abalone again and paste the gift when you are ready."), { code: "credit_intent_required" });
-    await manager.redeem(offer.creditId, { offerHash: offer.offerHash });
+    try { await manager.redeem(offer.creditId, { offerHash: offer.offerHash }); }
+    catch (e) { if (e?.code === "credit_redemption_incomplete") e.message += ` Run abalone credit recover --credit ${offer.creditId}.`; throw e; }
     console.error("Redeemed and saved. Opening the session.");
   }
   args.splice(0, args.length, "credit", "session", "--credit", offer.creditId);

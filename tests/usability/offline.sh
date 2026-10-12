@@ -37,7 +37,7 @@ done < "$out/checks.txt" | tee "$out/results.txt"
 grep -q "^FAIL\|^XPASS" "$out/results.txt" && fail=1
 # Exactly the expected checks ran, and every XFAIL entry names one of them.
 expected=(expired-fixture cold-valid-inspect cold-valid-redeem cold-valid-session commands cold-expired-inspect cold-expired-no-claim cold-expired-redeem
-  door-explain door-terms door-redeem door-session door-decline door-no-echo door-recover cold-errors)
+  door-explain door-terms door-redeem door-session door-decline door-no-echo door-paste-drain door-recover cold-errors)
 for s in 80x24 120x40; do for t in light dark; do for c in wordmark ready dark-block overflow warnings; do expected+=("screen-$s-$t-$c"); done; done; done
 [[ $(cut -d' ' -f2 "$out/results.txt" | sort) == $(printf '%s\n' "${expected[@]}" | sort) ]] || { echo "FAIL ran: the checks that ran are not exactly the ${#expected[@]} expected ids"; fail=1; }
 for k in "${!XFAIL[@]}"; do [[ " ${expected[*]} " == *" $k "* ]] || { echo "FAIL xfail: $k is not an expected check id"; fail=1; }; done

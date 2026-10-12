@@ -92,7 +92,8 @@ if [ "$credit" = yes ]; then
   printf '%s\n' "Install receipt: $bundle/receipt.json (install-time digests only)"
   echo "Trusted owned host profile: no OS isolation. Credit sessions run with your ordinary account's filesystem and network access."
   printf '%s\n' "Credit state is created later by abalone credit in ~/.abalone/credit (or \$ABALONE_DIR/credit), not by this installer."
-  echo "Next, when you have a gift, put it in a 0600 file in a private directory (never in an argument) and review its offer without claiming it:"
+  printf '%s\n' "Next, when you have a gift, run $(q "$launcher") at your terminal and paste its link when asked; it shows the terms before anything is claimed."
+  echo "Or, step by step, put it in a 0600 file in a private directory (never in an argument) and review its offer without claiming it:"
   printf '%s\n' "  $(q "$launcher") credit inspect --trial $(q "$bundle/trial.json") --input-file /private/gift.txt"
   printf '%s\n' "Check saved credit at any time: $(q "$launcher") credit status"
   exit 0

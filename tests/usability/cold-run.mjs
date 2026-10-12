@@ -94,20 +94,22 @@ async function journey(label, claimExpiresAt) {
   return { label, base, env, work, steps, inspect, redeem, status, session, claims };
 }
 
-// The front door at a terminal: plain `abalone` explains the ways in, takes the pasted link, shows the terms, asks for the
-// offer hash's first 8 characters, redeems and opens the session (quit with ctrl-d). "door-interrupted" pastes the private
+// The front door at a terminal: plain `abalone` explains the ways in, takes the pasted link (with a stray second line that
+// must not answer the consent prompt), shows the terms, asks for the offer hash's first 8 characters, redeems and opens the
+// session (quit with ctrl-d). "door-interrupted" pastes the private
 // link file instead, first declines the offer, then accepts while its issuer fails the claim, so the redemption is left for credit recover.
 async function frontDoor(label) {
   const { base, server, trial, link, env, work, steps } = await setup(label, "2030-10-10T00:00:00Z"), { run, terminal } = runner({ env, work, steps });
   if (label === "door-interrupted") Object.assign(server.state, { claim: "refuse", status: "ready" });
-  const hook = "tests/usability/issuer-hook.mjs", explain = await run(hook, []), paste = ["Gift link, code or file", `${label === "door" ? `https://amiller.github.io/abalone/redeem#code=${coupon}` : link}\r`];
+  const hook = "tests/usability/issuer-hook.mjs", explain = await run(hook, []), paste = ["Gift link, code or file", `${label === "door" ? `https://amiller.github.io/abalone/redeem#code=${coupon}\rstray-second-line` : link}\r`];
   const declined = label === "door" ? null : await terminal(["--trial", trial], [paste, ["type ([0-9a-f]{8});", "no\r"]]);
-  const claimsBeforeAccept = server.frames.filter((f) => f.op === "claim").length;
+  const claimsBeforeAccept = server.frames.filter((f) => f.op === "claim").length, credit = path.join(env.ABALONE_DIR, "credit");
+  const leftAfterDecline = fs.existsSync(credit) ? fs.readdirSync(credit) : [];
   const door = await terminal(["--trial", trial], [paste, ["type ([0-9a-f]{8});", "{1}\r"], ...(label === "door" ? [["────", "\x04"]] : [])]);
   const claims = server.frames.filter((f) => f.op === "claim").length;
   await server.host.stop();
   const after = await run(hook, label === "door" ? ["credit", "status"] : []);
-  return { label, base, steps, explain, declined, claimsBeforeAccept, door, after, claims };
+  return { label, base, steps, explain, declined, claimsBeforeAccept, leftAfterDecline, door, after, claims };
 }
 
 const valid = await journey("valid", "2030-10-10T00:00:00Z"), expired = await journey("expired", expiredOffer.offer.claim_expires_at);
@@ -123,17 +125,18 @@ check("cold-expired-no-claim: redeem sends no claim for an expired offer", expir
 check("cold-expired-redeem: redeem of an expired offer says it expired and what to do next", expired.redeem.code !== 0 && /expired|claim window closed/i.test(expired.redeem.stderr) && NEXT.test(expired.redeem.stderr),
   expired.redeem.stderr.trim().split("\n").at(-1) || parsed(expired.redeem)?.state);
 check("door-explain: plain abalone with nothing saved names both ways in; without a terminal it exits 2", door.explain.code === 2
-  && ["Paste a gift link or code", "abalone key add <provider>", "guides/acquiring-private-inference/"].every((t) => door.explain.stderr.includes(t)), door.explain.stderr.trim().split("\n").at(-1));
+  && ["Paste a gift link or code into abalone at your terminal", "not a terminal", "abalone credit inspect --trial", "abalone key add <provider>", "guides/acquiring-private-inference/"].every((t) => door.explain.stderr.includes(t)), door.explain.stderr.trim().split("\n").at(-1));
 check("door-terms: a pasted link shows the inspect terms, then asks for the offer hash's first 8 characters", ["\"nominalCapUsd\"", "\"model\"", "\"providerExpiry\"", "\"sponsorPowers\"", "\"claimWindow\"", "\"disclosures\""]
   .every((t) => door.door.stderr.includes(t)) && /type [0-9a-f]{8};/.test(door.door.stderr));
 check("door-redeem: typing them redeems and saves the credit", door.door.stderr.includes("Redeemed and saved") && parsed(door.after)?.[0]?.state === "installed" && door.claims === 1, `claims sent: ${door.claims}`);
 check("door-session: the same run opens the session", door.door.code === 0 && !door.door.timedOut && !door.door.unanswered.length && door.door.stderr.includes("Fresh incognito conversation"),
   `exit ${door.door.code}, unanswered: ${door.door.unanswered.join(" | ")}`);
-check("door-decline: typing anything else stops without a claim and says so", interrupted.declined.code === 1 && interrupted.claimsBeforeAccept === 0
-  && interrupted.declined.stderr.includes("Not accepted, so nothing was claimed"), interrupted.declined.stderr.trim().split("\n").at(-1));
+check("door-decline: typing anything else stops without a claim, says so and leaves nothing on disk", interrupted.declined.code === 1 && interrupted.claimsBeforeAccept === 0
+  && interrupted.declined.stderr.includes("Not accepted, so nothing was claimed") && !interrupted.leftAfterDecline.length, `${interrupted.declined.stderr.trim().split("\n").at(-1)}; left: ${interrupted.leftAfterDecline.join(" ")}`);
+check("door-paste-drain: a stray second pasted line answers no prompt and never reaches the session", door.door.stderr.includes("Redeemed and saved") && !door.door.stderr.includes("stray-second-line"));
 check("door-no-echo: the pasted gift never appears on screen", ![door.door, interrupted.declined, interrupted.door].some((s) => s.stderr.includes(coupon)));
 check("door-recover: an interrupted redemption says to run credit recover, and plain abalone then names the recover command", interrupted.claims === 1 && interrupted.door.code === 1
-  && /run credit recover/.test(interrupted.door.stderr) && interrupted.after.code === 2 && interrupted.after.stderr.includes(`abalone credit recover --credit ${id}`), interrupted.door.stderr.trim().split("\n").at(-1));
+  && interrupted.door.stderr.includes(`Run abalone credit recover --credit ${id}.`) && interrupted.after.code === 2 && interrupted.after.stderr.includes(`abalone credit recover --credit ${id}`), interrupted.door.stderr.trim().split("\n").at(-1));
 const errors = [...valid.steps, ...expired.steps, ...door.steps, ...interrupted.steps].filter((s) => s.code !== 0);
 const silent = errors.filter((s) => !NEXT.test(s.stderr.split("\n").filter((l) => !l.startsWith("SYNTHETIC FIXTURE")).join("\n")));
 check("cold-errors: every error a recipient sees says what to do next", silent.length === 0, silent.map((s) => s.argv.split(" --")[0]).join(", "));

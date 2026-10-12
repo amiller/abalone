@@ -134,7 +134,7 @@ await saved(path.join(late, "credit"), lapsed, true);
 const waiting = await plain(late);
 assert.equal(waiting.code, 2);
 assert.ok(waiting.err.includes(`No saved credit is ready to use yet:\n  ${creditId(lapsed)}  expired: Claim window closed; the deadline was 2030-10-10 00:00 UTC. This gift can no longer be redeemed: ask the sponsor for a new gift.\nTwo ways in:\n`), waiting.err);
-assert.ok(waiting.err.includes("Paste a gift link or code here"));
+assert.ok(waiting.err.includes("standard input here is not a terminal"));
 pass("plain abalone with only an expired credit says so, with the deadline and 'ask the sponsor for a new gift'");
 const leftovers = [];
 const scan = (dir) => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name);
