@@ -80,7 +80,8 @@ do not regenerate that archive for instructions-only changes.
    real saved credit: `tests/usability/live.sh --live --credit <credit id>`. It spends
    from the credit. A task passes when every turn settles with no `length` stop or
    dialog, it prints at most one warning line, and its edit landed or its answer
-   names the facts in the synthetic fixtures; read the answers in `live.json` too.
+   names the facts in the synthetic fixtures. Read each response and any "not
+   executed" note in `live.json` too.
 6. Review the complete publication manifest and precise GitHub actions: selected
    source/history, candidate refs, package, installer, checksums, public inputs and
    sanitized notes. Request final publication authorization after the concrete files
