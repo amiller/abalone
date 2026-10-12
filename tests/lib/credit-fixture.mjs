@@ -42,8 +42,9 @@ export function delivery(accepted, recipientKey, peer) {
 }
 
 export async function issuer(profile) {
-  // statuses is consumed first (one per bound status frame), then status repeats.
-  const frames = [], state = { claim: "grant", status: "in_progress", statuses: [], claimExpired: false, accountingBlocked: false };
+  // statuses is consumed first (one per bound status frame), then status repeats once a claim was sent; before any claim it is ready.
+  // lost answers every v4 frame with the generic failure a losing holder gets once another recipient won.
+  const frames = [], state = { claim: "grant", status: "in_progress", statuses: [], claimExpired: false, accountingBlocked: false, lost: false };
   const host = await servePeer({ listen: ["/ip4/127.0.0.1/tcp/0"], evidence: () => () => ({ type: "dev" }), services: {
     [COUPON_ISSUER_PROTOCOL]: { maxDataLength: COUPON_ISSUER_FRAME_LIMIT, timeoutMs: 3000, handle: async (_lp, send, recv) => {
       const frame = await recv();
@@ -51,12 +52,13 @@ export async function issuer(profile) {
     } },
     [COUPON_PROTOCOL_V4]: { timeoutMs: 3000, handle: async (_lp, send, recv, auth) => {
       const frame = await recv(); frames.push({ op: frame.op, peer: auth.remotePeer.toString(), recipient_key: frame.recipient_key });
+      if (state.lost) return send({ id: frame.id, ok: false, error: "request_failed" });
       if (frame.op === "offer") return send({ id: frame.id, ok: true, result: state.offer });
       if (frame.op === "claim") {
         if (state.claim === "in_progress") return send({ id: frame.id, ok: true, result: { state: "in_progress", automatic_retry_allowed: false, deposit_release_authorized: false } });
         return send({ id: frame.id, ok: true, result: delivery(state.offer, frame.recipient_key, auth.remotePeer.toString()) });
       }
-      const current = state.statuses.shift() ?? state.status;
+      const current = state.statuses.shift() ?? (frames.some((f) => f.op === "claim") ? state.status : "ready");
       return send({ id: frame.id, ok: true, result: { state: current, claim_expired: state.claimExpired, accounting_blocked: state.accountingBlocked, automatic_retry_allowed: false,
         deposit_release_authorized: false, ...(current === "delivered" ? { key_id: `near-key-${sha(coupon).slice(0, 16)}` } : {}) } });
     } },

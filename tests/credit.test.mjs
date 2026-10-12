@@ -38,7 +38,8 @@ test("one accepted redeem claims once; installed credit never claims again; lega
     assert.equal(offer.nominalCapUsd, "5.00"); assert.equal(offer.balance, "unknown"); assert.deepEqual(offer.sponsorPowers, ["revoke", "change_limits"]);
     assert.equal(offer.claimWindowExpiresAt, "2030-10-10T00:00:00Z"); assert.equal(offer.providerExpiry, "unknown"); assert.equal(offer.requestMaxTokens, 4096);
     assert.equal(offer.provider, "near"); assert.equal(offer.outOfDateException, false); assert.equal(offer.operatorSecretAccess, true); assert.equal(offer.sponsorCanRevoke, true);
-    assert.deepEqual(offer.disclosures, ["Nominal cap $5.00 from the offer; provider enforcement is not verified.", "Usage: not reported.",
+    assert.match(offer.claimWindow, /^Claim by 2030-10-10 00:00 UTC \(in \d+ days\); after that this gift cannot be redeemed\.$/);
+    assert.deepEqual(offer.disclosures, [offer.claimWindow, "Nominal cap $5.00 from the offer; provider enforcement is not verified.", "Usage: not reported.",
       "Sponsor can revoke the credential or change its limits at any time.", "Each request is separately bounded to 4096 output tokens.",
       "Synthetic content only: the staging operator can access the credential."]);
     await pace();
@@ -54,6 +55,8 @@ test("one accepted redeem claims once; installed credit never claims again; lega
     await pace();
     const claims = server.frames.filter((f) => f.op === "claim").length;
     assert.equal(claims, 1);
+    assert.deepEqual(server.frames.slice(-3).map((f) => f.op), ["offer", "status", "claim"], "issuer status is read before the first claim");
+    assert.equal(installed.claimWindow, undefined);
     assert.equal((await manager.redeem(id, { offerHash: offer.offerHash })).state, "installed");
     assert.equal((await manager.redeem(id, { recover: true })).state, "installed");
     assert.equal((await manager.inspect(coupon, server.admission)).state, "installed");
@@ -149,6 +152,40 @@ for (const [name, change, code, state] of [["expired claim window", { status: "r
       await assert.rejects(manager.redeem(id, { offerHash: offer.offerHash }), { code });
       assert.equal(server.frames.length, frames, "no further issuer request");
       assert.equal((await manager.status(id)).state, state);
+    } finally { await server.host.stop(); }
+  });
+}
+
+test("an offer past its claim window inspects as expired and redeem refuses it without contacting the issuer", { timeout: 30_000 }, async () => {
+  const server = await issuer(), dir = path.join(tempDir(), "credit");
+  try {
+    server.state.offer = bundle({ ...terms(server.host.peerId.toString()), claim_expires_at: "2026-01-01T00:00:00Z" });
+    const manager = createCreditManagerForTesting({ directory: dir, connect });
+    const offer = await manager.inspect(coupon, server.admission); await pace();
+    assert.equal(offer.state, "expired");
+    assert.equal(offer.claimWindow, "Claim window closed; the deadline was 2026-01-01 00:00 UTC. This gift can no longer be redeemed: ask the sponsor for a new gift.");
+    assert.equal(offer.disclosures[0], offer.claimWindow);
+    const frames = server.frames.length;
+    await assert.rejects(manager.redeem(id, { offerHash: offer.offerHash }), { code: "claim_expired",
+      message: "This gift's claim window closed at 2026-01-01 00:00 UTC. Nothing was claimed; ask the sponsor for a new gift. If your computer's clock is wrong, correct it and retry." });
+    assert.equal(server.frames.length, frames, "no issuer request, no claim");
+    assert.equal(savedRecord(dir).state, "offered", "a local clock reading is never saved as terminal");
+    assert.equal((await manager.status(id)).state, "expired");
+  } finally { await server.host.stop(); }
+});
+
+for (const [name, change, code, state, message] of [
+    ["the issuer reports the claim window closed", { claimExpired: true }, "claim_expired", "expired", /ask the sponsor for a new gift/],
+    ["the issuer requires reconciliation", { statuses: ["reconciliation_required"] }, "reconciliation_required", "reconciliation_required", /Ask the issuer's operator/],
+    ["another recipient already won the gift", { lost: true }, "credit_not_claimed", "offered", /^Nothing was claimed: .*Someone else may already have claimed it.*ask the sponsor whether the gift was already used\.$/]]) {
+  test(`redeem reads issuer status before the first claim and never claims when ${name}`, { timeout: 30_000 }, async () => {
+    const server = await issuer(), dir = path.join(tempDir(), "credit");
+    try {
+      const manager = createCreditManagerForTesting({ directory: dir, connect });
+      const offer = await manager.inspect(coupon, server.admission); await pace();
+      Object.assign(server.state, change);
+      await assert.rejects(manager.redeem(id, { offerHash: offer.offerHash, ...fast }), { code, message });
+      assert.equal(claims(server).length, 0); assert.equal(savedRecord(dir).state, state);
     } finally { await server.host.stop(); }
   });
 }
