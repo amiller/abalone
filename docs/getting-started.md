@@ -19,7 +19,7 @@ the trust limits. An explanation request is not permission to install or spend.
 
 The agent can then install the release, handle your coupon and save the
 resulting credential under ordinary private file permissions, as described in
-[Redeem a coupon](redeem.md). It can redeem and run a synthetic
+[Redeem a coupon](abalone-coupon-redeem.md). It can redeem and run a synthetic
 test when you ask. Handling the credential does not entitle it to your private
 documents, prompts or answers; none of these are sent to the setup agent
 automatically.
@@ -40,16 +40,16 @@ this runtime.
 
 ## Access paths
 
-- **Saved Abalone access:** reuse it as in [Open a session](redeem.md#open-a-session);
+- **Saved Abalone access:** reuse it as in [Open a session](abalone-coupon-redeem.md#open-a-session);
   do not redeem another coupon.
-- **Coupon:** inspect, redeem and save it as in [Redeem a coupon](redeem.md).
+- **Coupon:** inspect, redeem and save it as in [Redeem a coupon](abalone-coupon-redeem.md).
 - **Existing provider key:** importing a separate provider key is not supported
   in this release. Only NEAR access obtained through Abalone is supported.
 
 ## Open, work and close
 
 Open the session by running `abalone` in a fresh terminal of your own, as in
-[Open a session](redeem.md#open-a-session). Stop any recording or observation
+[Open a session](abalone-coupon-redeem.md#open-a-session). Stop any recording or observation
 by the setup agent first; its stepping aside is cooperation, not enforced
 exclusion. Ask a question or select a synthetic text or PDF file: `Summarize @notes.txt`, `Summarize @report.pdf`, or
 `@"meeting notes.txt"` for a name with spaces. Abalone reads that file locally

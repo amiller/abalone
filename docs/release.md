@@ -62,7 +62,7 @@ do not regenerate that archive for instructions-only changes.
    or this checksum file.
 
    `sh install.sh --credit` is the recipient's install-only entry for the
-   durable credit procedure in [access and installation](redeem.md). It
+   durable credit procedure in [access and installation](abalone-coupon-redeem.md). It
    downloads the archive and the four public files, checks each pinned SHA256,
    refuses an archive without `abalone credit`, rechecks any existing install,
    saves the files with a receipt under `~/.abalone-app/REV/public-credit/`,
@@ -88,7 +88,7 @@ do not regenerate that archive for instructions-only changes.
    and owner-approved walkthrough are ready. Never expose private workspace/history.
 7. After authorized publication, download every recipient URL without maintainer
    authentication and compare reviewed hashes. Only then replace the availability
-   line in [access and installation](redeem.md) with the exact release
+   line in [access and installation](abalone-coupon-redeem.md) with the exact release
    links. A private repo/404 is not public acquisition.
 8. Publish the entry page separately: select GitHub Actions as the Pages source,
    run `.github/workflows/pages.yml` from reviewed main, and load the page with a

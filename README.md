@@ -10,13 +10,13 @@ or API key.
 ## Redeem a coupon
 
 You need a Linux x86_64 computer you trust, with Node 24; the
-[full requirements](docs/redeem.md#conditions-before-you-start) list the rest.
+[full requirements](docs/abalone-coupon-redeem.md#conditions-before-you-start) list the rest.
 Use synthetic, non-sensitive material.
 
 1. Open the gift link and paste the page's full link into your coding agent. The
    agent reads the [setup skill](skills/abalone-incognito/SKILL.md), checks the
    current release's installer digest and runs `sh install.sh --credit`
-   ([installer details](docs/redeem.md#check-and-run-the-installer)). The installer
+   ([installer details](docs/abalone-coupon-redeem.md#check-and-run-the-installer)). The installer
    prints the launcher and `trial.json` paths used below.
 2. Keep the gift link in a 0600 file, then inspect the offer: provider, cap,
    expiry and restrictions.
@@ -71,7 +71,7 @@ published ones, not that they are safe.
 
 ## Where to go next
 
-- [Redeem a coupon](docs/redeem.md): the full procedure, what a release contains
+- [Redeem a coupon](docs/abalone-coupon-redeem.md): the full procedure, what a release contains
   and what the installer changes
 - [Getting started](docs/getting-started.md): using the session
 - [Watch a synthetic PDF become meeting minutes](https://pod.dstack.soc1024.com/artifact-reports-2026c/abalone-coupon-pdf-meeting-minutes--lWMO2qY1hfbnqZdRWwg8cQ/),

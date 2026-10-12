@@ -66,7 +66,7 @@ separate descriptors. The wrapper forwards them explicitly; never put a gift
 or key in argv, environment values, command history or a model prompt.
 
 The release installer does not start this trial. Its `--credit` option installs
-the durable-credit runtime described in [access and installation](redeem.md).
+the durable-credit runtime described in [access and installation](abalone-coupon-redeem.md).
 
 ## Exact public inputs
 

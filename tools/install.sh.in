@@ -1,6 +1,6 @@
 #!/bin/sh
 # abalone @REV@: installs exactly abalone-@REV@.tar.gz (sha256 @SHA256@).
-#   sh install.sh --credit    install the durable-credit runtime and public inputs only (recipients: docs/redeem.md)
+#   sh install.sh --credit    install the durable-credit runtime and public inputs only (recipients: docs/abalone-coupon-redeem.md)
 #   sh install.sh             install only
 # Download this file, check it against FRIEND-SHA256SUMS and read it before running it; never pipe it into a shell.
 # Needs: Node24, curl, tar, bash, sha256sum (--credit also flock; plain install on Linux also bubblewrap).
