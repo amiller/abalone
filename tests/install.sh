@@ -68,6 +68,84 @@ mkdir "$R/h8" "$R/tar-fail"
 printf '#!/bin/sh\nexit 1\n' > "$R/tar-fail/tar"; chmod +x "$R/tar-fail/tar"
 out10=$(HOME="$R/h8" PATH="$R/tar-fail:$R/owned-path" sh "$R/owned-install.sh" --friend 2>&1); code11=$?
 check "failed extraction refuses before installed claim or entry" '[[ $code11 != 0 && $out10 == *"could not be extracted"* && $out10 != *"Installed abalone"* && $out10 != *"synthetic first-use entry"* ]]'
+# --credit: install-only owned-host entry. A credit-capable stub archive records any launch in $R/launched; uname and
+# id are the real host's (Linux x86_64, non-root) except where a mock directory is put first on PATH.
+mkdir -p "$R/cbuild/abalone/bin" "$R/cbuild/abalone/lib" "$R/cbuild/abalone/tools" "$R/cpub" "$R/cpath" "$R/cwork"
+printf '#!/bin/sh\necho "$*" >> "%s"\n' "$R/launched" > "$R/cbuild/abalone/bin/abalone"; chmod +x "$R/cbuild/abalone/bin/abalone"
+cp "$R/build/abalone/tools/coupon-first-use.mjs" "$R/cbuild/abalone/tools/"
+echo 'export {};' > "$R/cbuild/abalone/lib/credit.mjs"; echo 'export {};' > "$R/cbuild/abalone/lib/credit-store.mjs"
+ln -s credit.mjs "$R/cbuild/abalone/lib/credit-link.mjs"
+tar -C "$R/cbuild" -czf "$R/cpub/abalone-ddddddd.tar.gz" abalone
+cp "$R/abalone-test.tar.gz" "$R/cpub/abalone-eeeeeee.tar.gz"
+printf '{"platform":"linux-node24-owned-host","issuer":{"pin":"issuer-pin.json","approval":"staging-approval.json"}}' > "$R/cpub/trial.json"
+for name in issuer-pin.json staging-approval.json readiness.json; do printf '{"%s":1}' "$name" > "$R/cpub/$name"; done
+csha=$(sha256sum "$R/cpub/abalone-ddddddd.tar.gz" | cut -d' ' -f1)
+python3 "$root/tools/render-installer.py" --rev ddddddd --artifact-sha256 "$csha" --base https://example.org/credit --trial-dir "$R/cpub" --out "$R/credit-install.sh"
+python3 "$root/tools/render-installer.py" --rev eeeeeee --artifact-sha256 "$(sha256sum "$R/abalone-test.tar.gz" | cut -d' ' -f1)" --base https://example.org/credit --artifact-base https://example.org/old --trial-dir "$R/cpub" --out "$R/old-credit-install.sh"
+bid=$(for n in trial.json issuer-pin.json staging-approval.json readiness.json; do sha256sum "$R/cpub/$n" | cut -d' ' -f1; done | sha256sum | cut -c1-16)
+printf '#!/bin/sh\nurl= out=\nwhile [ $# -gt 0 ]; do case "$1" in https://*) url=$1 ;; -o) out=$2; shift ;; esac; shift; done\nprintf "%%s\\n" "$url" >> "%s"\nexec "%s" -fsSL "file://%s/${url##*/}" -o "$out"\n' "$R/curls" "$(command -v curl)" "$R/cpub" > "$R/cpath/curl"; chmod +x "$R/cpath/curl"
+for cmd in node tar gzip sha256sum bash sh uname id mkdir mktemp ln env rm flock find sort sed cut mv cat; do ln -s "$(command -v "$cmd")" "$R/cpath/$cmd"; done
+credit() { local home=$1; shift; mkdir -p "$home"; (cd "$R/cwork" && HOME="$home" PATH="$PATH_C" NEAR_API_KEY=SECRET_FIXTURE "$@" 2>&1); }
+PATH_C="$R/cpath"
+H="$R/credit home"; A="$H/.abalone-app/ddddddd"; B="$A/public-credit/$bid"
+: > "$R/curls"
+c1=$(credit "$H" sh "$R/credit-install.sh" --credit); cc1=$?
+echo "$c1" | sed 's/^/  /'
+check "credit installs owned-host runtime without bubblewrap and prints exact trial and launcher paths" '[[ $cc1 == 0 && $c1 == *"Public credit trial: $B/trial.json"* && $c1 == *"Launcher: $H/.local/bin/abalone"* && $c1 == *"credit inspect --trial '"'"'$B/trial.json'"'"' --stdin"* && $(readlink "$H/.local/bin/abalone") == "$A/abalone/bin/abalone" && $c1 != *SECRET_FIXTURE* ]]'
+check "credit saves the four pinned public files and a receipt binding artifact and file digests" 'ok=1; for n in trial.json issuer-pin.json staging-approval.json readiness.json; do cmp -s "$R/cpub/$n" "$B/$n" || ok=0; done; [[ $ok == 1 ]] && grep -q "\"artifactSha256\":\"$csha\"" "$B/receipt.json" && grep -q "\"runtimeTreeSha256\":\"[0-9a-f]\{64\}\"" "$B/receipt.json" && [[ $(stat -c %a "$B") == 700 ]]'
+check "credit launches nothing: no launcher run, first-use, canary, redemption or credit state" '[[ ! -e $R/launched && $c1 != *"synthetic first-use"* && -z $(ls -A "$R/cwork") && ! -e "$H/.abalone" && ! -e "$H/.abalone-friend" ]]'
+check "credit downloads exactly the pinned archive and four public inputs" '[[ $(wc -l < "$R/curls") == 5 && $(head -n 1 "$R/curls") == https://example.org/credit/abalone-ddddddd.tar.gz ]] && [[ -z $(ls -A "$H/.abalone-app" | grep credit-stage) ]]'
+c2=$(credit "$H" sh "$R/credit-install.sh" --credit); cc2=$?
+check "repeat credit install revalidates the identical install and still launches nothing" '[[ $cc2 == 0 && $c2 == *"Public credit trial: $B/trial.json"* && ! -e $R/launched ]]'
+echo tamper >> "$A/abalone/lib/credit.mjs"
+c3=$(credit "$H" sh "$R/credit-install.sh" --credit); cc3=$?
+check "modified existing runtime is refused and left untouched" '[[ $cc3 != 0 && $c3 == *"does not match the verified ddddddd release"* && $(tail -n 1 "$A/abalone/lib/credit.mjs") == tamper && ! -e $R/launched ]]'
+H2="$R/credit h2"; A2="$H2/.abalone-app/ddddddd"; B2="$A2/public-credit/$bid"
+credit "$H2" sh "$R/credit-install.sh" --credit > /dev/null
+rm "$A2/abalone/lib/credit-store.mjs"
+c4=$(credit "$H2" sh "$R/credit-install.sh" --credit); cc4=$?
+check "partial existing runtime is refused, not silently trusted" '[[ $cc4 != 0 && $c4 == *"does not match the verified"* && ! -e $A2/abalone/lib/credit-store.mjs ]]'
+H3="$R/credit h3"; A3="$H3/.abalone-app/ddddddd"; B3="$A3/public-credit/$bid"
+credit "$H3" sh "$R/credit-install.sh" --credit > /dev/null
+echo extra > "$A3/abalone/lib/extra.mjs"
+c5=$(credit "$H3" sh "$R/credit-install.sh" --credit); cc5=$?
+check "existing runtime with an extra file is refused" '[[ $cc5 != 0 && $c5 == *"does not match the verified"* ]]'
+rm "$A3/abalone/lib/extra.mjs"; ln -sf /etc/passwd "$A3/abalone/lib/credit-link.mjs"
+c5b=$(credit "$H3" sh "$R/credit-install.sh" --credit); cc5b=$?
+check "existing runtime with a redirected symlink is refused" '[[ $cc5b != 0 && $c5b == *"does not match the verified"* ]]'
+ln -sfn credit.mjs "$A3/abalone/lib/credit-link.mjs"
+printf '{}' > "$B3/issuer-pin.json"
+c6=$(credit "$H3" sh "$R/credit-install.sh" --credit); cc6=$?
+check "modified existing public bundle is refused and left untouched" '[[ $cc6 != 0 && $c6 == *"differs from this installer"* && $(cat "$B3/issuer-pin.json") == "{}" ]]'
+cp "$R/cpub/issuer-pin.json" "$R/pin.orig"; printf 'tamper' >> "$R/cpub/issuer-pin.json"
+c7=$(credit "$H" sh "$R/credit-install.sh" --credit); cc7=$?
+H4="$R/credit h4"
+c7b=$(credit "$H4" sh "$R/credit-install.sh" --credit); cc7b=$?
+check "bad pinned public file fails closed: prior valid bundle intact, nothing new published or launched" '[[ $cc7 != 0 && $c7 == *"issuer-pin.json does not match this installer"* && $cc7b != 0 ]] && cmp -s "$R/pin.orig" "$B/issuer-pin.json" && [[ ! -e "$H4/.abalone-app/ddddddd/abalone" && ! -e "$H4/.local/bin/abalone" && ! -e $R/launched ]] && [[ -z $(ls -A "$H4/.abalone-app" | grep credit-stage) ]]'
+cp "$R/pin.orig" "$R/cpub/issuer-pin.json"
+H5="$R/credit h5"; mkdir -p "$H5/.abalone-app/ddddddd" "$R/elsewhere"; ln -s "$R/elsewhere" "$H5/.abalone-app/ddddddd/public-credit"
+c8=$(credit "$H5" sh "$R/credit-install.sh" --credit); cc8=$?
+check "symlinked bundle destination is refused before writing through it" '[[ $cc8 != 0 && $c8 == *"is a symlink"* && -z $(ls -A "$R/elsewhere") ]]'
+H6="$R/credit h6"; mkdir -p "$H6/.local/bin"; echo mine > "$H6/.local/bin/abalone"
+c9=$(credit "$H6" sh "$R/credit-install.sh" --credit); cc9=$?
+check "an existing non-symlink launcher is refused and kept" '[[ $cc9 != 0 && $c9 == *"is not a symlink"* && $(cat "$H6/.local/bin/abalone") == mine && ! -e "$H6/.abalone-app/ddddddd/abalone" ]]'
+: > "$R/curls"
+c10=$(credit "$R/credit h7" sh "$R/friend-install.sh" --credit); cc10=$?
+check "bubblewrap-profile pins are refused for --credit before any download" '[[ $cc10 != 0 && $c10 == *"needs the trusted linux-node24-owned-host profile"* && ! -s $R/curls && ! -e "$R/credit h7/.abalone-app" ]]'
+c11=$(credit "$R/credit h7" sh "$R/install.sh" --credit); cc11=$?
+check "installer without public credit pins refuses" '[[ $cc11 != 0 && $c11 == *"no fully pinned public credit bundle"* && ! -e "$R/credit h7/.abalone-app" ]]'
+c12=$(credit "$R/credit h7" sh "$R/credit-install.sh" --credit --peer x g1CODE.grant); cc12=$?
+check "--credit with extra arguments refuses" '[[ $cc12 != 0 && $c12 == *"Usage: install.sh --credit"* && $c12 != *g1CODE* && ! -s $R/curls ]]'
+mkdir "$R/noflock"; for f in "$R"/cpath/*; do [[ ${f##*/} == flock ]] || ln -s "$(readlink -f "$f")" "$R/noflock/${f##*/}"; done; rm "$R/noflock/curl"; cp "$R/cpath/curl" "$R/noflock/"
+c13=$(PATH_C="$R/noflock" credit "$R/credit h7" sh "$R/credit-install.sh" --credit); cc13=$?
+check "missing flock refuses before download" '[[ $cc13 != 0 && $c13 == *"needs flock"* && ! -s $R/curls && ! -e "$R/credit h7/.abalone-app" ]]'
+mkdir "$R/arm" "$R/root"
+printf '#!/bin/sh\n[ "$1" = -m ] && echo aarch64 || echo Linux\n' > "$R/arm/uname"; printf '#!/bin/sh\n[ "$1" = -u ] && echo 0 || exec %s "$@"\n' "$(command -v id)" > "$R/root/id"; chmod +x "$R/arm/uname" "$R/root/id"
+c14=$(PATH_C="$R/arm:$R/cpath" credit "$R/credit h7" sh "$R/credit-install.sh" --credit); cc14=$?
+c15=$(PATH_C="$R/root:$R/cpath" credit "$R/credit h7" sh "$R/credit-install.sh" --credit); cc15=$?
+check "mocked non-x86_64 and mocked root are refused before download" '[[ $cc14 != 0 && $c14 == *"Linux x86_64 only"* && $cc15 != 0 && $c15 == *"not root"* && ! -s $R/curls && ! -e "$R/credit h7/.abalone-app" ]]'
+c16=$(credit "$R/credit h8" sh "$R/old-credit-install.sh" --credit); cc16=$?
+check "a release without the durable-credit runtime is refused after verification, nothing installed" '[[ $cc16 != 0 && $c16 == *"has no durable-credit runtime"* && ! -e "$R/credit h8/.abalone-app/eeeeeee/abalone" && ! -e "$R/credit h8/.local/bin/abalone" ]]'
 # tools/release.sh in a throwaway clone (this checkout's release.sh copied in), with npm stubbed: install.sh only with a base.
 git clone -q --shared "$root" "$R/repo" && cp "$root/tools/release.sh" "$R/repo/tools/"
 mkdir -p "$R/stub" && printf '#!/bin/sh\nexit 0\n' > "$R/stub/npm" && chmod +x "$R/stub/npm"
