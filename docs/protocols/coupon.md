@@ -348,7 +348,11 @@ files, and accepts only `x25519-aesgcm-recipient-v1`. It refuses a session-only 
 before claim. `credit recover` reads bound status first with the same keys: `ready` inside the
 claim window is retried once per explicit recover, `in_progress` is polled without a
 claim, and `delivered` is retrieved from the same winner. `claim_expired`,
-`reconciliation_required` and `accounting_blocked` are terminal; nothing is resent.
+`reconciliation_required` and `accounting_blocked` are terminal; nothing is resent. The signed staging approval selects the profile:
+an absent `delivery_profile` means session-only, and the only explicit value is
+`x25519-aesgcm-recipient-v1` (other values and unknown fields refuse). The client
+names its profile at connection; it must equal the approval's and every offer's.
+Durable credit requires the explicit durable approval, and session-only entries refuse it.
 
 Delivery authenticates canonical JSON:
 

@@ -1,0 +1,11 @@
+{
+  "purpose": "SOFTWARE TEST ONLY. Synthetic dsmack service-produced contract vectors for the durable x25519-aesgcm-recipient-v1 delivery profile, consumed unchanged by Abalone's Node client validators. No real keys, credentials, coupons, hardware evidence or chain state.",
+  "producer": "dsmack experiments/coupon_redemption (Python), test_durable_profile.py regenerates and checks these bytes",
+  "producerCommit": "9ce0a2d4a03143794d9b449e4017accd2b9f07a9",
+  "producerBase": "a93ca52",
+  "files": {
+    "offer-v4-recipient-v1.json": { "source": "experiments/coupon_redemption/fixtures/offer-v4-recipient-v1.json", "sha256": "4d5cb24d0091a2ed47c7bd063654faae33e132aea2962ba5d33167e93eb27a03" },
+    "staging-approval-recipient-v1-vector.json": { "source": "experiments/coupon_redemption/fixtures/staging-approval-recipient-v1-vector.json", "sha256": "34b52c63e0eda713dbcaa65278c77ac03b56207b0c931dd9f2363d60fc2dfc94" }
+  },
+  "notes": "The authority seed is the published 0x99 test seed already used by tests/fixtures/coupon/staging. Configuration envelopes are operator-side; the recipient client only checks that they never verify as approvals. The offer and approval vectors are independent, not a matched issuer/scope pair."
+}

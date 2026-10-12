@@ -14,6 +14,7 @@ import { servePeer } from "../lib/p2p.mjs";
 import { canonicalCouponJson } from "../lib/coupon-offer.mjs";
 import { couponAttestedClientForTesting, couponAttestedRecipient, couponAttestedRecipientPeerHash, validateAttestedCouponOffer, COUPON_ISSUER_PROTOCOL, COUPON_ISSUER_FRAME_LIMIT, COUPON_PROTOCOL_V4 } from "../lib/coupon-attested.mjs";
 import { createCreditManager, createCreditManagerForTesting } from "../lib/credit.mjs";
+import { openAttestedCouponSession } from "../lib/coupon-attested-session.mjs";
 import { OUT_OF_DATE_TRIAL_POLICY, OUT_OF_DATE_TRIAL_NOTICE } from "../lib/coupon-near.mjs";
 import { creditStore, creditId, couponInput, privateDirectory, readPrivate } from "../lib/credit-store.mjs";
 import { syntheticIssuerIdentity } from "./fixtures/coupon/issuer-v2.mjs";
@@ -24,8 +25,9 @@ const coupon = "c".repeat(43), id = creditId(coupon), sha = (v) => crypto.create
 const credential = "delivered-near-provider-credential-0123456789abcdef";
 const identity = syntheticIssuerIdentity(), issuerKeySha = sha(Buffer.from(identity.info.issuer_public_key_hex, "hex"));
 const signer = syntheticStagingSigner(), scope = "ab".repeat(32);
-const approval = signer.sign({ identityPolicySha256: identity.info.identity_policy_sha256, issuancePolicySha256: identity.info.issuance_policy_sha256,
-  issuerPublicKeySha256: issuerKeySha, providerScopeCommitment: scope });
+const approvalTerms = { identityPolicySha256: identity.info.identity_policy_sha256, issuancePolicySha256: identity.info.issuance_policy_sha256,
+  issuerPublicKeySha256: issuerKeySha, providerScopeCommitment: scope };
+const approval = signer.sign({ ...approvalTerms, deliveryProfile: "x25519-aesgcm-recipient-v1" }), legacyApproval = signer.sign(approvalTerms);
 const pin = () => ({ identityPolicy: structuredClone(identity.policy), expectedIdentityPolicySha256: identity.info.identity_policy_sha256,
   expectedIssuancePolicySha256: identity.info.issuance_policy_sha256, expectedIssuerPublicKeySha256: issuerKeySha });
 const provider = { baseUrl: "https://cloud-api.near.ai/v1", model: "selected/model", maxTokens: 512,
@@ -365,6 +367,26 @@ test("kernel locks exclude a live writer across processes, release on crash and 
 // Admission shape only; the lock refusal happens before any connection.
 const issuerAdmissionOnly = async () => ({ peer: `/ip4/127.0.0.1/tcp/9/p2p/${peerIdFromPrivateKey(await generateKeyPair("Ed25519"))}`, pin: pin(),
   approval: approval.bytes.toString("base64"), approvalRoot: signer.rootHex, provider });
+
+test("durable and legacy signed approvals never cross entry points before any bearer frame", { timeout: 30_000 }, async () => {
+  const server = await issuer(), dir = path.join(tempDir(), "credit");
+  try {
+    // Durable credit refuses a legacy approval before connecting.
+    await assert.rejects(createCreditManagerForTesting({ directory: dir, connect }).inspect(coupon, { ...server.admission, approval: legacyApproval.bytes.toString("base64") }), { code: "credit_profile_refused" });
+    // A durable client refuses a legacy approval, and the legacy default client refuses a durable approval, at identity admission.
+    const pins = { ...pin() };
+    for (const [deliveryProfile, signed] of [["x25519-aesgcm-recipient-v1", legacyApproval], [undefined, approval]]) {
+      await assert.rejects(connect(server.admission.peer, { ...pins, ...(deliveryProfile ? { deliveryProfile } : {}), stagingApproval: { bytes: signed.bytes, approvalRoot: signer.rootHex } }), { code: "staging_admission_refused" });
+      await pace();
+    }
+    // The existing session-only entry refuses a durable approval before reading any gift.
+    await assert.rejects(openAttestedCouponSession({ peerAddr: server.admission.peer, admit: { dev: true }, profile: "debug-staging", model: "selected/model",
+      config: { couponSession: { mode: "synthetic-loopback", provider: "synthetic-near", baseUrl: "http://127.0.0.1:9999/v1", models: ["fixture-model"] } }, issuerPin: pin(),
+      stagingApproval: { bytes: approval.bytes, approvalRoot: signer.rootHex }, connect, pollRoundMs: 300, pollIntervalMs: 50 }), { code: "staging_admission_refused" });
+    assert.equal(server.frames.length, 0, "no /4 bearer frame");
+    assert.deepEqual(fs.readdirSync(dir), []);
+  } finally { await server.host.stop(); }
+});
 
 test("each v4 delivery profile is accepted only by the caller that asked for it", () => {
   const peerId = "FixtureIssuer0001", options = { coupon, peerId, issuerInfo: identity.info };

@@ -197,3 +197,17 @@ test("first-use public inputs dispatch an independently pinned Mac policy and di
     pin.identityPolicy.custody = "private-enclave"; fs.writeFileSync(path.join(f.directory, "issuer-pin.json"), JSON.stringify(pin)); assert.throws(() => loadTrial(f.file));
   } finally { fs.rmSync(f.directory, { recursive: true, force: true }); }
 });
+
+test("a durable recipient-v1 trial loads its signed profile but the session-only first-use entry refuses it before any gift", () => {
+  const f = fixture();
+  try {
+    const identity = JSON.parse(fs.readFileSync(path.join(f.directory, "issuer-pin.json")));
+    const signer = syntheticStagingSigner();
+    fs.writeFileSync(path.join(f.directory, "approval.json"), signer.sign({ identityPolicySha256: identity.expectedIdentityPolicySha256, issuancePolicySha256: identity.expectedIssuancePolicySha256,
+      issuerPublicKeySha256: identity.expectedIssuerPublicKeySha256, providerScopeCommitment: "cd".repeat(32), deliveryProfile: "x25519-aesgcm-recipient-v1" }).bytes);
+    f.bundle.issuer.approvalRoot = signer.rootHex; f.save();
+    assert.equal(loadTrial(f.file).approval.deliveryProfile, "x25519-aesgcm-recipient-v1");
+    const r = spawnSync(process.execPath, [path.join(root, "tools/coupon-first-use.mjs"), "preflight", "--bundle", f.file], { encoding: "utf8", timeout: 15_000, env: { PATH: process.env.PATH, ABALONE_DIR: path.join(f.directory, "state") } });
+    assert.equal(r.status, 2, r.stderr); assert.match(r.stderr, /^durable_trial_refused: .*abalone credit/m);
+  } finally { fs.rmSync(f.directory, { recursive: true, force: true }); }
+});

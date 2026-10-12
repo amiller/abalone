@@ -32,7 +32,7 @@ test("the service's signed approval verifies against the pinned test root with e
   const payload = JSON.parse(bytes.toString("utf8")).payload;
   assert.deepEqual(verdict, { domain: COUPON_STAGING_APPROVAL_DOMAIN, approval_sha256: meta.valid.approval_sha256,
     profile: "debug-staging", powers: ["operator-secret-access", "application-exec", "debugger", "host-clock"],
-    promptPolicy: "synthetic-only", operatorSecretAccess: true, privateIssuanceQualified: false,
+    promptPolicy: "synthetic-only", deliveryProfile: "x25519-aesgcm-session-only", operatorSecretAccess: true, privateIssuanceQualified: false,
     rollbackQualified: false, settlementApproval: false, appId: payload.app_id, composeHash: payload.compose_hash,
     guard: payload.guard, maxCouponNanoUsd: payload.max_coupon_nano_usd, maxTotalNanoUsd: payload.max_total_nano_usd,
     expiresAtMs: Date.parse(payload.expires_at), generation: payload.generation, payload });
@@ -131,4 +131,48 @@ test("Mac approval binds runtime app/CDHash and retains all debug caps and guard
     assert.throws(() => verifyCouponStagingAdmission(sign({ ...payload, ...change }), { approvalRoot: root }));
   assert.throws(() => verifyCouponStagingAdmission(sign(payload, COUPON_STAGING_APPROVAL_DOMAIN), { approvalRoot: root }));
   assert.throws(() => verifyCouponStagingAdmission(sign(original), { approvalRoot: root }));
+});
+
+// Producer → consumer: the dsmack service's own durable approval vector (tests/fixtures/coupon/durable/PROVENANCE.json).
+const durableDir = new URL("fixtures/coupon/durable/", import.meta.url);
+const durable = JSON.parse(fs.readFileSync(new URL("staging-approval-recipient-v1-vector.json", durableDir), "utf8"));
+const RECIPIENT_V1 = "x25519-aesgcm-recipient-v1";
+
+test("service-produced durable approval verifies with its explicit recipient-v1 profile and distinct hash; refused variants refuse", () => {
+  const provenance = JSON.parse(fs.readFileSync(new URL("PROVENANCE.json", durableDir), "utf8"));
+  for (const [name, file] of Object.entries(provenance.files)) assert.equal(crypto.createHash("sha256").update(fs.readFileSync(new URL(name, durableDir))).digest("hex"), file.sha256, name);
+  assert.equal(durable.authority_public_key_hex, root, "same published test root");
+  const verdict = verifyCouponStagingAdmission(Buffer.from(durable.approval.envelope, "utf8"), { approvalRoot: durable.authority_public_key_hex });
+  assert.equal(verdict.deliveryProfile, RECIPIENT_V1);
+  assert.equal(verdict.approval_sha256, durable.approval.sha256);
+  assert.deepEqual(verdict.payload, durable.approval.payload);
+  const { delivery_profile: _profile, ...legacyPayload } = durable.approval.payload;
+  assert.equal(couponStagingApprovalHash(legacyPayload), durable.legacy_approval_sha256, "absence is the legacy approval");
+  assert.notEqual(durable.approval.sha256, durable.legacy_approval_sha256);
+  assert.equal(verifyCouponStagingAdmission(approval("valid"), { approvalRoot: root }).deliveryProfile, "x25519-aesgcm-session-only");
+  for (const refused of durable.refused) assert.throws(() => verifyCouponStagingAdmission(Buffer.from(refused.envelope, "utf8"), { approvalRoot: root }), { code: "staging_admission_refused" }, refused.name);
+  assert.throws(() => verifyCouponStagingAdmission(Buffer.from(durable.config.envelope, "utf8"), { approvalRoot: root }), { code: "staging_admission_refused" }, "operator config never verifies as an approval");
+  const unsigned = JSON.parse(durable.approval.envelope); unsigned.payload.delivery_profile = "x25519-aesgcm-session-only";
+  assert.throws(() => verifyCouponStagingAdmission(Buffer.from(canonicalCouponJson(unsigned)), { approvalRoot: root }), { code: "staging_admission_refused" });
+  assert.throws(() => verifyCouponStagingAdmission(Buffer.from(durable.approval.envelope, "utf8"), { approvalRoot: "11".repeat(32) }), { code: "staging_admission_refused" });
+  for (const pin of ["identityPolicySha256", "issuancePolicySha256", "issuerPublicKeySha256"])
+    assert.throws(() => verifyCouponStagingAdmission(Buffer.from(durable.approval.envelope, "utf8"), { approvalRoot: root, [pin]: "00".repeat(32) }), { code: "staging_admission_refused" });
+});
+
+test("the optional profile field is strict on both approval domains under valid signatures", async () => {
+  const { MAC_COUPON_APPROVAL_DOMAIN } = await import("../lib/coupon-staging.mjs");
+  const sign = (payload, domain) => Buffer.from(canonicalCouponJson({ domain, payload, signature_hex: crypto.sign(null, Buffer.concat([Buffer.from(domain + "\0"), Buffer.from(canonicalCouponJson(payload))]), seedKey).toString("hex") }));
+  const tdx = durable.approval.payload;
+  const { delivery_profile: _p, ...base } = tdx;
+  const mac = { ...base, version: 2, issuer_profile: "mac-appattest-coupon-v1", app_id: "SYNTHETIC-runtime-app", cdhash: "ab".repeat(32) };
+  for (const [payload, domain] of [[base, COUPON_STAGING_APPROVAL_DOMAIN], [mac, MAC_COUPON_APPROVAL_DOMAIN]]) {
+    assert.equal(verifyCouponStagingAdmission(sign(payload, domain), { approvalRoot: root }).deliveryProfile, "x25519-aesgcm-session-only");
+    const selected = verifyCouponStagingAdmission(sign({ ...payload, delivery_profile: RECIPIENT_V1 }, domain), { approvalRoot: root });
+    assert.equal(selected.deliveryProfile, RECIPIENT_V1);
+    assert.notEqual(selected.approval_sha256, couponStagingApprovalHash(payload));
+    for (const value of ["x25519-aesgcm-session-only", "x25519-aesgcm-recipient-v2", "", null, 1, ["x25519-aesgcm-recipient-v1"]])
+      assert.throws(() => verifyCouponStagingAdmission(sign({ ...payload, delivery_profile: value }, domain), { approvalRoot: root }), { code: "staging_admission_refused" }, `${domain} ${JSON.stringify(value)}`);
+    assert.throws(() => verifyCouponStagingAdmission(sign({ ...payload, delivery_profile: RECIPIENT_V1, retention: "durable" }, domain), { approvalRoot: root }), { code: "staging_admission_refused" });
+    assert.throws(() => verifyCouponStagingAdmission(sign({ ...payload, delivery_profile: RECIPIENT_V1 }, domain === MAC_COUPON_APPROVAL_DOMAIN ? COUPON_STAGING_APPROVAL_DOMAIN : MAC_COUPON_APPROVAL_DOMAIN), { approvalRoot: root }), { code: "staging_admission_refused" });
+  }
 });

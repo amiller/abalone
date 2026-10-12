@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import { servePeer } from "../lib/p2p.mjs";
 import { canonicalCouponJson } from "../lib/coupon-offer.mjs";
-import { couponAttestedClient, couponAttestedClientForTesting, couponAttestedRecipient, couponAttestedRecipientPeerHash, validateAttestedCouponOffer, COUPON_ISSUER_PROTOCOL, COUPON_ISSUER_FRAME_LIMIT, COUPON_PROTOCOL_V4 } from "../lib/coupon-attested.mjs";
+import { couponAttestedClient, couponAttestedClientForTesting, couponAttestedRecipient, couponAttestedRecipientPeerHash, couponDeliveryAad, validateAttestedCouponOffer, COUPON_ISSUER_PROTOCOL, COUPON_ISSUER_FRAME_LIMIT, COUPON_PROTOCOL_V4, COUPON_DELIVERY_RECIPIENT_V1 } from "../lib/coupon-attested.mjs";
+import fs from "node:fs";
 import { syntheticIssuerIdentity } from "./fixtures/coupon/issuer-v2.mjs";
 import { verifyDcapQuote, issuerPolicyHash, createDstackIssuerVerifierForTesting } from "../lib/vendor/dstack-issuer/dstack_issuer.mjs";
 
@@ -327,4 +328,29 @@ test("pending claim polling retains winner key/hash, cancels actual reads, and n
     assert.equal(claims, 2, "delivered retrieval replays exactly the original key/hash");
     assert.ok(statusFrames.every((frame) => frame.recipient_key === winner.publicKey && frame.offer_hash === selected.offer_hash));
   } finally { await client?.close(); await host.stop(); }
+});
+
+// Producer → consumer: the dsmack service's own recipient-v1 offer, hash and AAD (tests/fixtures/coupon/durable/PROVENANCE.json).
+test("service-produced recipient-v1 offer, hash and delivery AAD are accepted only in explicit recipient mode", () => {
+  const v = JSON.parse(fs.readFileSync(new URL("fixtures/coupon/durable/offer-v4-recipient-v1.json", import.meta.url), "utf8"));
+  assert.equal(v.environment, "synthetic-only-not-hardware");
+  const issuerInfo = { version: 2, issuer_public_key_hex: v.issuer_public_key_hex, identity_policy_sha256: v.offer.issuer.identity_policy_sha256, issuance_policy_sha256: v.offer.issuer.issuance_policy_sha256 };
+  const options = { coupon: v.coupon, peerId: v.offer.issuer.peer_id, issuerInfo, deliveryProfile: COUPON_DELIVERY_RECIPIENT_V1 };
+  const produced = { offer: v.offer, offer_hash: v.offer_hash };
+  assert.equal(validateAttestedCouponOffer(produced, options), produced);
+  assert.throws(() => validateAttestedCouponOffer(produced, { ...options, deliveryProfile: undefined }), /verification failed/, "legacy callers refuse the durable offer");
+  const relabelled = { ...v.offer, delivery_profile: "x25519-aesgcm-session-only" };
+  assert.throws(() => validateAttestedCouponOffer({ offer: relabelled, offer_hash: v.offer_hash }, { ...options, deliveryProfile: undefined }), /verification failed/, "no relabel under the produced hash");
+  assert.throws(() => validateAttestedCouponOffer(bundle(relabelled), options), /verification failed/, "a legacy offer never passes recipient mode");
+  for (const [change, extra] of [[{ delivery_profile: "x25519-aesgcm-recipient-v2" }, { deliveryProfile: "x25519-aesgcm-recipient-v2" }], [{ budget_nano_usd: "1" }, {}],
+      [{ provider: { ...v.offer.provider, scope_commitment: "cd".repeat(32) } }, {}]])
+    assert.throws(() => validateAttestedCouponOffer({ offer: { ...v.offer, ...change }, offer_hash: v.offer_hash }, { ...options, ...extra }), /verification failed/);
+  assert.throws(() => validateAttestedCouponOffer(produced, { ...options, coupon: "B".repeat(43) }), /verification failed/, "replay for another gift");
+  assert.throws(() => validateAttestedCouponOffer(produced, { ...options, peerId: "IssuerPeer00000002" }), /verification failed/);
+  assert.throws(() => validateAttestedCouponOffer(produced, { ...options, issuerInfo: { ...issuerInfo, issuer_public_key_hex: "00".repeat(32) } }), /verification failed/);
+  const aad = { offerHash: v.offer_hash, coupon: v.coupon, keyId: v.provider_key_id, recipientKey: Buffer.from(v.recipient_public_key, "base64"), recipientPeer: v.recipient_peer };
+  assert.equal(couponAttestedRecipientPeerHash(v.recipient_peer), v.recipient_peer_sha256);
+  assert.equal(couponDeliveryAad(aad).toString("utf8"), v.aad_utf8, "the client builds the producer's exact AAD");
+  for (const change of [{ recipientKey: Buffer.alloc(32, 9) }, { recipientPeer: "PeerB" }, { offerHash: "00".repeat(32) }, { keyId: "other-key" }])
+    assert.notEqual(couponDeliveryAad({ ...aad, ...change }).toString("utf8"), v.aad_utf8);
 });

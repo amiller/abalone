@@ -122,7 +122,10 @@ async function main(argv) {
   if (keepTrace) argv = argv.slice(0, -1);
   if (argv.length !== 3 || !["preflight", "run"].includes(argv[0]) || argv[1] !== "--bundle" || !path.isAbsolute(argv[2])) throw fail("usage", "Usage: node tools/coupon-first-use.mjs {preflight|run} --bundle /ABS/trial.json [--keep-trace]");
   // Validate signed public inputs/source before creating any local workspace records.
-  checkSource(loadTrial(argv[2]));
+  const selected = loadTrial(argv[2]);
+  checkSource(selected);
+  // The session-only entry never runs a durable approval; that trial belongs to abalone credit.
+  if (selected.approval.deliveryProfile !== "x25519-aesgcm-session-only") throw fail("durable_trial_refused", "This trial's signed approval selects durable recipient credit. Use abalone credit inspect/redeem; the session-only first-use entry read no gift.");
   if (argv[0] === "run") {
     prepareWorkspace(process.cwd(), { ownedHost: loadTrial(argv[2]).bundle.platform === "linux-node24-owned-host" });
     if (keepTrace && !keyInfo()) {
