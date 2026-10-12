@@ -17,8 +17,10 @@ In the bubblewrap profile, the harness uses explicit sandbox mounts and network
 restriction. In the owned-host profile, local tools run with ordinary
 account filesystem/network access. Both profiles use temporary managed agent
 state and write no trace by default. With `--keep-trace`, the launcher
-writes the encrypted trace. See [what is kept](../security.md#local-host-and-retention). tmpfs can swap, and workspace files and terminal
-captures can survive; these are not secure-erasure guarantees.
+writes the encrypted trace. See
+[what is kept](../security.md#local-host-and-retention). tmpfs can swap, and
+workspace files and terminal captures can survive; these are not
+secure-erasure guarantees.
 
 ## Files
 

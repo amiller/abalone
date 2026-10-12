@@ -164,7 +164,8 @@ Inside the session, `/status` shows usage, what is kept and what was verified;
 `/coupon` shows the credit's state and limits.
 
 The conversation is held in memory only and is not saved. The gift code, model
-credential and recovery keys stay in `~/.abalone/credit` until you delete them; see
+credential and recovery keys stay in `~/.abalone/credit` until you delete them.
+Deleting them does not revoke the credential; see
 [what is kept](security.md#local-host-and-retention).
 Next time, run `abalone` again (or `abalone credit status` to find the credit ID
 for the explicit form). Each session uses the same credit with fresh provider

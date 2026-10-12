@@ -54,25 +54,33 @@ Neither incognito nor provider encryption gives IP anonymity.
 What each mode keeps on this computer:
 
 - `abalone` and `abalone credit session`: Pi runs with `--no-session`, so the
-  conversation exists only in process memory. Pi's settings and logs, harness
-  state and scratch go to a run directory on tmpfs (`/dev/shm/abalone-<uid>`),
-  removed at exit. Nothing is saved to resume; the next session starts fresh.
+  conversation exists only in process memory. Pi's settings, crash and debug
+  logs, harness state and scratch go to a run directory on tmpfs
+  (`/dev/shm/abalone-<uid>/run-*`). The launcher removes it when it exits
+  normally, on an error, or on SIGTERM/SIGHUP; the empty 0700 parent stays.
+  After SIGKILL or a native crash the run directory stays in `/dev/shm` until
+  reboot. Nothing is saved to resume; the next session starts fresh. Tools run
+  as your account with your real `HOME` and can write anywhere under it.
 - `abalone sandbox --incognito`: Pi also runs with `--no-session` and its agent
-  directory is in the run directory, removed at exit. `--keep-trace` adds an
-  encrypted trace in `.abalone/traces/` under a user-held key; see the
-  [trace format and recovery](protocols/trace-store.md).
+  directory is a tmpfs inside the sandbox, gone when the sandbox exits.
+  With a routed gift, its balance is written to `~/.abalone/gift-left.json`.
+  `--keep-trace` adds an encrypted trace in `.abalone/traces/` under a
+  user-held key; see the [trace format and recovery](protocols/trace-store.md).
 - `abalone sandbox` without `--incognito`: Pi keeps a resumable plaintext
   session under `~/.abalone/agent` until you delete it.
-- Saved credit: `~/.abalone/credit/<id>.json`, mode 0600, holds the gift code,
-  the delivered model credential, the recovery keys and reported token usage.
-  It survives close. Abalone has no command that removes it; deleting the file
-  does not revoke the credential.
+- Saved credit: `~/.abalone/credit/<id>.json`, mode 0600, is created by
+  `abalone credit inspect`, before redemption, with the gift code and Noise
+  seed. Redemption adds the delivered model credential and its envelope;
+  sessions add reported token usage. It survives close. Abalone has no command
+  that removes it. A `<id>.json.lock` file beside it is never removed, and
+  `<id>` is the SHA-256 of the gift code, so deleting only the `.json` leaves a
+  name that identifies the gift. Deleting does not revoke the credential.
 - The model provider receives each request. Abalone does not verify what the
   provider retains.
 
 A fresh session is not deletion. The administrator and same-user processes can
 read all of the above while it exists. tmpfs may swap; workspace files, terminal
-scrollback, the egress log's host names, backups, crashes and copied files have
+scrollback, host names in `~/.abalone/egress.jsonl`, backups, crashes and copied files have
 their own lifetimes. Deleting files is not secure erasure.
 
 ## Disclosure and tool authority
