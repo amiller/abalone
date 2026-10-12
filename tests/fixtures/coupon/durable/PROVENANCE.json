@@ -40,7 +40,6 @@
         "sha256": "9d65039ca4eeb6a9b035706e7e36e6d1e9333aee6b2dbc709882d39db4e7ff40",
         "producerCommit": "786aae418d048996765a02246f39ed650f1041b3",
         "checkedAt": "49ff67f3c234121af230a4d598a7ed5a91f79a0a",
-        "branch": "work/coupon-native-authority-20261012",
         "note": "Mac approval v3 native-authority MacLiveWorker run: offer carries an exact provider_expires_at and sponsor_powers []; the provider binding sits in the operator-side config behind provider_scope_commitment."
       },
       "paired/mac-v3-native-session-only.json": {
@@ -48,7 +47,6 @@
         "sha256": "c7d89f13dba5afe6b0a7600147a2f44ddb0d21702ecac5bff79f8387e9e63620",
         "producerCommit": "786aae418d048996765a02246f39ed650f1041b3",
         "checkedAt": "49ff67f3c234121af230a4d598a7ed5a91f79a0a",
-        "branch": "work/coupon-native-authority-20261012",
         "note": "Mac approval v3 native-authority MacLiveWorker run: offer carries an exact provider_expires_at and sponsor_powers []; the provider binding sits in the operator-side config behind provider_scope_commitment."
       }
     }

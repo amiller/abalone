@@ -673,7 +673,7 @@ async function session() {
   if (ownedHost) { env.ABALONE_OWNED_HOST = "1"; env.ABALONE_DIR = path.join(run, "state"); delete env.ABALONE_SANDBOX; env.TMPDIR = path.join(run, "tmp"); }
   if (couponSlot) {
     const socketPath = path.join(run, "coupon.sock");
-    await couponSlot.broker(socketPath, { onState: (state) => console.error(state === "usage_not_recorded" ? "Warning: the last answer's token usage was not recorded in the saved credit; the session continues." : `Coupon session: ${state}. Check /coupon; no alternate key is tried.`) });
+    await couponSlot.broker(socketPath, { onState: (state) => console.error(state === "usage_not_recorded" ? "Warning: the last answer's token usage was not recorded; the session continues." : `Coupon session: ${state}. Check /coupon; no alternate key is tried.`) });
     env.ABALONE_COUPON_SOCKET = socketPath; env.ABALONE_COUPON_MODEL = couponSlot.provider.model; env.ABALONE_COUPON_PROVIDER = couponSlot.provider.provider;
     if (couponSlot.provider.provider === "nearai") env.ABALONE_COUPON_MAX_TOKENS = String(couponSlot.provider.maxTokens);
     loads.push("-e", admit(entries, path.join(ROOT, "curated/coupon-provider.ts"), "coupon provider extension"));

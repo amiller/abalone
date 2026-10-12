@@ -494,6 +494,31 @@ test("near broker: bounded admission windows re-admit the same delivered credent
   } finally { await session?.close(); await server.host.stop(); fs.rmSync(directory, { recursive: true, force: true }); }
 });
 
+test("a malformed provider usage block after a delivered answer is a warning; the session-only state stays installed", { timeout: 20_000 }, async () => {
+  const signer = syntheticStagingSigner();
+  const server = await issuerServer({ offerTerms: terms("placeholder"), credential: nearCredential });
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "coupon-attested-usage-")), states = [];
+  const reply = `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: "synthetic answer" }, finish_reason: "stop" }] })}\n\ndata: ${JSON.stringify({ choices: [], usage: { prompt_tokens: 1, completion_tokens: "x" } })}\n\ndata: [DONE]\n\n`;
+  let session;
+  try {
+    server.state.offer = bundle(terms(server.host.peerId.toString(), { provider: "near", scope: "ab".repeat(32) }));
+    session = await openAttestedCouponSession({ peerAddr: server.address(), admit: { dev: true }, profile: "debug-staging", model: nearModel, config, issuerPin: pin(),
+      stagingApproval: { bytes: signer.sign({ identityPolicySha256: identity.info.identity_policy_sha256, issuancePolicySha256: identity.info.issuance_policy_sha256,
+        issuerPublicKeySha256: issuerKeySha, providerScopeCommitment: "ab".repeat(32), expiresAt: "2030-01-01T00:00:00Z" }).bytes, approvalRoot: signer.rootHex },
+      connect: (addr, options) => couponAttestedClientForTesting(addr, { ...options, syntheticQuoteVerifier: quote }),
+      nearAdapterFactory: () => ({ admit: async () => {}, close: async () => {}, fetch: async () => new Response(reply, { headers: { "content-type": "text/event-stream" } }) }),
+      pollRoundMs: 300, pollIntervalMs: 50 });
+    const preview = await session.inspect(coupon);
+    await session.claim({ offerHash: preview.offerHash, consent: "CLAIM DEBUG STAGING SESSION" });
+    const sock = path.join(directory, "broker.sock");
+    await session.broker(sock, { timeoutMs: 3000, onState: (s) => states.push(s) });
+    const res = await couponSocketFetch(sock)("ignored", { body: JSON.stringify({ model: nearModel, messages: [{ role: "user", content: "synthetic" }] }) });
+    assert.equal(res.status, 200); assert.equal(await res.text(), reply);
+    assert.deepEqual(states, ["installed", "usage_not_recorded"]);
+    assert.equal(session.state, "installed"); assert.equal(session.info().state, "installed");
+  } finally { await session?.close(); await server.host.stop(); fs.rmSync(directory, { recursive: true, force: true }); }
+});
+
 test("closing during a pending claim or broker opening aborts cleanly and leaves nothing installed", { timeout: 15_000 }, async () => {
   const server = await issuerServer({ offerTerms: terms("placeholder") });
   let session;
