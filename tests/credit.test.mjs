@@ -352,7 +352,8 @@ test("inspect writes nothing: no record, lock or temp file exists until redempti
     await assert.rejects(createCreditManagerForTesting({ directory: dir, connect }).status(id), { code: "credit_store_refused" });
     await assert.rejects(manager.redeem(id, { offerHash: "00".repeat(32) }), { code: "credit_intent_required" });
     assert.deepEqual(fs.readdirSync(dir), [], "a wrong offer hash writes nothing");
-    await assert.rejects(manager.redeem(id, { recover: true }), { code: "credit_store_refused" });
+    await assert.rejects(manager.redeem(id, { recover: true }), { code: "credit_unavailable" });
+    assert.deepEqual(fs.readdirSync(dir), [], "recover of an unknown id creates no lock file");
     assert.ok(!server.frames.some((f) => f.op === "claim"));
     assert.equal((await manager.redeem(id, { offerHash: offer.offerHash })).state, "installed");
     assert.equal(savedRecord(dir).localPeer, claims(server)[0].peer, "the record holds the keys that claimed");
@@ -371,15 +372,25 @@ test("credit forget removes the record and its lock file, is refused while a ses
     assert.throws(() => manager.forget(id), { code: "credit_locked" });
     assert.deepEqual(fs.readdirSync(dir).sort(), [`${id}.json`, `${id}.json.lock`], "nothing removed while the session runs");
     await session.close();
-    manager.forget(id);
+    const installed = savedRecord(dir), rewrite = (state) => { const store = creditStore(dir), unlock = store.lock(id); try { store.write({ ...installed, state }); } finally { unlock(); } };
+    for (const state of ["uncertain", "claiming"]) {
+      rewrite(state);
+      assert.throws(() => manager.forget(id), { code: "credit_claim_in_progress", message: /Run abalone credit recover --credit <id> first: these keys are the only way to recover the claim/ }, state);
+      assert.deepEqual(fs.readdirSync(dir).sort(), [`${id}.json`, `${id}.json.lock`], `${state}: nothing removed`);
+    }
+    rewrite("installed"); manager.forget(id);
     assert.deepEqual(fs.readdirSync(dir), []);
     assert.throws(() => manager.forget(id), { code: "credit_unavailable" });
     assert.deepEqual(fs.readdirSync(dir), [], "forgetting an unknown id creates no lock file");
   } finally { await server.host.stop(); }
-  // The CLI path, over a real (non-testing) record shape: only the lock and file handling are exercised here.
+  // The CLI path over a minimal uncertain record: refused without --force, removed with it.
   const home = tempDir(), store = creditStore(path.join(home, "state", "credit")), file = path.join(home, "state", "credit", `${id}.json`);
-  const unlock = store.lock(id); fs.writeFileSync(file, "{}", { mode: 0o600 }); unlock();
-  const r = spawnSync(process.execPath, [path.join(root, "bin/abalone.mjs"), "credit", "forget", "--credit", id], { encoding: "utf8", timeout: 20_000, env: { ...process.env, ABALONE_DIR: path.join(home, "state") } });
+  const unlock = store.lock(id); fs.writeFileSync(file, JSON.stringify({ version: 1, id, state: "uncertain" }), { mode: 0o600 }); unlock();
+  const forget = (...extra) => spawnSync(process.execPath, [path.join(root, "bin/abalone.mjs"), "credit", "forget", "--credit", id, ...extra], { encoding: "utf8", timeout: 20_000, env: { ...process.env, ABALONE_DIR: path.join(home, "state") } });
+  const refused = forget();
+  assert.equal(refused.status, 1); assert.ok(refused.stderr.includes("Run abalone credit recover --credit <id> first: these keys are the only way to recover the claim."), refused.stderr);
+  assert.ok(fs.existsSync(file));
+  const r = forget("--force");
   assert.equal(r.status, 0, r.stderr);
   assert.ok(r.stdout.includes(`Forgot credit ${id}: its saved record and lock file were removed.`) && r.stdout.includes("The provider credential was NOT revoked."), r.stdout);
   assert.deepEqual(fs.readdirSync(path.join(home, "state", "credit")), []);
@@ -438,7 +449,7 @@ test("kernel locks exclude a live writer across processes, release on crash and 
     // Two contenders while the holder lives: both refused, and neither removes the live lock.
     for (let i = 0; i < 2; i++) assert.throws(() => creditStore(dir).lock(id), { code: "credit_locked" });
     assert.equal(fs.statSync(lockFile).ino, inode);
-    await assert.rejects(createCreditManagerForTesting({ directory: dir, connect }).redeem(id, { recover: true }), { code: "credit_locked" });
+    await assert.rejects(createCreditManagerForTesting({ directory: dir, connect }).session(id), { code: "credit_locked" });
     child.kill("SIGKILL"); await once(child, "exit");
     const again = store.lock(id);
     assert.equal(fs.statSync(lockFile).ino, inode, "lock file reused, not replaced");

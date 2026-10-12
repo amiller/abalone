@@ -45,7 +45,7 @@ const PEER = () => flag("--peer", process.env.ABALONE_PEER);
 let couponSlot = null;
 
 const CREDIT_OPTIONS = { inspect: ["--trial", "--stdin", "--input-file"], redeem: ["--trial", "--stdin", "--input-file", "--accept-offer"],
-  recover: ["--credit"], status: ["--credit"], session: ["--credit", "--mode"], forget: ["--credit"] };
+  recover: ["--credit"], status: ["--credit"], session: ["--credit", "--mode"], forget: ["--credit", "--force"] };
 // Never echo an argument that may hold a gift code: any 43+ character base64url run, or a gift link.
 const giftLike = (v) => /[A-Za-z0-9_-]{43}/.test(v) || v.includes("#code=");
 const shown = (v) => giftLike(v) ? "(not shown: it looks like a gift code, and gift codes never belong in command arguments)" : JSON.stringify(v);
@@ -60,11 +60,11 @@ const CREDIT_CODES = new Set(["credit_usage", "credit_store_refused", "credit_pr
   "credit_admission_changed", "credit_profile_refused", "credit_redemption_incomplete", "credit_unavailable", "coupon_input_refused", "claim_not_reserved",
   "credit_not_claimed", "claim_pending", "claim_expired", "credit_flock_unavailable", "credit_input_refused", "credit_workspace_refused", "credit_runtime_refused",
   "reconciliation_required", "credential_refused", "staging_approval_expired", "issuer_unverified", "bundle_invalid", "issuer_inputs_missing",
-  "issuer_pin_refused", "provider_not_admitted", "source_inputs_missing"]);
+  "issuer_pin_refused", "credit_claim_in_progress", "provider_not_admitted", "source_inputs_missing"]);
 // A failed local setup step reports what to repair without raw paths or exception text.
 const creditStep = (code, message, fn) => { try { return fn(); } catch { throw Object.assign(new Error(message), { code }); } };
 const creditArg = (message) => Object.assign(new Error(message), { code: "credit_usage" });
-const creditUsage = () => creditArg("abalone credit takes one of: inspect, redeem, recover, status, session, forget. Usage: abalone credit inspect --trial /abs/trial.json (--stdin | --input-file /abs/private-file); credit redeem (same) --accept-offer <offerHash>; credit recover --credit <id>; credit status [--credit <id>]; credit session --credit <id> [--mode rpc]; credit forget --credit <id>. Gift codes and keys never belong in command arguments.");
+const creditUsage = () => creditArg("abalone credit takes one of: inspect, redeem, recover, status, session, forget. Usage: abalone credit inspect --trial /abs/trial.json (--stdin | --input-file /abs/private-file); credit redeem (same) --accept-offer <offerHash>; credit recover --credit <id>; credit status [--credit <id>]; credit session --credit <id> [--mode rpc]; credit forget --credit <id> [--force]. Gift codes and keys never belong in command arguments.");
 
 async function creditCmd() {
   let next;
@@ -78,10 +78,10 @@ async function creditAction() {
   if (!Object.hasOwn(CREDIT_OPTIONS, command)) throw creditUsage();
   for (let i = 2; i < args.length; i++) {
     const key = args[i];
-    if (!allowed.includes(key)) throw creditArg(Object.hasOwn(CREDIT_VALUES, key) || key === "--stdin" ? `credit ${command} does not take ${key}. Options: ${allowed.join(", ")}.`
+    if (!allowed.includes(key)) throw creditArg(Object.hasOwn(CREDIT_VALUES, key) || ["--stdin", "--force"].includes(key) ? `credit ${command} does not take ${key}. Options: ${allowed.join(", ")}.`
       : `Unexpected argument ${shown(key)} for credit ${command}. Options: ${allowed.join(", ")}. Gift codes go in a private file (--input-file) or a pipe (--stdin).`);
     if (Object.hasOwn(values, key)) throw creditArg(`${key} was given twice; give it once.`);
-    if (key === "--stdin") { values[key] = true; continue; }
+    if (key === "--stdin" || key === "--force") { values[key] = true; continue; }
     const value = args[++i];
     if (typeof value !== "string") throw creditArg(`${key} needs a value.`);
     const wrong = CREDIT_VALUES[key](value);
@@ -99,7 +99,7 @@ async function creditAction() {
   if (command === "forget") {
     needCredit();
     creditPreflight();
-    manager.forget(values["--credit"]);
+    manager.forget(values["--credit"], { force: !!values["--force"] });
     return void console.log(`Forgot credit ${values["--credit"]}: its saved record and lock file were removed.
 The provider credential was NOT revoked. It stays valid at the provider until it expires or the sponsor or issuer's operator revokes it; revoking would be a request to the issuer that delivered it, which Abalone does not support yet.`);
   }

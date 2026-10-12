@@ -76,9 +76,11 @@ What each mode keeps on this computer:
   finish an interrupted redeem. Redemption adds the delivered model credential
   and its envelope; sessions add reported token usage. It survives close.
   `<id>` is the SHA-256 of the gift code, and a `<id>.json.lock` file sits
-  beside the record. `abalone credit forget --credit <id>` removes both, and is
-  refused while a session is using the credit. Forgetting does not revoke the
-  credential.
+  beside the record. `abalone credit forget --credit <id>` removes both. It is
+  refused while a session is using the credit, and while a claim may be in
+  progress unless `--force` is given: run `abalone credit recover` first, since
+  those keys are the only way to recover the claim. Forgetting does not revoke
+  the credential.
 - The model provider receives each request. Abalone does not verify what the
   provider retains.
 
