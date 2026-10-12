@@ -36,7 +36,7 @@ import { admitAttestedCouponIssuerPin, admitAttestedCouponSessionIssuer, openAtt
   ATTESTED_COUPON_WAIT, ATTESTED_COUPON_RECOVER } from "../lib/coupon-attested-session.mjs";
 import { couponStagingGuardNotice } from "../lib/coupon-staging.mjs";
 import { createCreditManager } from "../lib/credit.mjs";
-import { couponNearFirmwareAdvisories } from "../lib/coupon-near.mjs";
+import { couponNearFirmwareAdvisories, OUT_OF_DATE_TRIAL_NOTICE } from "../lib/coupon-near.mjs";
 import { couponInput, creditId, creditPreflight, readPrivate } from "../lib/credit-store.mjs";
 
 const args = process.argv.slice(2);
@@ -102,7 +102,8 @@ async function creditAction() {
     couponSlot = await manager.session(values["--credit"]);
     creditStep("credit_runtime_refused", "The curated runtime or owned-host runtime directories did not verify. Reinstall the reviewed release; nothing was sent.", () => { verified(); runtimeDir(); memoryRoot(); });
     process.stderr.write(`${OWNED_HOST_NOTICE}\n`);
-    console.error(["Saved credit:", ...couponSlot.info().disclosures, "Fresh incognito conversation; the saved credit remains available after close."].join("\n"));
+    // The admission's own firmware line (lib/coupon-near.mjs) reports the OutOfDate condition once; inspect, status and /coupon keep the notice.
+    console.error(["Saved credit:", ...couponSlot.info().disclosures.filter((d) => d !== OUT_OF_DATE_TRIAL_NOTICE), "Fresh incognito conversation; the saved credit remains available after close."].join("\n"));
     // No decoy file: canaries guard the disclosure filter, which a credit session does not use.
     args.splice(0, args.length, "--incognito", "--owned-host", "--no-canaries", "--model", `${couponSlot.provider.provider}/${couponSlot.provider.model}`,
       ...(values["--mode"] ? ["--mode", "rpc"] : []));
@@ -673,7 +674,8 @@ async function session() {
   if (ownedHost) { env.ABALONE_OWNED_HOST = "1"; env.ABALONE_DIR = path.join(run, "state"); delete env.ABALONE_SANDBOX; env.TMPDIR = path.join(run, "tmp"); }
   if (couponSlot) {
     const socketPath = path.join(run, "coupon.sock");
-    await couponSlot.broker(socketPath, { onState: (state) => console.error(state === "usage_not_recorded" ? "Warning: the last answer's token usage was not recorded; the session continues." : `Coupon session: ${state}. Check /coupon; no alternate key is tried.`) });
+    let shown;
+    await couponSlot.broker(socketPath, { onState: (state) => state === "installed" && shown === state ? undefined : (shown = state, console.error(state === "usage_not_recorded" ? "Warning: the last answer's token usage was not recorded; the session continues." : `Coupon session: ${state}. Check /coupon; no alternate key is tried.`)) });
     env.ABALONE_COUPON_SOCKET = socketPath; env.ABALONE_COUPON_MODEL = couponSlot.provider.model; env.ABALONE_COUPON_PROVIDER = couponSlot.provider.provider;
     if (couponSlot.provider.provider === "nearai") env.ABALONE_COUPON_MAX_TOKENS = String(couponSlot.provider.maxTokens);
     loads.push("-e", admit(entries, path.join(ROOT, "curated/coupon-provider.ts"), "coupon provider extension"));

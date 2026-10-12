@@ -8,8 +8,9 @@ export { encrypt, decrypt, OUT_OF_DATE_TRIAL_POLICY } from "../../../lib/near.mj
 
 export async function verifyNearModel() {
   const key = crypto.createECDH("secp256k1"); key.generateKeys();
-  // The shape couponNearAdmissionAdvisories requires; fixture constants, not observations.
-  const profile = { gateway_tcb_status: "UpToDate", gateway_tcb_advisory_ids: [], model_tcb_statuses: ["UpToDate"], model_tcb_advisory_ids: [[]], gpu: "GPU: NVIDIA verdict (signature checked)" };
+  // The shape couponNearAdmissionAdvisories requires; fixture constants, not observations. ABALONE_SYNTHETIC_NEAR_OUT_OF_DATE=1 reports OutOfDate firmware.
+  const ood = process.env.ABALONE_SYNTHETIC_NEAR_OUT_OF_DATE === "1", status = ood ? "OutOfDate" : "UpToDate", ids = ood ? ["INTEL-SA-01111", "INTEL-SA-01222"] : [];
+  const profile = { gateway_tcb_status: status, gateway_tcb_advisory_ids: ids, model_tcb_statuses: [status], model_tcb_advisory_ids: [ids], gpu: "GPU: NVIDIA verdict (signature checked)" };
   return { signingPublicKey: key.getPublicKey("hex"), profile, transport: { close: async () => {}, fetch: async (url, options) => {
     const body = JSON.parse(options.body), headers = new Headers(options.headers);
     const user = body.messages.filter((m) => m.role === "user").map((m) => decrypt(m.content, key)).join("\n");

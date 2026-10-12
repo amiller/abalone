@@ -14,6 +14,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { createCreditManagerForTesting } from "../lib/credit.mjs";
 import { creditStore } from "../lib/credit-store.mjs";
+import { OUT_OF_DATE_TRIAL_POLICY } from "../lib/coupon-near.mjs";
 import { coupon, id, sha, credential, provider, connect, pace, issuer, bundle, terms } from "./lib/credit-fixture.mjs";
 import { creditId } from "../lib/credit-store.mjs";
 
@@ -22,13 +23,14 @@ const base = fs.mkdtempSync(path.join(os.tmpdir(), "abalone-credit-cli-"));
 const [state, home, xdg, work, tmp] = ["state", "home", "x", "work", "tmp"].map((n) => { const d = path.join(base, n); fs.mkdirSync(d, { mode: 0o700 }); return d; });
 const log = path.join(base, "synthetic-near.jsonl"), hook = path.join(root, "tests/fixtures/near/synthetic-near-hook.mjs");
 const pass = (name) => console.log(`PASS ${name}`);
+const warnings = (err) => err.split("\n").filter((l) => /warning|⚠|INTEL-SA|out ?of ?date/i.test(l)); // the usability gate's rule (tests/usability/live.mjs)
 
 // Saves one synthetic gift into dir (redeemed unless expiresAt overrides its claim window) and relabels it
-// testing:false so the real CLI opens it.
-async function saved(dir, code, expiresAt) {
+// testing:false so the real CLI opens it. policy overrides the delivered NEAR provider policy.
+async function saved(dir, code, expiresAt, policy = provider.policy) {
   const server = await issuer(undefined, code), manager = createCreditManagerForTesting({ directory: dir, connect });
   if (expiresAt) server.state.offer = bundle({ ...terms(server.host.peerId.toString(), undefined, code), claim_expires_at: expiresAt });
-  const offer = await manager.inspect(code, server.admission); await pace();
+  const offer = await manager.inspect(code, { ...server.admission, provider: { ...provider, policy } }); await pace();
   if (!expiresAt) await manager.redeem(creditId(code), { offerHash: offer.offerHash });
   await server.host.stop();
   const store = creditStore(dir), record = store.read(creditId(code)), unlock = store.lock(record.id);
@@ -42,9 +44,11 @@ const recordFile = path.join(state, "credit", `${id}.json`), recordBytes = fs.re
 fs.copyFileSync(path.join(root, "tests/fixtures/docs/tenancy-renewal.pdf"), path.join(work, "tenancy-renewal.pdf"));
 const env = { PATH: process.env.PATH, LANG: "C.UTF-8", HOME: home, ABALONE_DIR: state, XDG_RUNTIME_DIR: xdg, TMPDIR: tmp, ABALONE_SYNTHETIC_NEAR_LOG: log };
 
-function session(marker) {
-  const argv = ["--import", hook, path.join(root, "bin/abalone.mjs"), "credit", "session", "--credit", id, "--mode", "rpc"];
-  const child = spawn(process.execPath, argv, { cwd: work, env, stdio: ["pipe", "pipe", "pipe"] });
+// prompts: how many prompts to send, each after the previous one settles.
+function session(marker, { credit = id, extra = {}, prompts = 1 } = {}) {
+  const argv = ["--import", hook, path.join(root, "bin/abalone.mjs"), "credit", "session", "--credit", credit, "--mode", "rpc"];
+  const child = spawn(process.execPath, argv, { cwd: work, env: { ...env, ...extra }, stdio: ["pipe", "pipe", "pipe"] });
+  let settled = 0;
   const events = []; let out = "", err = "", buf = "";
   child.stderr.on("data", (d) => { err += d; });
   child.stdout.on("data", (d) => {
@@ -52,11 +56,12 @@ function session(marker) {
     for (let i; (i = buf.indexOf("\n")) >= 0;) {
       const ev = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1); events.push(ev);
       if (ev.type === "extension_ui_request" && ["confirm", "select", "input", "editor"].includes(ev.method)) { child.kill(); throw new Error(`unexpected ${ev.method} dialog`); }
-      if (ev.type === "agent_settled") child.stdin.end();
+      if (ev.type === "agent_settled") ++settled < prompts ? ask(settled + 1) : child.stdin.end();
     }
   });
+  const ask = (n) => child.stdin.write(JSON.stringify({ id: `p${n}`, type: "prompt", message: `${marker} In one line, what does @tenancy-renewal.pdf offer?` }) + "\n");
   for (const c of ["/coupon", "/status"]) child.stdin.write(JSON.stringify({ id: c, type: "prompt", message: c }) + "\n");
-  child.stdin.write(JSON.stringify({ id: "p1", type: "prompt", message: `${marker} In one line, what does @tenancy-renewal.pdf offer?` }) + "\n");
+  ask(1);
   return new Promise((resolve) => child.on("exit", (code) => resolve({ code, events, out, err, argv })));
 }
 const answer = (events) => events.filter((e) => e.type === "message_end" && e.message.role === "assistant").flatMap((e) => e.message.content).filter((c) => c.type === "text").map((c) => c.text).join("");
@@ -74,6 +79,7 @@ for (const run of [1, 2]) {
   assert.ok(shown?.includes("Each request: at most 4096 output tokens. Balance: unknown; usage: ") && shown.includes("; provider expiry: unknown. Sponsor may revoke or change limits.") && !shown.includes("NEAR firmware"), `run ${run} /coupon: ${shown}`);
   assert.ok(status?.includes("usage: not reported") && status.includes("Verified: the launcher checks") && !/\$0\.0000|private reader|--keep-trace|No verifier output/.test(status), `run ${run} /status: ${status}`);
   assert.ok(!/\$5 |\$5\/|5 trial/.test(r.err), "no fixed $5 trial text");
+  assert.deepEqual(warnings(r.err), [], `run ${run}: an UpToDate admission prints no warning line`);
   for (const secret of [coupon, credential, record.noiseSeed, record.recipientKey]) assert.ok(!r.out.includes(secret) && !r.err.includes(secret) && !r.argv.join(" ").includes(secret));
   pass(`run ${run}: fresh CLI process answers through the saved credit, discloses amount/balance/sponsor/request facts separately, /coupon answers from the launcher, shows no secret`);
 }
@@ -88,6 +94,17 @@ const usageOnly = () => { const { usage, ...rest } = JSON.parse(fs.readFileSync(
 assert.deepEqual(usageOnly(), { responses: 2, reported: 0, inputTokens: 0, outputTokens: 0, reasoningTokens: 0 }); assert.equal(fs.statSync(recordFile).mode & 0o777, 0o600);
 assert.equal(server.frames.filter((f) => f.op === "claim").length, claims);
 pass("the persisted credit is unchanged after both sessions except its 0600 usage total, and no claim was made");
+
+// An OutOfDate trial credit admitted on OutOfDate firmware, over two requests: one warning line, from the admission.
+const ood = path.join(base, "ood"), oodCode = "f".repeat(43), oodMarker = `SYNTHETIC-CLI-${crypto.randomBytes(6).toString("hex").toUpperCase()}`; markers.push(oodMarker);
+await saved(path.join(ood, "credit"), oodCode, undefined, { ...provider.policy, gatewayTcb: OUT_OF_DATE_TRIAL_POLICY, modelTcb: OUT_OF_DATE_TRIAL_POLICY });
+const o = await session(oodMarker, { credit: creditId(oodCode), extra: { ABALONE_DIR: ood, ABALONE_SYNTHETIC_NEAR_OUT_OF_DATE: "1" }, prompts: 2 });
+assert.equal(o.code, 0, o.err.slice(-2000));
+assert.equal(o.events.filter((e) => e.type === "message_end" && e.message.role === "assistant").length, 2);
+assert.deepEqual(warnings(o.err), ["⚠ NEAR firmware out of date (2 Intel advisories); synthetic input only"], o.err);
+assert.equal(o.err.split("Coupon session: installed.").length - 1, 1, o.err);
+assert.equal(JSON.parse(fs.readFileSync(path.join(ood, "credit", `${creditId(oodCode)}.json`), "utf8")).usage.responses, 2);
+pass("an OutOfDate trial credit session prints one warning line (the admission's firmware line) and one installed line over two requests");
 
 // Plain `abalone`: one saved credit opens its session; several are listed; none points to the redeem page.
 function plain(dir) {
