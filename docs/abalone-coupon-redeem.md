@@ -92,7 +92,17 @@ If a saved credit exists, open a session with it below; do not redeem another
 coupon. A provider key saved with `abalone key add` is used only by
 `abalone sandbox`, not by this session.
 
-Otherwise put the gift link or code in a 0600 file in a private directory, or
+The short way is plain `abalone` at your own terminal. With nothing saved it
+asks for the gift: paste the link, the code or the full path of a 0600 file
+holding it (the input is not echoed). It prints the same offer as
+`credit inspect` below and asks you to type the first 8 characters of its
+`offerHash`. Typing them redeems that offer and opens the session; anything else
+stops without claiming. An interrupted redemption ends with the recover message
+below. Without a terminal, plain `abalone` prints the two ways in and exits with
+status 2. It uses the `trial.json` installed with it; `abalone --trial
+/ABS/trial.json` selects another.
+
+The steps one at a time: put the gift link or code in a 0600 file in a private directory, or
 pass it on standard input with `--stdin`. Never put it in a command argument,
 URL query, environment variable or public log. Use the `trial.json` path the
 installer printed:
@@ -153,7 +163,7 @@ abalone
 
 With exactly one saved credit ready, plain `abalone` opens it. With several it
 lists them with the command to open each; with none ready it says why (for
-example an expired offer) and how to redeem. The explicit form, also for
+example an expired offer) and asks for a gift, as above. The explicit form, also for
 automation, is `abalone credit session --credit CREDIT_ID [--mode rpc]`.
 
 No password, tmux or new coupon is needed. The session adds no files to the

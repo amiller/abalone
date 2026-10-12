@@ -18,7 +18,7 @@ import { MAC_ISSUER_PROFILE, MAC_ISSUER_DOMAIN, macIssuerPolicyHash, macIssuerDa
 import { openAttestedCouponSession, attestedCouponSessionOfferText } from "../lib/coupon-attested-session.mjs";
 import { OUT_OF_DATE_TRIAL_POLICY, OUT_OF_DATE_TRIAL_NOTICE } from "../lib/coupon-near.mjs";
 import { couponSocketFetch } from "../lib/coupon-socket.mjs";
-import { creditStore, creditPreflight, couponInput, privateDirectory, readPrivate } from "../lib/credit-store.mjs";
+import { creditStore, creditPreflight, couponInput, giftPaste, privateDirectory, readPrivate } from "../lib/credit-store.mjs";
 import { syntheticIssuerIdentity } from "./fixtures/coupon/issuer-v2.mjs";
 import { syntheticStagingSigner } from "./fixtures/coupon/staging-signer.mjs";
 import { coupon, id, sha, credential, identity, signer, approval, legacyApproval, pin, provider, connect, pace, bundle, terms, issuer } from "./lib/credit-fixture.mjs";
@@ -506,6 +506,18 @@ test("gift input accepts the code or exact fragment link only", () => {
     assert.throws(() => couponInput(bad), { code: "coupon_input_refused" });
 });
 
+test("the front door's paste is a redeem link, a bare code or a private file path; anything else is refused by name", () => {
+  const dir = tempDir(), file = path.join(dir, "gift.txt"), open = path.join(dir, "open.txt"), garbage = path.join(dir, "garbage.txt");
+  fs.writeFileSync(file, `https://amiller.github.io/abalone/redeem/#code=${coupon}\n`, { mode: 0o600 });
+  fs.writeFileSync(open, coupon); fs.chmodSync(open, 0o644); fs.writeFileSync(garbage, "hello", { mode: 0o600 });
+  for (const text of [`https://amiller.github.io/abalone/redeem#code=${coupon}`, ` ${coupon}\n`, file, `./${path.basename(file)}`, `../${path.basename(dir)}/gift.txt`]) assert.equal(giftPaste(text, dir), coupon, text);
+  const home = process.env.HOME;
+  try { process.env.HOME = dir; assert.equal(giftPaste("~/gift.txt"), coupon); } finally { process.env.HOME = home; }
+  for (const text of [open, path.join(dir, "missing.txt"), `./${"c".repeat(43)}`]) assert.throws(() => giftPaste(text, dir), { code: "credit_input_refused", message: /must be a regular file you own with mode 0600/ }, text);
+  for (const text of ["hello", "", garbage, `http://amiller.github.io/abalone/redeem#code=${coupon}`, `https://example.com/abalone/redeem#code=${coupon}`, `gifts/${coupon}`, coupon.slice(1), "x".repeat(3000)])
+    assert.throws(() => giftPaste(text, dir), (e) => e.code === "coupon_input_refused" && e.message.startsWith("That is not a gift link") && !e.message.includes(coupon), text);
+});
+
 test("credit CLI names each argument mistake and what to do next, never echoing a gift code or raw error detail", () => {
   const home = tempDir(), cli = (...argv) => spawnSync(process.execPath, [path.join(root, "bin/abalone.mjs"), "credit", ...argv],
     { encoding: "utf8", timeout: 20_000, env: { ...process.env, ABALONE_DIR: path.join(home, "state") }, input: "" });
@@ -543,18 +555,23 @@ test("credit CLI names each argument mistake and what to do next, never echoing 
   assert.equal(trial.status, 1); assert.ok(!trial.stderr.includes(home) && !trial.stderr.includes("ENOENT"));
 });
 
-test("plain abalone without saved credit points to the redeem page; help prints help; an unknown command fails with help and exit 2", () => {
+test("plain abalone without saved credit explains the two ways in; help describes the front door first; an unknown command fails with help and exit 2", () => {
   const home = tempDir(), run = (...argv) => spawnSync(process.execPath, [path.join(root, "bin/abalone.mjs"), ...argv], { encoding: "utf8", timeout: 20_000, env: { ...process.env, ABALONE_DIR: path.join(home, "state") }, input: "" });
   const none = run();
-  assert.equal(none.status, 1);
-  assert.ok(none.stderr.startsWith("No saved credit yet.\n"), none.stderr);
-  for (const text of ["https://amiller.github.io/abalone/redeem/", "sh install.sh --credit", "abalone credit inspect --trial /abs/trial.json --input-file /abs/gift.txt",
-      "--accept-offer <offerHash>", "Then run abalone again."]) assert.ok(none.stderr.includes(text), text);
+  assert.equal(none.status, 2, "without a terminal there is nowhere to paste");
+  assert.ok(none.stderr.startsWith("No saved credit yet.\nTwo ways in:\n"), none.stderr);
+  for (const text of ["Paste a gift link or code here", `abalone key add <provider> saves it for abalone sandbox, not plain abalone; see ${path.join(root, "guides/acquiring-private-inference/README.md")}`, "abalone help lists every command."])
+    assert.ok(none.stderr.includes(text), text);
   assert.ok(!/canar|bubblewrap|providers\.json/.test(none.stderr), "never the legacy sandboxed session");
   assert.equal(fs.existsSync(path.join(home, "state", "credit")), false, "listing creates no credit directory");
+  assert.equal(run("--trial", "relative.json").stderr.trim(), `--trial path must be absolute: relative.json. Give the full path to trial.json, as printed by the installer, for example --trial "${path.join(root, "relative.json")}".`);
+  // At a terminal, a source checkout has no installed trial: refused after the explanation, before any gift is read.
+  const tty = spawnSync("script", ["-qec", `${process.execPath} ${path.join(root, "bin/abalone.mjs")}`, "/dev/null"], { encoding: "utf8", timeout: 20_000, env: { ...process.env, ABALONE_DIR: path.join(home, "state") }, input: "" });
+  assert.equal(tty.status, 1, tty.stdout); assert.ok(tty.stdout.includes("Two ways in:") && tty.stdout.includes("has no installed credit trial. Install it with sh install.sh --credit"), tty.stdout);
   for (const flag of ["--help", "-h", "help"]) {
     const r = run(flag);
     assert.equal(r.status, 0); assert.equal(r.stderr, "");
+    assert.ok(r.stdout.indexOf("the front door") < r.stdout.indexOf("abalone credit inspect"), "the front door comes first");
     for (const text of ["abalone credit inspect", "abalone credit redeem", "abalone credit status", "abalone credit recover", "abalone credit session", "abalone sandbox [folder]"]) assert.ok(r.stdout.includes(text), `${flag}: ${text}`);
   }
   for (const argv of [["status"], ["--model", "stub/script"], ["s".repeat(43)], [`--code=${"s".repeat(43)}`], [`${"s".repeat(43)}.`]]) {

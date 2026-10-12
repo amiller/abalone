@@ -1,4 +1,5 @@
-// abalone: Pi locked down. With no arguments it opens the saved credit's session; `abalone help` lists every subcommand.
+// abalone: Pi locked down. Plain `abalone` is the front door: it opens the saved credit's session, or with none takes a pasted
+// gift through inspect, consent and redeem into one; `abalone help` lists every subcommand.
 // The older sandboxed session (providers.json models, canaries) is `abalone sandbox [folder] [Pi options]`.
 import { spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
@@ -37,7 +38,7 @@ import { admitAttestedCouponIssuerPin, admitAttestedCouponSessionIssuer, openAtt
 import { couponStagingGuardNotice } from "../lib/coupon-staging.mjs";
 import { createCreditManager } from "../lib/credit.mjs";
 import { couponNearFirmwareAdvisories, OUT_OF_DATE_TRIAL_NOTICE } from "../lib/coupon-near.mjs";
-import { couponInput, creditId, creditPreflight, readPrivate } from "../lib/credit-store.mjs";
+import { couponInput, creditId, creditPreflight, giftPaste, readPrivate } from "../lib/credit-store.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, def) => { const i = args.indexOf(name); if (i < 0) return def; const v = args[i + 1]; args.splice(i, 2); return v; };
@@ -66,9 +67,9 @@ const creditStep = (code, message, fn) => { try { return fn(); } catch { throw O
 const creditArg = (message) => Object.assign(new Error(message), { code: "credit_usage" });
 const creditUsage = () => creditArg("abalone credit takes one of: inspect, redeem, recover, status, session, forget. Usage: abalone credit inspect --trial /abs/trial.json (--stdin | --input-file /abs/private-file); credit redeem (same) --accept-offer <offerHash>; credit recover --credit <id>; credit status [--credit <id>]; credit session --credit <id> [--mode rpc]; credit forget --credit <id> [--force]. Gift codes and keys never belong in command arguments.");
 
-async function creditCmd() {
+async function creditCmd(action = creditAction) {
   let next;
-  try { next = await creditAction(); }
+  try { next = await action(); }
   catch (e) { throw new Error(CREDIT_CODES.has(e?.code) ? e.message : "Credit command failed; details withheld. Run abalone credit status; original keys are never replaced."); }
   if (next) return next();
 }
@@ -121,8 +122,7 @@ The provider credential was NOT revoked. It stays valid at the provider until it
   if (command === "redeem" && !values["--accept-offer"]) throw creditArg("credit redeem needs --accept-offer <offerHash>; run credit inspect first and review the offer it prints.");
   if (values["--stdin"] && process.stdin.isTTY) throw Object.assign(new Error("--stdin reads a pipe only, so a typed gift code is never echoed. At a terminal, save the code or link in a private 0600 file and use --input-file; nothing was claimed."), { code: "credit_input_refused" });
   creditPreflight();
-  const { loadTrial } = await import("../tools/coupon-first-use.mjs");
-  const trial = loadTrial(values["--trial"]);
+  const admission = await trialAdmission(values["--trial"]);
   let input;
   if (values["--input-file"]) input = creditStep("credit_input_refused", "--input-file must be a regular file you own with mode 0600 (chmod 600 it), holding only the gift code or redeem link; nothing was claimed.", () => readPrivate(values["--input-file"], 2048).toString());
   else {
@@ -131,13 +131,17 @@ The provider credential was NOT revoked. It stays valid at the provider until it
     input = Buffer.concat(chunks).toString();
   }
   const coupon = couponInput(input);
-  const admission = { peer: trial.bundle.issuer.peer, pin: trial.pin,
-    approval: fs.readFileSync(path.join(trial.base, trial.bundle.issuer.approval)).toString("base64"),
-    approvalRoot: trial.bundle.issuer.approvalRoot, provider: trial.bundle.provider };
   const offer = await manager.inspect(coupon, admission);
   if (command === "inspect") return void console.log(JSON.stringify(offer, null, 2));
   if (values["--accept-offer"] !== offer.offerHash) throw Object.assign(new Error("The accepted hash is not this offer's hash. Review credit inspect's nominal amount, sponsor powers and synthetic-only policy; nothing was claimed."), { code: "credit_intent_required" });
   console.log(JSON.stringify(await manager.redeem(creditId(coupon), { offerHash: values["--accept-offer"] }), null, 2));
+}
+
+async function trialAdmission(file) {
+  const { loadTrial } = await import("../tools/coupon-first-use.mjs");
+  const trial = loadTrial(file);
+  return { peer: trial.bundle.issuer.peer, pin: trial.pin, approval: fs.readFileSync(path.join(trial.base, trial.bundle.issuer.approval)).toString("base64"),
+    approvalRoot: trial.bundle.issuer.approvalRoot, provider: trial.bundle.provider };
 }
 
 async function couponSessionCmd() {
@@ -548,9 +552,19 @@ async function printCaps(json) {
 const REDEEM_PAGE = "https://amiller.github.io/abalone/redeem/";
 const REDEEM_STEPS = ["  abalone credit inspect --trial /abs/trial.json --input-file /abs/gift.txt",
   "  abalone credit redeem --trial /abs/trial.json --input-file /abs/gift.txt --accept-offer <offerHash>"];
+const KEY_GUIDE = path.join(ROOT, "guides/acquiring-private-inference/README.md");
 const HELP = `abalone: an incognito AI session paid for by a gifted credit (Dsmack handles redemption).
 
-  abalone                                 open your saved credit's session (lists them if you have several)
+  abalone                                 the front door: opens your saved credit's session (lists them if you have several).
+                                          With none saved, paste a gift link or code: it shows the offer's terms, asks you to
+                                          accept, redeems the gift and opens the session, all in one step.
+  abalone --trial /abs/trial.json         the same, with a trial.json other than the one installed with this copy
+  abalone help                            this text
+
+No gift yet, or no install? Start at ${REDEEM_PAGE}
+Bought a provider key instead? abalone key add <provider> saves it for abalone sandbox (plain abalone does not use it); see ${KEY_GUIDE}
+
+The same steps one at a time (scripts, recovery):
   abalone credit inspect|redeem ...       review a gift's offer and claim deadline, then redeem and save it:
 ${REDEEM_STEPS.map((l) => `  ${l}`).join("\n")}
   abalone credit status [--credit <id>]   saved credits and their state
@@ -558,9 +572,6 @@ ${REDEEM_STEPS.map((l) => `  ${l}`).join("\n")}
   abalone credit forget --credit <id>     remove a saved credit and its lock file (does not revoke it)
   abalone credit session --credit <id> [--mode rpc]   open a session with one saved credit
   abalone key add|list|forget <provider>  configure your own provider API key (from stdin, never arguments)
-  abalone help                            this text
-
-No gift yet, or no install? Start at ${REDEEM_PAGE}
 
 Older and developer commands:
   abalone sandbox [folder] [Pi options]   the bubblewrap-sandboxed session using providers.json models
@@ -570,18 +581,54 @@ const NEXT = { offered: (c) => `${c.claimWindow} Redeem it with abalone credit r
   claiming: (c) => `A claim may be in progress; finish it with abalone credit recover --credit ${c.creditId}`, reconciliation_required: () => "The issuer's operator must reconcile this claim before it can be used.",
   refused: (c) => `This saved credit was refused (${c.code}); abalone credit status --credit ${c.creditId} shows why.` };
 NEXT.uncertain = NEXT.claiming;
+const WAYS_IN = ["Two ways in:", "  1. Paste a gift link or code here (or the full path of a private 0600 file holding it).", `  2. Or bring a provider key: abalone key add <provider> saves it for abalone sandbox, not plain abalone; see ${KEY_GUIDE}`,
+  "abalone help lists every command."];
 
-// Plain `abalone`: the one saved credit's session; otherwise say which credits exist or how to get one.
-async function savedCreditCmd() {
+// Reads one line at the terminal; hidden input is not echoed.
+function terminalLine(prompt, hidden = false) {
+  const r = spawnSync("bash", ["-c", `IFS= read -r${hidden ? "s" : ""} -p "$1" p; ${hidden ? "echo >&2; " : ""}printf %s "$p"`, "_", prompt], { stdio: ["inherit", "pipe", "inherit"], encoding: "utf8", maxBuffer: 4096 });
+  if (r.status !== 0) throw Object.assign(new Error("Input ended before anything was entered; nothing was claimed. Run abalone again."), { code: "credit_input_refused" });
+  return r.stdout;
+}
+
+function installedTrial() {
+  const dir = path.join(ROOT, "..", "public-credit"), found = fs.existsSync(dir) ? fs.readdirSync(dir).map((b) => path.join(dir, b, "trial.json")).filter((f) => fs.existsSync(f)) : [];
+  if (found.length === 1) return found[0];
+  throw creditArg(found.length ? `Several installed credit trials:\n${found.map((f) => `  ${f}`).join("\n")}\nRun abalone --trial <one of them>; nothing was claimed.`
+    : `This copy of abalone has no installed credit trial. Install it with sh install.sh --credit (see ${REDEEM_PAGE}), or run abalone --trial /abs/trial.json; nothing was claimed.`);
+}
+
+// Plain `abalone`: the one saved credit's session; several are listed; with none, explain the ways in and take a pasted gift.
+async function frontDoor() {
+  const trialFile = args[1], wrong = trialFile && CREDIT_VALUES["--trial"](trialFile);
+  if (wrong) throw new Error(wrong);
   const dir = path.join(STATE, "credit"), all = fs.existsSync(dir) ? await createCreditManager({ directory: dir }).status() : [];
   const ready = all.filter((c) => c.state === "installed"), waiting = all.filter((c) => c.state !== "installed");
   if (ready.length === 1) { args.splice(0, args.length, "credit", "session", "--credit", ready[0].creditId); return creditCmd(); }
   if (ready.length) throw new Error([`You have ${ready.length} saved credits. Open one with:`,
     ...ready.map((c) => `  abalone credit session --credit ${c.creditId}   (${c.model}, $${c.nominalCapUsd} nominal cap)`)].join("\n"));
-  throw new Error([waiting.length ? "No saved credit is ready to use yet:" : "No saved credit yet.", ...waiting.map((c) => `  ${c.creditId}  ${c.state}: ${NEXT[c.state](c)}`),
-    ...(keys.list().length ? ["A configured key exists; use abalone sandbox (plain abalone opens coupon credit only, #21)."] : []),
-    `To redeem a gift, open its link or ${REDEEM_PAGE} for the install steps (sh install.sh --credit prints your trial.json path).`,
-    "Save the gift code or link in a private file (chmod 600 gift.txt), then:", ...REDEEM_STEPS, "Then run abalone again. abalone help lists every command."].join("\n"));
+  const text = [waiting.length ? "No saved credit is ready to use yet:" : "No saved credit yet.", ...waiting.map((c) => `  ${c.creditId}  ${c.state}: ${NEXT[c.state](c)}`),
+    ...(keys.list().length ? ["A configured key exists; use abalone sandbox (plain abalone opens coupon credit only, #21)."] : []), ...WAYS_IN].join("\n");
+  if (!process.stdin.isTTY) throw Object.assign(new Error(text), { exit: 2 });
+  console.error(text);
+  return creditCmd(() => redeemPasted(trialFile ?? installedTrial()));
+}
+
+async function redeemPasted(trialFile) {
+  creditPreflight();
+  const admission = await trialAdmission(trialFile), coupon = giftPaste(terminalLine("Gift link, code or file (hidden as you paste): ", true));
+  const manager = createCreditManager({ directory: path.join(STATE, "credit") }), offer = await manager.inspect(coupon, admission);
+  console.log(JSON.stringify(offer, null, 2));
+  if (offer.state !== "installed") {
+    if (offer.state !== "offered") throw Object.assign(new Error(NEXT[offer.state](offer)), { code: "credit_unavailable" });
+    const consent = offer.offerHash.slice(0, 8);
+    if (terminalLine(`Review the terms above. To accept and redeem, type ${consent}; anything else stops here: `).trim() !== consent)
+      throw Object.assign(new Error("Not accepted, so nothing was claimed. Run abalone again and paste the gift when you are ready."), { code: "credit_intent_required" });
+    await manager.redeem(offer.creditId, { offerHash: offer.offerHash });
+    console.error("Redeemed and saved. Opening the session.");
+  }
+  args.splice(0, args.length, "credit", "session", "--credit", offer.creditId);
+  return creditAction();
 }
 
 // Flags that would re-enable ambient resources or bring outside text into the system prompt.
@@ -806,7 +853,7 @@ Reopen: abalone sandbox --incognito ${/\s/.test(here) ? JSON.stringify(here) : h
 }
 
 try {
-  if (!args.length) await savedCreditCmd();
+  if (!args.length || (args[0] === "--trial" && args.length === 2)) await frontDoor();
   else if (["help", "--help", "-h"].includes(args[0])) console.log(HELP);
   else if (args[0] === "sandbox") { args.shift(); await session(); }
   else if (args[0] === "caps") await printCaps(args[1] === "--json");

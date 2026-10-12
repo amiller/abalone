@@ -1,5 +1,6 @@
 // Usability gate parts 3 and 4, offline: a cold run from the redeem link to an open credit session, through the real
-// CLI (`credit inspect`, `redeem`, `status`, `session --mode rpc`), once with a valid offer and once with an expired one.
+// CLI (`credit inspect`, `redeem`, `status`, `session --mode rpc`), once with a valid offer and once with an expired one;
+// then through the front door, plain `abalone` at a pseudo-terminal (pty.py), once to an open session and once interrupted.
 // Every line a recipient sees is recorded. Synthetic boundaries: issuer-hook.mjs (loopback issuer, synthetic identity
 // verdict) and tests/fixtures/near/synthetic-near-hook.mjs (NEAR verdict and transport); nothing else is substituted.
 // The expired journey redeems the loopback issuer's own terms with the recorded fixture's deadline; that issuer refuses
@@ -18,7 +19,7 @@ import { OUT_OF_DATE_TRIAL_POLICY } from "../../lib/near.mjs";
 
 const root = path.resolve(import.meta.dirname, "../.."), out = path.resolve(process.argv[2]);
 const AGREED = ["coupon", "status"];
-const NEXT = /(^|[.;:!]\s+|\n\s*)(run|ask|retry|use|review|accept|restore|reinstall|start|supply|remove|open|type|request|get|contact|wait)\b/i;
+const NEXT = /(^|[.;:!]\s+|\n\s*)(run|ask|retry|use|review|accept|restore|reinstall|start|supply|remove|open|type|request|get|contact|wait|paste|configure)\b/i;
 const sha = (b) => crypto.createHash("sha256").update(b).digest("hex");
 const check = (name, ok, detail = "") => console.log(`${ok ? "PASS" : "FAIL"} ${name}${detail ? ` (${detail})` : ""}`);
 const expiredOffer = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "fixtures/expired-offer.json"), "utf8"));
@@ -33,7 +34,7 @@ try { creditOfferBound("near", expiredOffer.offer, expiredOffer.offer_hash, expi
 catch { wellFormed = false; }
 check("expired-fixture: the recorded expired offer passes the offer and binding validators", wellFormed && Date.parse(expiredOffer.offer.claim_expires_at) < Date.now());
 
-async function journey(label, claimExpiresAt) {
+async function setup(label, claimExpiresAt) {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), `abalone-usability-${label}-`));
   const [state, home, xdg, work, trial] = ["state", "home", "x", "work", "trial"].map((n) => { const d = path.join(base, n); fs.mkdirSync(d, { mode: 0o700 }); return d; });
   const server = await issuer();
@@ -49,7 +50,10 @@ async function journey(label, claimExpiresAt) {
   const link = path.join(home, "gift-link.txt");
   fs.writeFileSync(link, `https://amiller.github.io/abalone/redeem/#code=${coupon}\n`, { mode: 0o600 });
   const env = { PATH: process.env.PATH, LANG: "C.UTF-8", HOME: home, ABALONE_DIR: state, XDG_RUNTIME_DIR: xdg, TMPDIR: base, ABALONE_SYNTHETIC_NEAR_LOG: path.join(base, "near.jsonl") };
-  const steps = [];
+  return { base, server, trial: path.join(trial, "trial.json"), link, env, work, steps: [] };
+}
+
+function runner({ env, work, steps }) {
   const run = (hook, argv, rpc) => new Promise((resolve) => {
     const child = spawn(process.execPath, ["--import", path.join(root, hook), path.join(root, "bin/abalone.mjs"), ...argv], { cwd: work, env, stdio: ["pipe", "pipe", "pipe"] });
     let stdout = "", stderr = "", buf = "", commands;
@@ -64,7 +68,22 @@ async function journey(label, claimExpiresAt) {
     if (rpc) child.stdin.write(JSON.stringify({ id: "c", type: "get_commands" }) + "\n"); else child.stdin.end();
     child.on("exit", (code) => { const step = { argv: argv.join(" "), code, stdout, stderr, ...(rpc ? { commands } : {}) }; steps.push(step); resolve(step); });
   });
-  const hook = "tests/usability/issuer-hook.mjs", common = ["--trial", path.join(trial, "trial.json"), "--input-file", link];
+  // At a terminal: plain `abalone` with both synthetic boundaries, answering its prompts; the whole screen is its stderr.
+  const terminal = (argv, replies) => new Promise((resolve) => {
+    const child = spawn("python3", ["-I", path.join(import.meta.dirname, "pty.py"), "60", JSON.stringify(replies), "--", process.execPath, "--import", path.join(root, "tests/usability/issuer-hook.mjs"),
+      "--import", path.join(root, "tests/fixtures/near/synthetic-near-hook.mjs"), path.join(root, "bin/abalone.mjs"), ...argv], { cwd: work, env, stdio: ["ignore", "pipe", "inherit"] });
+    let out = "";
+    child.stdout.on("data", (d) => { out += d; });
+    child.on("exit", () => { const r = JSON.parse(out), screen = r.output.replace(/\x1b(\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(\x07|\x1b\\)|[@-Z\\-_])/g, "").replaceAll("\r", "");
+      const step = { argv: `(terminal) abalone ${argv.join(" ")}`.trim(), code: r.code, stdout: "", stderr: screen, unanswered: r.unanswered, timedOut: r.timedOut };
+      steps.push(step); resolve(step); });
+  });
+  return { run, terminal };
+}
+
+async function journey(label, claimExpiresAt) {
+  const { base, server, trial, link, env, work, steps } = await setup(label, claimExpiresAt), { run } = runner({ env, work, steps });
+  const hook = "tests/usability/issuer-hook.mjs", common = ["--trial", trial, "--input-file", link];
   const inspect = await run(hook, ["credit", "inspect", ...common]);
   const offerHash = inspect.code === 0 ? JSON.parse(inspect.stdout).offerHash : "0".repeat(64);
   const redeem = await run(hook, ["credit", "redeem", ...common, "--accept-offer", offerHash]);
@@ -75,7 +94,24 @@ async function journey(label, claimExpiresAt) {
   return { label, base, env, work, steps, inspect, redeem, status, session, claims };
 }
 
+// The front door at a terminal: plain `abalone` explains the ways in, takes the pasted link, shows the terms, asks for the
+// offer hash's first 8 characters, redeems and opens the session (quit with ctrl-d). "door-interrupted" pastes the private
+// link file instead, first declines the offer, then accepts while its issuer fails the claim, so the redemption is left for credit recover.
+async function frontDoor(label) {
+  const { base, server, trial, link, env, work, steps } = await setup(label, "2030-10-10T00:00:00Z"), { run, terminal } = runner({ env, work, steps });
+  if (label === "door-interrupted") Object.assign(server.state, { claim: "refuse", status: "ready" });
+  const hook = "tests/usability/issuer-hook.mjs", explain = await run(hook, []), paste = ["Gift link, code or file", `${label === "door" ? `https://amiller.github.io/abalone/redeem#code=${coupon}` : link}\r`];
+  const declined = label === "door" ? null : await terminal(["--trial", trial], [paste, ["type ([0-9a-f]{8});", "no\r"]]);
+  const claimsBeforeAccept = server.frames.filter((f) => f.op === "claim").length;
+  const door = await terminal(["--trial", trial], [paste, ["type ([0-9a-f]{8});", "{1}\r"], ...(label === "door" ? [["────", "\x04"]] : [])]);
+  const claims = server.frames.filter((f) => f.op === "claim").length;
+  await server.host.stop();
+  const after = await run(hook, label === "door" ? ["credit", "status"] : []);
+  return { label, base, steps, explain, declined, claimsBeforeAccept, door, after, claims };
+}
+
 const valid = await journey("valid", "2030-10-10T00:00:00Z"), expired = await journey("expired", expiredOffer.offer.claim_expires_at);
+const door = await frontDoor("door"), interrupted = await frontDoor("door-interrupted");
 const parsed = (step) => { try { return JSON.parse(step.stdout); } catch { return null; } };
 check("cold-valid-inspect: a valid offer inspects as offered", valid.inspect.code === 0 && parsed(valid.inspect)?.state === "offered", valid.inspect.stderr.trim().split("\n").at(-1));
 check("cold-valid-redeem: redeeming with the shown offer hash installs the credit", valid.redeem.code === 0 && parsed(valid.redeem)?.state === "installed", valid.redeem.stderr.trim().split("\n").at(-1));
@@ -86,13 +122,25 @@ check("cold-expired-inspect: an expired offer inspects as expired and says what 
 check("cold-expired-no-claim: redeem sends no claim for an expired offer", expired.claims === 0, `claims sent: ${expired.claims}`);
 check("cold-expired-redeem: redeem of an expired offer says it expired and what to do next", expired.redeem.code !== 0 && /expired|claim window closed/i.test(expired.redeem.stderr) && NEXT.test(expired.redeem.stderr),
   expired.redeem.stderr.trim().split("\n").at(-1) || parsed(expired.redeem)?.state);
-const errors = [...valid.steps, ...expired.steps].filter((s) => s.code !== 0);
+check("door-explain: plain abalone with nothing saved names both ways in; without a terminal it exits 2", door.explain.code === 2
+  && ["Paste a gift link or code", "abalone key add <provider>", "guides/acquiring-private-inference/"].every((t) => door.explain.stderr.includes(t)), door.explain.stderr.trim().split("\n").at(-1));
+check("door-terms: a pasted link shows the inspect terms, then asks for the offer hash's first 8 characters", ["\"nominalCapUsd\"", "\"model\"", "\"providerExpiry\"", "\"sponsorPowers\"", "\"claimWindow\"", "\"disclosures\""]
+  .every((t) => door.door.stderr.includes(t)) && /type [0-9a-f]{8};/.test(door.door.stderr));
+check("door-redeem: typing them redeems and saves the credit", door.door.stderr.includes("Redeemed and saved") && parsed(door.after)?.[0]?.state === "installed" && door.claims === 1, `claims sent: ${door.claims}`);
+check("door-session: the same run opens the session", door.door.code === 0 && !door.door.timedOut && !door.door.unanswered.length && door.door.stderr.includes("Fresh incognito conversation"),
+  `exit ${door.door.code}, unanswered: ${door.door.unanswered.join(" | ")}`);
+check("door-decline: typing anything else stops without a claim and says so", interrupted.declined.code === 1 && interrupted.claimsBeforeAccept === 0
+  && interrupted.declined.stderr.includes("Not accepted, so nothing was claimed"), interrupted.declined.stderr.trim().split("\n").at(-1));
+check("door-no-echo: the pasted gift never appears on screen", ![door.door, interrupted.declined, interrupted.door].some((s) => s.stderr.includes(coupon)));
+check("door-recover: an interrupted redemption says to run credit recover, and plain abalone then names the recover command", interrupted.claims === 1 && interrupted.door.code === 1
+  && /run credit recover/.test(interrupted.door.stderr) && interrupted.after.code === 2 && interrupted.after.stderr.includes(`abalone credit recover --credit ${id}`), interrupted.door.stderr.trim().split("\n").at(-1));
+const errors = [...valid.steps, ...expired.steps, ...door.steps, ...interrupted.steps].filter((s) => s.code !== 0);
 const silent = errors.filter((s) => !NEXT.test(s.stderr.split("\n").filter((l) => !l.startsWith("SYNTHETIC FIXTURE")).join("\n")));
 check("cold-errors: every error a recipient sees says what to do next", silent.length === 0, silent.map((s) => s.argv.split(" --")[0]).join(", "));
 
 const keep = ({ label, steps, claims }) => ({ label, claimsSent: claims, steps: steps.map(({ argv, code, stdout, stderr, commands }) => ({ argv: argv.replaceAll(/\/tmp\/[^ ]+\//g, "<tmp>/"), code,
   stdout: stdout.split("\n").filter(Boolean), stderr: stderr.split("\n").filter(Boolean), ...(commands ? { commands: commands.map((c) => `${c.source}:${c.name}`) } : {}) })) });
-fs.writeFileSync(path.join(out, "cold-run.json"), JSON.stringify({ valid: keep(valid), expired: keep(expired) }, null, 1) + "\n");
+fs.writeFileSync(path.join(out, "cold-run.json"), JSON.stringify({ valid: keep(valid), expired: keep(expired), door: keep(door), interrupted: keep(interrupted) }, null, 1) + "\n");
 // The TUI capture reuses the valid journey's saved credit and folder.
-fs.writeFileSync(path.join(out, "session.env"), Object.entries({ ...valid.env, USABILITY_WORK: valid.work, USABILITY_CREDIT: id, USABILITY_BASES: `${valid.base} ${expired.base}` })
+fs.writeFileSync(path.join(out, "session.env"), Object.entries({ ...valid.env, USABILITY_WORK: valid.work, USABILITY_CREDIT: id, USABILITY_BASES: [valid, expired, door, interrupted].map((j) => j.base).join(" ") })
   .map(([k, v]) => `export ${k}=${JSON.stringify(v)}`).join("\n") + "\n");

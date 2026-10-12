@@ -107,7 +107,7 @@ assert.equal(o.err.split("Coupon session: installed.").length - 1, 1, o.err);
 assert.equal(JSON.parse(fs.readFileSync(path.join(ood, "credit", `${creditId(oodCode)}.json`), "utf8")).usage.responses, 2);
 pass("an OutOfDate trial credit session prints one warning line (the admission's firmware line) and one installed line over two requests");
 
-// Plain `abalone`: one saved credit opens its session; several are listed; none points to the redeem page.
+// Plain `abalone`: one saved credit opens its session; several are listed; none explains the ways in (exit 2 without a terminal).
 function plain(dir) {
   const child = spawn(process.execPath, ["--import", hook, path.join(root, "bin/abalone.mjs")], { cwd: work, env: { ...env, ABALONE_DIR: dir }, stdio: ["pipe", "pipe", "pipe"] });
   let out = "", err = "";
@@ -132,9 +132,9 @@ pass("plain abalone with several saved credits lists each with its session comma
 const late = path.join(base, "late"), lapsed = "e".repeat(43);
 await saved(path.join(late, "credit"), lapsed, true);
 const waiting = await plain(late);
-assert.equal(waiting.code, 1);
-assert.ok(waiting.err.includes(`No saved credit is ready to use yet:\n  ${creditId(lapsed)}  expired: Claim window closed; the deadline was 2030-10-10 00:00 UTC. This gift can no longer be redeemed: ask the sponsor for a new gift.\n`), waiting.err);
-assert.ok(waiting.err.includes("https://amiller.github.io/abalone/redeem/"));
+assert.equal(waiting.code, 2);
+assert.ok(waiting.err.includes(`No saved credit is ready to use yet:\n  ${creditId(lapsed)}  expired: Claim window closed; the deadline was 2030-10-10 00:00 UTC. This gift can no longer be redeemed: ask the sponsor for a new gift.\nTwo ways in:\n`), waiting.err);
+assert.ok(waiting.err.includes("Paste a gift link or code here"));
 pass("plain abalone with only an expired credit says so, with the deadline and 'ask the sponsor for a new gift'");
 const leftovers = [];
 const scan = (dir) => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name);

@@ -28,11 +28,17 @@ non-sensitive material.
 
 ## Run abalone
 
-Plain `abalone` opens your saved access. With one ready (installed) credit it
-starts that credit's session; with several it lists them. With nothing saved it says how to
-get a credit from a gift: install with `install.sh --credit`, then
-`abalone credit inspect` and `abalone credit redeem`. `abalone help` lists every
-command.
+Plain `abalone` is the front door. With one ready (installed) credit it starts
+that credit's session; with several it lists them. With nothing saved it names
+the two ways in: paste a gift link or code at its prompt, or bring a provider
+key ([acquiring private inference](guides/acquiring-private-inference/README.md))
+and save it with `abalone key add <provider>`, which `abalone sandbox` uses and
+plain `abalone` does not.
+A pasted gift is inspected, its terms are shown, and after you type the first 8
+characters of its offer hash it is redeemed and the session opens, in one run.
+Install first with `install.sh --credit`. The same steps one at a time are
+`abalone credit inspect`, `redeem`, `recover`, `status`, `session` and `forget`.
+`abalone help` lists every command.
 
 ## Get access
 
