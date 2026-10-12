@@ -1,0 +1,30 @@
+{
+ "source": "tests/fixtures/coupon/durable/paired/dstack-v1-recipient-v1.json offer_frame, claim_expires_at moved into the past; offer_hash recomputed (v4 offers are hash-bound, not signed)",
+ "coupon": "JcC1Tq17KD1ow4QL-dOjAqAxx7yIVRCHWllXnY1LIjY",
+ "offer": {
+  "budget_nano_usd": "1000000000",
+  "cap_semantics": "nominal-provider-limit",
+  "claim_expires_at": "2026-10-01T00:00:00Z",
+  "claim_policy": "first-authenticated-bearer",
+  "coupon_digest": "9981a123b605ad52d9591d019c64bca9278ae6bfb17b7cc104878b84b147b4ec",
+  "delivery_profile": "x25519-aesgcm-recipient-v1",
+  "issuer": {
+   "identity_policy_sha256": "0202020202020202020202020202020202020202020202020202020202020202",
+   "issuance_policy_sha256": "0303030303030303030303030303030303030303030303030303030303030303",
+   "issuer_public_key_sha256": "9a92d2b54a9a5402de3e65a07a5cb12a8dc6758bd8e8c2ec459563d6b2c081c4",
+   "peer_id": "IssuerPeer00000001",
+   "policy": "dstack-tdx-coupon-v1"
+  },
+  "provider": {
+   "id": "near",
+   "scope_commitment": "f42501a7bd27b7daf043985f5c707a7b75d97fc1c214bcae192606af36d39c57"
+  },
+  "provider_expires_at": null,
+  "sponsor_powers": [
+   "revoke",
+   "change_limits"
+  ],
+  "version": 4
+ },
+ "offer_hash": "b37cff5b85a7139137c9ee9c9cd54786f8ac1ddbb2b090fac16f7848dc2e31fb"
+}

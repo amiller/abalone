@@ -20,7 +20,13 @@ do not regenerate that archive for instructions-only changes.
 1. Freeze/review the selected client. Run the required integration gate, including
    declared development fixtures, and record the actual result. Review synthetic/
    recorded fixture provenance; omit private plans, logs, credentials, live traces,
-   operator state and private history.
+   operator state and private history. The gate includes the offline usability
+   suite, `tests/usability/offline.sh` (`usability` in `tests/verify.sh offline`):
+   a cold run from the redeem link with a valid and an expired offer, the commands
+   a credit session shows, and its first screen at 80x24 and 120x40 on light and
+   dark terminals. Look at the saved screens and messages in
+   `local-data/usability/<run>/`. Its XFAIL list holds checks that fail until a
+   known fix integrates; a release does not add entries to pass.
 2. Build once with `tools/release.sh REV`. It copies `site/friend.html`, a static
    doorway to the hosted entry and this guide, as the prepared `index.html`. Record source SHA/tree, locks/build
    evidence, artifact SHA256, licenses/notices and security contact. Compare selected
@@ -69,6 +75,10 @@ do not regenerate that archive for instructions-only changes.
    Verify no ambient account/operator credentials, pre-bearer readiness, human
    input, bounded redemption, first request, admission expiry, trace choices and
    cleanup. Hidden repair or disabled guards do not count. Keep user gifts separate.
+   Before promotion, run the live usability suite on that real saved credit:
+   `tests/usability/live.sh --live --credit <credit id>`. It spends from the credit.
+   It passes when no task stops for `length` and no task prints more than one
+   warning line; read the answers in `live.json` too.
 6. Review the complete publication manifest and precise GitHub actions: selected
    source/history, candidate refs, package, installer, checksums, public inputs and
    sanitized notes. Request final publication authorization after the concrete files
