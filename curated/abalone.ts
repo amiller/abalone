@@ -415,24 +415,26 @@ export default async function (pi: ExtensionAPI) {
     handler: async (a, ctx) => { try { show(ctx, cli(["notebook", "decide", ...a.trim().split(/\s+/)])); } catch (e) { fail(ctx, e); } } });
   pi.registerCommand("redeem", { description: "Set up a gift on this computer: /redeem --peer <multiaddr> <code>",
     handler: async (a, ctx) => { try { show(ctx, `${await launcher(["redeem", ...a.trim().split(/\s+/)])}\nabalone restarts with the gift's models in /model; this conversation continues.`); ctx.shutdown(); } catch (e) { fail(ctx, e); } } });
-  if (COUPON_SESSION) pi.registerCommand("coupon", { description: "Show this coupon's state; /coupon forget closes the session and loses its keys",
+  if (COUPON_SESSION) pi.registerCommand("coupon", { description: "Show this coupon's state; /coupon forget closes the session (session-only coupons lose their keys)",
     handler: async (a, ctx) => {
+      let s: any;
+      try { s = JSON.parse(await launcher(["coupon-info"])); } catch { return show(ctx, "Coupon state is unavailable. Preserve the original process; do not claim with new keys."); }
       if (a.trim() === "forget") {
-        if (await ctx.ui.confirm("Forget this session's coupon keys?", "Closing loses credential recovery. Conversation/workspace retention is unchanged. This does not revoke the provider key or securely erase host memory.")) ctx.shutdown();
+        if (s.restartRecovery ? await ctx.ui.confirm("Close this session?", "The saved credit and its original keys stay saved for a fresh session. This does not revoke the provider key.")
+          : await ctx.ui.confirm("Forget this session's coupon keys?", "Closing loses credential recovery. Conversation/workspace retention is unchanged. This does not revoke the provider key or securely erase host memory.")) ctx.shutdown();
         return;
       }
-      try {
-        const s = JSON.parse(await launcher(["coupon-info"]));
-        const staging = s.staging ? `\nDebug-staging admission (signed by your pinned approval root): the service operator holds OPERATOR SECRET ACCESS — it may know, use or revoke the delivered API credential. Direct encrypted NEAR model transport is separate; the issuer is not a prompt relay. Not private issuance, not rollback-qualified, not settlement-approved. Prompt policy: ${String(s.staging.promptPolicy).toUpperCase()} (synthetic content only). Approval expires ${s.staging.expiresAt}.` : "";
-        const action = s.state === "credit_exhausted" ? "The provider refused credit or rate availability; ask the sponsor about remaining credit. No balance endpoint or alternate key is used."
-          : s.state === "access_revoked_or_expired" ? "The provider denied access; ask the sponsor about revocation or expiry. No replacement key is tried."
-          : s.state === "provider_unavailable" ? "The provider is unavailable. Keep this process open and retry inference later; this does not request new issuance."
-          : s.state === "staging_approval_expired" ? "The signed staging authorization expired. Provider use is stopped; no new admission, gift or key is requested. Ask the operator to reconcile the original session."
-          : s.state === "provider_admission_expired" ? "The bounded provider admission window ended mid-request. The next request opens a fresh admission with the same delivered credential; no new coupon or key is created."
-          : s.state === "provider_readmitted" ? "A fresh provider admission opened with the same delivered credential. The coupon was never re-claimed."
-          : "Use this session's selected model. No alternative credential is tried.";
-        show(ctx, `Coupon: ${s.state}; profile ${s.profile ?? "synthetic"}; provider ${s.provider}; model ${s.model}. Balance: unknown; provider expiry: unknown${s.admissionWindow ? `; admission: ${s.admissionWindow}` : ""}. Sponsor may revoke or change limits. Retention: session-only keys; restart recovery unavailable. Ordinary conversation/workspace records may persist.${staging}\n${action}`);
-      } catch { show(ctx, "Coupon state is unavailable. Preserve the original process; do not claim with new keys."); }
+      const staging = s.staging ? `\nDebug-staging admission (signed by your pinned approval root): the service operator holds OPERATOR SECRET ACCESS — it may know, use or revoke the delivered API credential. Direct encrypted NEAR model transport is separate; the issuer is not a prompt relay. Not private issuance, not rollback-qualified, not settlement-approved. Prompt policy: ${String(s.staging.promptPolicy).toUpperCase()} (synthetic content only). Approval expires ${s.staging.expiresAt}.` : "";
+      const action = s.state === "credit_exhausted" ? "The provider refused credit or rate availability; ask the sponsor about remaining credit. No balance endpoint or alternate key is used."
+        : s.state === "access_revoked_or_expired" ? "The provider denied access; ask the sponsor about revocation or expiry. No replacement key is tried."
+        : s.state === "provider_unavailable" ? "The provider is unavailable. Keep this process open and retry inference later; this does not request new issuance."
+        : s.state === "staging_approval_expired" ? "The signed staging authorization expired. Provider use is stopped; no new admission, gift or key is requested. Ask the operator to reconcile the original session."
+        : s.state === "provider_admission_expired" ? "The bounded provider admission window ended mid-request. The next request opens a fresh admission with the same delivered credential; no new coupon or key is created."
+        : s.state === "provider_readmitted" ? "A fresh provider admission opened with the same delivered credential. The coupon was never re-claimed."
+        : "Use this session's selected model. No alternative credential is tried.";
+      const credit = s.restartRecovery ? ` Nominal cap: $${s.nominalCapUsd} from the accepted offer (not a balance). Each request: at most ${s.requestMaxTokens} output tokens.` : "";
+      const retention = s.restartRecovery ? "Retention: credential and original keys saved for a fresh session; this conversation is not saved by default." : "Retention: session-only keys; restart recovery unavailable. Ordinary conversation/workspace records may persist.";
+      show(ctx, `Coupon: ${s.state}; profile ${s.profile ?? "synthetic"}; provider ${s.provider}; model ${s.model}.${credit} Balance: unknown; provider expiry: unknown${s.admissionWindow ? `; admission: ${s.admissionWindow}` : ""}. Sponsor may revoke or change limits. ${retention}${staging}\n${action}`);
     } });
   // Remote agent tasks (lib/commission.mjs): the launcher runs them, since the session has no network. Only what the
   // command names leaves: the prompt and the files under --repo. This conversation is never sent.

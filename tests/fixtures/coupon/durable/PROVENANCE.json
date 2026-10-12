@@ -4,8 +4,37 @@
   "producerCommit": "9ce0a2d4a03143794d9b449e4017accd2b9f07a9",
   "producerBase": "a93ca52",
   "files": {
-    "offer-v4-recipient-v1.json": { "source": "experiments/coupon_redemption/fixtures/offer-v4-recipient-v1.json", "sha256": "4d5cb24d0091a2ed47c7bd063654faae33e132aea2962ba5d33167e93eb27a03" },
-    "staging-approval-recipient-v1-vector.json": { "source": "experiments/coupon_redemption/fixtures/staging-approval-recipient-v1-vector.json", "sha256": "34b52c63e0eda713dbcaa65278c77ac03b56207b0c931dd9f2363d60fc2dfc94" }
+    "offer-v4-recipient-v1.json": {
+      "source": "experiments/coupon_redemption/fixtures/offer-v4-recipient-v1.json",
+      "sha256": "4d5cb24d0091a2ed47c7bd063654faae33e132aea2962ba5d33167e93eb27a03"
+    },
+    "staging-approval-recipient-v1-vector.json": {
+      "source": "experiments/coupon_redemption/fixtures/staging-approval-recipient-v1-vector.json",
+      "sha256": "34b52c63e0eda713dbcaa65278c77ac03b56207b0c931dd9f2363d60fc2dfc94"
+    }
   },
-  "notes": "The authority seed is the published 0x99 test seed already used by tests/fixtures/coupon/staging. Configuration envelopes are operator-side; the recipient client only checks that they never verify as approvals. The offer and approval vectors are independent, not a matched issuer/scope pair."
+  "notes": "The authority seed is the published 0x99 test seed already used by tests/fixtures/coupon/staging. Configuration envelopes are operator-side; the recipient client only checks that they never verify as approvals. The offer and approval vectors are independent, not a matched issuer/scope pair.",
+  "paired": {
+    "purpose": "SOFTWARE TEST ONLY. Matched producer bundles recorded from one dsmack LiveWorker (dstack v1 approval domain) or MacLiveWorker (Mac v2 approval domain) run each: signed synthetic approval/config, issuer info, offer frame, claim and recovery/replay delivery with synthetic recipient Noise/X25519 material. One shared issuer, policy, provider-scope and budget context. No real keys, credentials, coupons, quotes, hardware or chain state.",
+    "producerCommit": "cba247471174703da04eee2c13c4b7da7e9194ee",
+    "producerTest": "experiments/coupon_redemption/test_paired_fixture.py",
+    "files": {
+      "paired/dstack-v1-recipient-v1.json": {
+        "source": "experiments/coupon_redemption/fixtures/paired/dstack-v1-recipient-v1.json",
+        "sha256": "48566b02c03cc32a508ed7e2cb6e1e90094c5d66239bcdf87f242ab51f2bd120"
+      },
+      "paired/dstack-v1-session-only.json": {
+        "source": "experiments/coupon_redemption/fixtures/paired/dstack-v1-session-only.json",
+        "sha256": "a53c3a94cab4c7b9391d7e7dae9efea0f36a5c4906c5d40121f67d682279145f"
+      },
+      "paired/mac-v2-recipient-v1.json": {
+        "source": "experiments/coupon_redemption/fixtures/paired/mac-v2-recipient-v1.json",
+        "sha256": "97764777e8c51b492b32bdda61592c950ff800b1161c2c7769f0a1cac7c76e08"
+      },
+      "paired/mac-v2-session-only.json": {
+        "source": "experiments/coupon_redemption/fixtures/paired/mac-v2-session-only.json",
+        "sha256": "701613097b71c98d4764c079d5dd207dadc598056c20af51417d2b4008d043f3"
+      }
+    }
+  }
 }

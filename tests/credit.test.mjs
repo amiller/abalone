@@ -10,73 +10,18 @@ import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { generateKeyPair } from "@libp2p/crypto/keys";
 import { peerIdFromPrivateKey } from "@libp2p/peer-id";
-import { servePeer } from "../lib/p2p.mjs";
-import { canonicalCouponJson } from "../lib/coupon-offer.mjs";
-import { couponAttestedClientForTesting, couponAttestedRecipient, couponAttestedRecipientPeerHash, validateAttestedCouponOffer, COUPON_ISSUER_PROTOCOL, COUPON_ISSUER_FRAME_LIMIT, COUPON_PROTOCOL_V4 } from "../lib/coupon-attested.mjs";
-import { createCreditManager, createCreditManagerForTesting } from "../lib/credit.mjs";
+import { couponAttestedRecipient, couponAttestedRecipientPeerHash, couponDeliveryAad, validateAttestedCouponOffer } from "../lib/coupon-attested.mjs";
+import { createCreditManager, createCreditManagerForTesting, creditOfferBound } from "../lib/credit.mjs";
+import { verifyCouponStagingAdmission, COUPON_STAGING_APPROVAL_DOMAIN, MAC_COUPON_APPROVAL_DOMAIN } from "../lib/coupon-staging.mjs";
+import { MAC_ISSUER_PROFILE } from "../lib/mac-coupon-issuer.mjs";
 import { openAttestedCouponSession } from "../lib/coupon-attested-session.mjs";
 import { OUT_OF_DATE_TRIAL_POLICY, OUT_OF_DATE_TRIAL_NOTICE } from "../lib/coupon-near.mjs";
-import { creditStore, creditId, couponInput, privateDirectory, readPrivate } from "../lib/credit-store.mjs";
+import { creditStore, creditPreflight, couponInput, privateDirectory, readPrivate } from "../lib/credit-store.mjs";
 import { syntheticIssuerIdentity } from "./fixtures/coupon/issuer-v2.mjs";
 import { syntheticStagingSigner } from "./fixtures/coupon/staging-signer.mjs";
+import { coupon, id, sha, credential, identity, signer, approval, legacyApproval, pin, provider, connect, pace, bundle, terms, issuer } from "./lib/credit-fixture.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
-const coupon = "c".repeat(43), id = creditId(coupon), sha = (v) => crypto.createHash("sha256").update(v).digest("hex");
-const credential = "delivered-near-provider-credential-0123456789abcdef";
-const identity = syntheticIssuerIdentity(), issuerKeySha = sha(Buffer.from(identity.info.issuer_public_key_hex, "hex"));
-const signer = syntheticStagingSigner(), scope = "ab".repeat(32);
-const approvalTerms = { identityPolicySha256: identity.info.identity_policy_sha256, issuancePolicySha256: identity.info.issuance_policy_sha256,
-  issuerPublicKeySha256: issuerKeySha, providerScopeCommitment: scope };
-const approval = signer.sign({ ...approvalTerms, deliveryProfile: "x25519-aesgcm-recipient-v1" }), legacyApproval = signer.sign(approvalTerms);
-const pin = () => ({ identityPolicy: structuredClone(identity.policy), expectedIdentityPolicySha256: identity.info.identity_policy_sha256,
-  expectedIssuancePolicySha256: identity.info.issuance_policy_sha256, expectedIssuerPublicKeySha256: issuerKeySha });
-const provider = { baseUrl: "https://cloud-api.near.ai/v1", model: "selected/model", maxTokens: 512,
-  policy: { gatewayTcb: "UpToDate", modelTcb: "UpToDate", gpuSignature: "required", composeRegistry: { rpc: "https://mainnet.base.org", chainId: 8453 } } };
-const quote = async (hex) => JSON.parse(Buffer.from(hex, "hex").toString());
-const connect = (addr, options, transport) => couponAttestedClientForTesting(addr, { ...options, syntheticQuoteVerifier: quote }, transport);
-const pace = () => new Promise((resolve) => setTimeout(resolve, 220));
-const bundle = (offer) => ({ offer, offer_hash: sha(Buffer.concat([Buffer.from("dsmack-coupon-offer-v4\0"), Buffer.from(canonicalCouponJson(offer))])) });
-const terms = (peerId, profile = "x25519-aesgcm-recipient-v1") => ({ version: 4, coupon_digest: sha(coupon),
-  issuer: { peer_id: peerId, policy: "dstack-tdx-coupon-v1", identity_policy_sha256: identity.info.identity_policy_sha256,
-    issuance_policy_sha256: identity.info.issuance_policy_sha256, issuer_public_key_sha256: issuerKeySha },
-  provider: { id: "near", scope_commitment: scope }, claim_policy: "first-authenticated-bearer", delivery_profile: profile,
-  budget_nano_usd: "5000000000", cap_semantics: "nominal-provider-limit", claim_expires_at: "2030-10-10T00:00:00Z", provider_expires_at: null, sponsor_powers: ["revoke", "change_limits"] });
-
-function delivery(accepted, recipientKey, peer) {
-  const keyId = `near-key-${sha(coupon).slice(0, 16)}`, recipient = Buffer.from(recipientKey, "base64");
-  const aad = Buffer.from(canonicalCouponJson({ domain: "dsmack-coupon-delivery-v4", version: 4, offer_hash: accepted.offer_hash, coupon_digest: sha(coupon), key_id: keyId,
-    recipient_key_sha256: sha(recipient), recipient_peer_sha256: couponAttestedRecipientPeerHash(peer) }));
-  const pair = crypto.generateKeyPairSync("x25519"), remote = crypto.createPublicKey({ key: Buffer.concat([Buffer.from("302a300506032b656e032100", "hex"), recipient]), format: "der", type: "spki" });
-  const key = crypto.hkdfSync("sha256", crypto.diffieHellman({ privateKey: pair.privateKey, publicKey: remote }), Buffer.alloc(0), Buffer.concat([Buffer.from("dsmack-coupon-v1\0"), aad]), 32);
-  const nonce = crypto.randomBytes(12), cipher = crypto.createCipheriv("aes-256-gcm", key, nonce); cipher.setAAD(aad);
-  const ciphertext = Buffer.concat([cipher.update(credential), cipher.final(), cipher.getAuthTag()]);
-  return { key_id: keyId, envelope: JSON.stringify({ version: 1, aad: aad.toString("base64"), ephemeral: pair.publicKey.export({ format: "der", type: "spki" }).subarray(-32).toString("base64"), nonce: nonce.toString("base64"), ciphertext: ciphertext.toString("base64") }) };
-}
-
-async function issuer(profile) {
-  // statuses is consumed first (one per bound status frame), then status repeats.
-  const frames = [], state = { claim: "grant", status: "in_progress", statuses: [], claimExpired: false, accountingBlocked: false };
-  const host = await servePeer({ listen: ["/ip4/127.0.0.1/tcp/0"], evidence: () => () => ({ type: "dev" }), services: {
-    [COUPON_ISSUER_PROTOCOL]: { maxDataLength: COUPON_ISSUER_FRAME_LIMIT, timeoutMs: 3000, handle: async (_lp, send, recv) => {
-      const frame = await recv();
-      await send({ id: frame.id, ok: true, result: frame.op === "info" ? identity.info : identity.evidence(frame.binding) });
-    } },
-    [COUPON_PROTOCOL_V4]: { timeoutMs: 3000, handle: async (_lp, send, recv, auth) => {
-      const frame = await recv(); frames.push({ op: frame.op, peer: auth.remotePeer.toString(), recipient_key: frame.recipient_key });
-      if (frame.op === "offer") return send({ id: frame.id, ok: true, result: state.offer });
-      if (frame.op === "claim") {
-        if (state.claim === "in_progress") return send({ id: frame.id, ok: true, result: { state: "in_progress", automatic_retry_allowed: false, deposit_release_authorized: false } });
-        return send({ id: frame.id, ok: true, result: delivery(state.offer, frame.recipient_key, auth.remotePeer.toString()) });
-      }
-      const current = state.statuses.shift() ?? state.status;
-      return send({ id: frame.id, ok: true, result: { state: current, claim_expired: state.claimExpired, accounting_blocked: state.accountingBlocked, automatic_retry_allowed: false,
-        deposit_release_authorized: false, ...(current === "delivered" ? { key_id: `near-key-${sha(coupon).slice(0, 16)}` } : {}) } });
-    } },
-  } });
-  state.offer = bundle(terms(host.peerId.toString(), profile));
-  const address = String(host.getMultiaddrs()[0]);
-  return { host, state, frames, admission: { peer: address, pin: pin(), approval: approval.bytes.toString("base64"), approvalRoot: signer.rootHex, provider } };
-}
 const tempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), "abalone-credit-"));
 const noSecrets = (text, record) => { for (const secret of [coupon, credential, record.noiseSeed, record.recipientKey]) assert.ok(!text.includes(secret)); };
 
@@ -91,9 +36,10 @@ test("one accepted redeem claims once; installed credit never claims again; lega
     assert.equal(offer.state, "offered"); assert.equal(offer.deliveryProfile, "x25519-aesgcm-recipient-v1");
     assert.equal(offer.nominalCapUsd, "5.00"); assert.equal(offer.balance, "unknown"); assert.deepEqual(offer.sponsorPowers, ["revoke", "change_limits"]);
     assert.equal(offer.claimWindowExpiresAt, "2030-10-10T00:00:00Z"); assert.equal(offer.providerExpiry, "unknown"); assert.equal(offer.requestMaxTokens, 512);
-    assert.equal(offer.provider, "near"); assert.equal(offer.outOfDateException, false); assert.equal(offer.operatorSecretAccess, true);
-    assert.deepEqual(offer.disclosures, ["Nominal cap $5.00; actual balance unknown.", "The sponsor can revoke this credit or change its limits.",
-      "Each request is limited to 512 output tokens.", "Synthetic input only: the issuer operator can access secrets in this debug-staging service."]);
+    assert.equal(offer.provider, "near"); assert.equal(offer.outOfDateException, false); assert.equal(offer.operatorSecretAccess, true); assert.equal(offer.sponsorCanRevoke, true);
+    assert.deepEqual(offer.disclosures, ["Nominal cap $5.00 from the offer; provider enforcement is not verified.", "Balance: unknown.",
+      "Sponsor can revoke the credential or change its limits at any time.", "Each request is separately bounded to 512 output tokens.",
+      "Synthetic content only: the staging operator can access the credential."]);
     await pace();
     await assert.rejects(manager.redeem(id, { offerHash: "00".repeat(32) }), { code: "credit_intent_required" });
     assert.ok(!server.frames.some((f) => f.op === "claim"));
@@ -293,11 +239,12 @@ test("saved records bind offer hash, issuer, provider scope, budget, Noise peer,
       keyId: (r) => { r.keyId = "other-key"; },
       extraField: (r) => { r.conversation = []; },
       testingFlag: (r) => { r.testing = false; },
+      provider: (r) => { r.provider = "other-provider"; },
     };
     for (const [name, mutate] of Object.entries(mutations)) {
       const r = structuredClone(base); mutate(r); fs.writeFileSync(file, JSON.stringify(r));
-      await assert.rejects(manager.status(id), (e) => ["credit_record_refused", "credit_profile_refused"].includes(e.code), name);
-      await assert.rejects(manager.session(id), (e) => ["credit_record_refused", "credit_profile_refused"].includes(e.code), name);
+      await assert.rejects(manager.status(id), (e) => ["credit_record_refused", "credit_profile_refused", "credit_provider_unsupported"].includes(e.code), name);
+      await assert.rejects(manager.session(id), (e) => ["credit_record_refused", "credit_profile_refused", "credit_provider_unsupported"].includes(e.code), name);
     }
     fs.writeFileSync(file, good);
     assert.equal((await manager.status(id)).state, "installed");
@@ -362,6 +309,10 @@ test("kernel locks exclude a live writer across processes, release on crash and 
     const again = store.lock(id);
     assert.equal(fs.statSync(lockFile).ino, inode, "lock file reused, not replaced");
     again();
+    // Without flock(1) the refusal is explicit and happens before any issuer contact.
+    const saved = process.env.PATH; process.env.PATH = path.join(dir, "no-such-bin");
+    try { assert.throws(() => store.lock(id), { code: "credit_flock_unavailable" }); assert.throws(() => creditPreflight(), { code: "credit_flock_unavailable" }); }
+    finally { process.env.PATH = saved; }
   } finally { child.kill("SIGKILL"); }
 });
 // Admission shape only; the lock refusal happens before any connection.
@@ -431,4 +382,78 @@ test("credit CLI refuses incompatible or secret argv options and prints static, 
   assert.equal(tty.status, 1, tty.stdout + tty.stderr); assert.ok(tty.stdout.includes("--stdin reads a pipe only"));
   const trial = cli("inspect", "--trial", path.join(home, "missing-trial.json"), "--stdin");
   assert.equal(trial.status, 1); assert.ok(!trial.stderr.includes(home) && !trial.stderr.includes("ENOENT"));
+});
+
+// Producer → consumer: matched dsmack bundles (tests/fixtures/coupon/durable/PROVENANCE.json "paired"), each recorded from one
+// Python LiveWorker/MacLiveWorker run. Node checks them with the same functions durable credit uses.
+const durableDir = new URL("fixtures/coupon/durable/", import.meta.url);
+const paired = (name) => JSON.parse(fs.readFileSync(new URL(`paired/${name}.json`, durableDir), "utf8"));
+const x25519Recovery = (hex) => Buffer.concat([Buffer.from("302e020100300506032b656e04220420", "hex"), Buffer.from(hex, "hex")]).toString("base64");
+function producerAdmission(b, approvalBytes = Buffer.from(b.approval.envelope, "utf8")) {
+  const info = b.issuer_info.response.result, issuerKey = sha(Buffer.from(info.issuer_public_key_hex, "hex"));
+  const approval = verifyCouponStagingAdmission(approvalBytes, { approvalRoot: b.authority.public_key_hex,
+    identityPolicySha256: info.identity_policy_sha256, issuancePolicySha256: info.issuance_policy_sha256, issuerPublicKeySha256: issuerKey });
+  return { info, approval, a: { approval, peerId: b.config.payload.issuer_peer_id,
+    pin: { identityPolicy: b.domain === "mac-v2" ? { profile: MAC_ISSUER_PROFILE } : {}, expectedIssuerPublicKeySha256: issuerKey } } };
+}
+
+test("matched producer bundles: signed recipient-v1 approval, exact offer and original-key delivery agree on both approval domains", () => {
+  const provenance = JSON.parse(fs.readFileSync(new URL("PROVENANCE.json", durableDir), "utf8"));
+  for (const [name, file] of Object.entries(provenance.paired.files)) assert.equal(sha(fs.readFileSync(new URL(name, durableDir))), file.sha256, name);
+  for (const [name, domain] of [["dstack-v1-recipient-v1", COUPON_STAGING_APPROVAL_DOMAIN], ["mac-v2-recipient-v1", MAC_COUPON_APPROVAL_DOMAIN]]) {
+    const b = paired(name), { info, approval, a } = producerAdmission(b);
+    assert.equal(b.environment, "SOFTWARE_TEST_ONLY"); assert.equal(approval.domain, domain); assert.equal(b.approval.domain, domain);
+    assert.equal(approval.deliveryProfile, "x25519-aesgcm-recipient-v1");
+    for (const pinned of [b.approval.sha256, b.ready.approval_sha256, b.config.payload.approval_sha256]) assert.equal(approval.approval_sha256, pinned);
+    const { offer, offer_hash: offerHash } = b.offer_frame.response.result;
+    assert.deepEqual(offer, b.provision.offer); assert.equal(offerHash, b.provision.offer_hash); assert.equal(b.claim.request.offer_hash, offerHash);
+    creditOfferBound("near", offer, offerHash, b.coupon, info, a);
+    const recipient = couponAttestedRecipient(x25519Recovery(b.recipient.x25519_private_hex_synthetic));
+    assert.equal(recipient.publicKey, b.recipient.x25519_public_b64); assert.equal(b.claim.request.recipient_key, recipient.publicKey);
+    assert.equal(couponAttestedRecipientPeerHash(b.recipient.noise_peer_id), b.recipient.peer_sha256);
+    assert.deepEqual(b.claim.pending_response.result, { automatic_retry_allowed: false, deposit_release_authorized: false, state: "in_progress" });
+    const keyId = b.delivery.recovery_response.result.key_id;
+    assert.equal(couponDeliveryAad({ offerHash, coupon: b.coupon, keyId, recipientKey: Buffer.from(recipient.publicKey, "base64"), recipientPeer: b.recipient.noise_peer_id }).toString("utf8"), b.delivery.aad_utf8);
+    for (const response of [b.delivery.recovery_response, b.delivery.replay_response]) {
+      assert.equal(recipient.decryptSavedDelivery(b.coupon, response.result, offerHash, b.recipient.noise_peer_id), b.delivery.plaintext_synthetic, name);
+      assert.throws(() => recipient.decryptSavedDelivery(b.coupon, response.result, offerHash, "OtherClaimantPeer1"), /verification failed/);
+      assert.throws(() => recipient.decryptSavedDelivery(b.coupon, response.result, "00".repeat(32), b.recipient.noise_peer_id), /verification failed/);
+      assert.throws(() => couponAttestedRecipient().decryptSavedDelivery(b.coupon, response.result, offerHash, b.recipient.noise_peer_id), /verification failed/);
+    }
+  }
+});
+
+test("matched producer bundles refuse legacy, cross-profile, cross-domain, unknown, signature, pin, scope and budget mismatches", () => {
+  for (const d of ["dstack-v1", "mac-v2"]) {
+    const durable = paired(`${d}-recipient-v1`), legacy = paired(`${d}-session-only`), D = producerAdmission(durable), L = producerAdmission(legacy);
+    const issuerProfile = d === "mac-v2" ? MAC_ISSUER_PROFILE : "dstack-tdx-coupon-v1";
+    const durableOffer = durable.offer_frame.response.result, legacyOffer = legacy.offer_frame.response.result;
+    assert.equal(L.approval.deliveryProfile, "x25519-aesgcm-session-only"); assert.notEqual(L.approval.approval_sha256, D.approval.approval_sha256);
+    // The legacy pair stays valid on the legacy path only.
+    validateAttestedCouponOffer(legacyOffer, { coupon: legacy.coupon, peerId: L.a.peerId, issuerInfo: L.info, issuerProfile });
+    assert.throws(() => validateAttestedCouponOffer(durableOffer, { coupon: durable.coupon, peerId: D.a.peerId, issuerInfo: D.info, issuerProfile }), /verification failed/);
+    // Refusal comes from the binding check or from the exact offer validator; callers map both to static codes.
+    const refusal = (e) => e.code === "credit_record_refused" || e.message === "coupon offer verification failed";
+    const refusedBound = (offer, coupon, a, label) => assert.throws(() => creditOfferBound("near", offer.offer, offer.offer_hash, coupon, D.info, a), refusal, `${d}: ${label}`);
+    refusedBound(legacyOffer, legacy.coupon, L.a, "legacy pair");
+    refusedBound(legacyOffer, legacy.coupon, D.a, "durable approval with legacy offer");
+    refusedBound(durableOffer, durable.coupon, L.a, "legacy approval with durable offer");
+    refusedBound({ offer: { ...durableOffer.offer, delivery_profile: "x25519-aesgcm-session-only" }, offer_hash: durableOffer.offer_hash }, durable.coupon, D.a, "relabel under the produced hash");
+    refusedBound({ offer: { ...durableOffer.offer, delivery_profile: "x25519-aesgcm-recipient-v2" }, offer_hash: durableOffer.offer_hash }, durable.coupon, D.a, "unknown profile");
+    refusedBound(durableOffer, legacy.coupon, D.a, "replay for another gift");
+    refusedBound(durableOffer, durable.coupon, { ...D.a, pin: { ...D.a.pin, identityPolicy: d === "mac-v2" ? {} : { profile: MAC_ISSUER_PROFILE } } }, "other issuer profile");
+    refusedBound(durableOffer, durable.coupon, { ...D.a, pin: { ...D.a.pin, expectedIssuerPublicKeySha256: "00".repeat(32) } }, "issuer key pin");
+    refusedBound(durableOffer, durable.coupon, { ...D.a, approval: { ...D.approval, payload: { ...D.approval.payload, provider_scope_commitment: "cd".repeat(32) } } }, "provider scope");
+    refusedBound(durableOffer, durable.coupon, { ...D.a, approval: { ...D.approval, maxCouponNanoUsd: String(BigInt(durableOffer.offer.budget_nano_usd) - 1n) } }, "budget above approval");
+    assert.throws(() => creditOfferBound("other-provider", durableOffer.offer, durableOffer.offer_hash, durable.coupon, D.info, D.a), refusal);
+    // Signed approval bytes: domain swap, signature, root, pins and unsigned profile edits refuse.
+    const envelope = JSON.parse(durable.approval.envelope);
+    const refusedApproval = (raw, options = {}, label) => assert.throws(() => verifyCouponStagingAdmission(raw, { approvalRoot: durable.authority.public_key_hex, ...options }), { code: "staging_admission_refused" }, `${d}: ${label}`);
+    refusedApproval(Buffer.from(durable.approval.envelope.replace(envelope.domain, envelope.domain === COUPON_STAGING_APPROVAL_DOMAIN ? MAC_COUPON_APPROVAL_DOMAIN : COUPON_STAGING_APPROVAL_DOMAIN)), {}, "domain swap");
+    refusedApproval(Buffer.from(durable.approval.envelope.replace(/"signature_hex":"(.)/, (m, c) => `"signature_hex":"${c === "0" ? "1" : "0"}`)), {}, "signature");
+    refusedApproval(Buffer.from(durable.approval.envelope), { approvalRoot: "11".repeat(32) }, "root");
+    refusedApproval(Buffer.from(durable.approval.envelope), { issuerPublicKeySha256: "00".repeat(32) }, "issuer pin");
+    for (const value of ["x25519-aesgcm-session-only", "x25519-aesgcm-recipient-v2"])
+      refusedApproval(Buffer.from(durable.approval.envelope.replace('"delivery_profile":"x25519-aesgcm-recipient-v1"', `"delivery_profile":"${value}"`)), {}, `unsigned ${value}`);
+  }
 });

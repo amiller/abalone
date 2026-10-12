@@ -37,7 +37,6 @@ import { admitAttestedCouponIssuerPin, admitAttestedCouponSessionIssuer, openAtt
 import { couponStagingGuardNotice } from "../lib/coupon-staging.mjs";
 import { createCreditManager } from "../lib/credit.mjs";
 import { couponInput, creditId, creditPreflight, readPrivate } from "../lib/credit-store.mjs";
-import { loadTrial, prepareWorkspace } from "../tools/coupon-first-use.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, def) => { const i = args.indexOf(name); if (i < 0) return def; const v = args[i + 1]; args.splice(i, 2); return v; };
@@ -49,7 +48,7 @@ const CREDIT_OPTIONS = { inspect: ["--trial", "--stdin", "--input-file"], redeem
 const CREDIT_VALUES = { "--trial": (v) => path.isAbsolute(v), "--input-file": (v) => path.isAbsolute(v), "--credit": (v) => /^[0-9a-f]{64}$/.test(v),
   "--accept-offer": (v) => /^[0-9a-f]{64}$/.test(v), "--mode": (v) => v === "rpc" };
 // Only these codes carry static, path-free messages; anything else is reported without raw detail.
-const CREDIT_CODES = new Set(["credit_usage", "credit_store_refused", "credit_record_refused", "credit_locked", "credit_intent_required", "credit_offer_refused",
+const CREDIT_CODES = new Set(["credit_usage", "credit_store_refused", "credit_provider_unsupported", "credit_record_refused", "credit_locked", "credit_intent_required", "credit_offer_refused",
   "credit_admission_changed", "credit_profile_refused", "credit_redemption_incomplete", "credit_unavailable", "coupon_input_refused", "claim_not_reserved",
   "credit_not_claimed", "claim_pending", "claim_expired", "credit_flock_unavailable", "credit_input_refused", "credit_workspace_refused", "credit_runtime_refused",
   "reconciliation_required", "credential_refused", "staging_approval_expired", "issuer_unverified", "bundle_invalid", "issuer_inputs_missing",
@@ -87,11 +86,13 @@ async function creditAction() {
     if (!values["--credit"]) throw creditUsage();
     if (process.platform !== "linux" || gift.coupon()) throw Object.assign(new Error("Saved credit sessions need Linux owned-host incognito and no active routed gift; nothing was replaced."), { code: "credit_unavailable" });
     couponSlot = await manager.session(values["--credit"]);
+    // Lazy: the peer image ships bin/ and lib/ without tools/.
+    const { prepareWorkspace } = await import("../tools/coupon-first-use.mjs");
     // Same owned-host workspace preparation as first use: canaries are planted automatically when absent, then checked.
     creditStep("credit_workspace_refused", "This folder's planted canary files are missing or changed, or could not be planted. Restore them or start in a fresh folder; nothing was sent.", () => prepareWorkspace(process.cwd(), { ownedHost: true }));
     creditStep("credit_runtime_refused", "The curated runtime or owned-host runtime directories did not verify. Reinstall the reviewed release; nothing was sent.", () => { verified(); runtimeDir(); memoryRoot(); });
     process.stderr.write(`${OWNED_HOST_NOTICE}\n`);
-    console.error(`${couponSlot.info().disclosures.join(" ")} Fresh incognito conversation; the saved credit remains available after close.`);
+    console.error(["Saved credit:", ...couponSlot.info().disclosures, "Fresh incognito conversation; the saved credit remains available after close."].join("\n"));
     args.splice(0, args.length, "--incognito", "--owned-host", "--model", `${couponSlot.provider.provider}/${couponSlot.provider.model}`,
       ...(values["--mode"] ? ["--mode", "rpc"] : []));
     return session;
@@ -99,6 +100,7 @@ async function creditAction() {
   if (!values["--trial"] || !!values["--stdin"] === !!values["--input-file"] || (command === "redeem" && !values["--accept-offer"])) throw creditUsage();
   if (values["--stdin"] && process.stdin.isTTY) throw Object.assign(new Error("--stdin reads a pipe only, so a typed gift code is never echoed. At a terminal, save the code or link in a private 0600 file and use --input-file; nothing was claimed."), { code: "credit_input_refused" });
   creditPreflight();
+  const { loadTrial } = await import("../tools/coupon-first-use.mjs");
   const trial = loadTrial(values["--trial"]);
   let input;
   if (values["--input-file"]) input = readPrivate(values["--input-file"], 2048).toString();
