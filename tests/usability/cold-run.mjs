@@ -32,7 +32,7 @@ check("expired-fixture: the recorded expired offer passes the offer and binding 
 
 async function journey(label, claimExpiresAt) {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), `abalone-usability-${label}-`));
-  const [state, home, xdg, tmp, work, trial] = ["state", "home", "x", "tmp", "work", "trial"].map((n) => { const d = path.join(base, n); fs.mkdirSync(d, { mode: 0o700 }); return d; });
+  const [state, home, xdg, work, trial] = ["state", "home", "x", "work", "trial"].map((n) => { const d = path.join(base, n); fs.mkdirSync(d, { mode: 0o700 }); return d; });
   const server = await issuer();
   server.state.offer = bundle({ ...terms(server.host.peerId.toString()), claim_expires_at: claimExpiresAt });
   if (label === "expired") Object.assign(server.state, { claim: "in_progress", status: "ready", claimExpired: true });
@@ -45,7 +45,7 @@ async function journey(label, claimExpiresAt) {
   // What the redeem page hands over: its full link, saved privately.
   const link = path.join(home, "gift-link.txt");
   fs.writeFileSync(link, `https://amiller.github.io/abalone/redeem/#code=${coupon}\n`, { mode: 0o600 });
-  const env = { PATH: process.env.PATH, LANG: "C.UTF-8", HOME: home, ABALONE_DIR: state, XDG_RUNTIME_DIR: xdg, TMPDIR: tmp, ABALONE_SYNTHETIC_NEAR_LOG: path.join(base, "near.jsonl") };
+  const env = { PATH: process.env.PATH, LANG: "C.UTF-8", HOME: home, ABALONE_DIR: state, XDG_RUNTIME_DIR: xdg, TMPDIR: base, ABALONE_SYNTHETIC_NEAR_LOG: path.join(base, "near.jsonl") };
   const steps = [];
   const run = (hook, argv, rpc) => new Promise((resolve) => {
     const child = spawn(process.execPath, ["--import", path.join(root, hook), path.join(root, "bin/abalone.mjs"), ...argv], { cwd: work, env, stdio: ["pipe", "pipe", "pipe"] });
