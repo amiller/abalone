@@ -12,8 +12,9 @@ import { generateKeyPair } from "@libp2p/crypto/keys";
 import { peerIdFromPrivateKey } from "@libp2p/peer-id";
 import { servePeer } from "../lib/p2p.mjs";
 import { canonicalCouponJson } from "../lib/coupon-offer.mjs";
-import { couponAttestedClientForTesting, couponAttestedRecipientPeerHash, validateAttestedCouponOffer, COUPON_ISSUER_PROTOCOL, COUPON_ISSUER_FRAME_LIMIT, COUPON_PROTOCOL_V4 } from "../lib/coupon-attested.mjs";
+import { couponAttestedClientForTesting, couponAttestedRecipient, couponAttestedRecipientPeerHash, validateAttestedCouponOffer, COUPON_ISSUER_PROTOCOL, COUPON_ISSUER_FRAME_LIMIT, COUPON_PROTOCOL_V4 } from "../lib/coupon-attested.mjs";
 import { createCreditManager, createCreditManagerForTesting } from "../lib/credit.mjs";
+import { OUT_OF_DATE_TRIAL_POLICY, OUT_OF_DATE_TRIAL_NOTICE } from "../lib/coupon-near.mjs";
 import { creditStore, creditId, couponInput, privateDirectory, readPrivate } from "../lib/credit-store.mjs";
 import { syntheticIssuerIdentity } from "./fixtures/coupon/issuer-v2.mjs";
 import { syntheticStagingSigner } from "./fixtures/coupon/staging-signer.mjs";
@@ -51,7 +52,8 @@ function delivery(accepted, recipientKey, peer) {
 }
 
 async function issuer(profile) {
-  const frames = [], state = { claim: "grant", status: "in_progress" };
+  // statuses is consumed first (one per bound status frame), then status repeats.
+  const frames = [], state = { claim: "grant", status: "in_progress", statuses: [], claimExpired: false, accountingBlocked: false };
   const host = await servePeer({ listen: ["/ip4/127.0.0.1/tcp/0"], evidence: () => () => ({ type: "dev" }), services: {
     [COUPON_ISSUER_PROTOCOL]: { maxDataLength: COUPON_ISSUER_FRAME_LIMIT, timeoutMs: 3000, handle: async (_lp, send, recv) => {
       const frame = await recv();
@@ -64,8 +66,9 @@ async function issuer(profile) {
         if (state.claim === "in_progress") return send({ id: frame.id, ok: true, result: { state: "in_progress", automatic_retry_allowed: false, deposit_release_authorized: false } });
         return send({ id: frame.id, ok: true, result: delivery(state.offer, frame.recipient_key, auth.remotePeer.toString()) });
       }
-      return send({ id: frame.id, ok: true, result: { state: state.status, claim_expired: false, accounting_blocked: false, automatic_retry_allowed: false,
-        deposit_release_authorized: false, ...(state.status === "delivered" ? { key_id: `near-key-${sha(coupon).slice(0, 16)}` } : {}) } });
+      const current = state.statuses.shift() ?? state.status;
+      return send({ id: frame.id, ok: true, result: { state: current, claim_expired: state.claimExpired, accounting_blocked: state.accountingBlocked, automatic_retry_allowed: false,
+        deposit_release_authorized: false, ...(current === "delivered" ? { key_id: `near-key-${sha(coupon).slice(0, 16)}` } : {}) } });
     } },
   } });
   state.offer = bundle(terms(host.peerId.toString(), profile));
@@ -86,6 +89,9 @@ test("one accepted redeem claims once; installed credit never claims again; lega
     assert.equal(offer.state, "offered"); assert.equal(offer.deliveryProfile, "x25519-aesgcm-recipient-v1");
     assert.equal(offer.nominalCapUsd, "5.00"); assert.equal(offer.balance, "unknown"); assert.deepEqual(offer.sponsorPowers, ["revoke", "change_limits"]);
     assert.equal(offer.claimWindowExpiresAt, "2030-10-10T00:00:00Z"); assert.equal(offer.providerExpiry, "unknown"); assert.equal(offer.requestMaxTokens, 512);
+    assert.equal(offer.provider, "near"); assert.equal(offer.outOfDateException, false); assert.equal(offer.operatorSecretAccess, true);
+    assert.deepEqual(offer.disclosures, ["Nominal cap $5.00; actual balance unknown.", "The sponsor can revoke this credit or change its limits.",
+      "Each request is limited to 512 output tokens.", "Synthetic input only: the issuer operator can access secrets in this debug-staging service."]);
     await pace();
     await assert.rejects(manager.redeem(id, { offerHash: "00".repeat(32) }), { code: "credit_intent_required" });
     assert.ok(!server.frames.some((f) => f.op === "claim"));
@@ -107,31 +113,124 @@ test("one accepted redeem claims once; installed credit never claims again; lega
   } finally { await legacy.host.stop(); await server.host.stop(); }
 });
 
-test("interrupted claim keeps the original Noise and X25519 identity; a fresh manager checks status before retrieval and never replays a ready claim", { timeout: 30_000 }, async () => {
+const claims = (server) => server.frames.filter((f) => f.op === "claim");
+const savedRecord = (dir) => JSON.parse(fs.readFileSync(path.join(dir, `${id}.json`)));
+const fast = { pollIntervalMs: 50 };
+// First redeem whose claim stays pending past its wait: the record is uncertain with one claim sent.
+async function pendingClaim(server, dir) {
+  const manager = createCreditManagerForTesting({ directory: dir, connect });
+  const offer = await manager.inspect(coupon, server.admission); await pace();
+  server.state.claim = "in_progress";
+  await assert.rejects(manager.redeem(id, { offerHash: offer.offerHash, waitMs: 300, ...fast }), { code: "claim_pending" });
+  assert.equal(savedRecord(dir).state, "uncertain"); assert.equal(claims(server).length, 1);
+  await pace();
+  return { offer, original: claims(server)[0] };
+}
+
+test("pending recovery in a fresh manager polls bound status only, then retrieves the same winner once", { timeout: 30_000 }, async () => {
   const server = await issuer(), dir = path.join(tempDir(), "credit");
   try {
-    const first = createCreditManagerForTesting({ directory: dir, connect });
-    const offer = await first.inspect(coupon, server.admission);
-    await pace();
-    server.state.claim = "in_progress";
-    await assert.rejects(first.redeem(id, { offerHash: offer.offerHash, waitMs: 300 }), { code: "credit_redemption_incomplete" });
-    const saved = JSON.parse(fs.readFileSync(path.join(dir, `${id}.json`)));
-    assert.equal(saved.state, "uncertain");
-    const original = server.frames.find((f) => f.op === "claim");
-    // A new process with the same directory: refused when the issuer has not reserved this key.
-    server.state.status = "ready"; await pace();
-    const reopened = createCreditManagerForTesting({ directory: dir, connect }), before = server.frames.length;
-    await assert.rejects(reopened.redeem(id, { recover: true }), { code: "claim_not_reserved" });
-    assert.deepEqual(server.frames.slice(before).map((f) => f.op), ["offer", "status"]);
-    await assert.rejects(reopened.redeem(id, { offerHash: offer.offerHash }), { code: "credit_intent_required" });
-    // The issuer reports the original reservation delivered: status first, then the same key retrieves it.
-    server.state.status = "delivered"; server.state.claim = "grant"; await pace();
+    const { original } = await pendingClaim(server, dir);
+    server.state.statuses = ["in_progress", "in_progress", "in_progress"]; server.state.status = "delivered"; server.state.claim = "grant";
     const mark = server.frames.length;
-    assert.equal((await reopened.redeem(id, { recover: true })).state, "installed");
+    assert.equal((await createCreditManagerForTesting({ directory: dir, connect }).redeem(id, { recover: true, ...fast })).state, "installed");
     const recovery = server.frames.slice(mark);
-    assert.deepEqual(recovery.map((f) => f.op), ["offer", "status", "claim"]);
+    assert.deepEqual(recovery.map((f) => f.op), ["offer", "status", "status", "status", "status", "claim"], "no claim while pending");
     for (const frame of recovery) assert.equal(frame.peer, original.peer, "same Noise identity");
     for (const frame of recovery.slice(1)) assert.equal(frame.recipient_key, original.recipient_key, "same X25519 recipient key");
+  } finally { await server.host.stop(); }
+});
+
+test("a crash before the first claim frame keeps the durable original keys; only explicit recover retries them once", { timeout: 30_000 }, async () => {
+  const server = await issuer(), dir = path.join(tempDir(), "credit");
+  try {
+    const offer = await createCreditManagerForTesting({ directory: dir, connect }).inspect(coupon, server.admission); await pace();
+    // Async spawn: the issuer fixture runs on this process's event loop.
+    const child = spawn(process.execPath, ["--input-type=module", "-e", `
+      import { createCreditManagerForTesting } from ${JSON.stringify(path.join(root, "lib/credit.mjs"))};
+      import { couponAttestedClientForTesting } from ${JSON.stringify(path.join(root, "lib/coupon-attested.mjs"))};
+      const quote = async (hex) => JSON.parse(Buffer.from(hex, "hex").toString());
+      const connect = async (a, o, t) => { const c = await couponAttestedClientForTesting(a, { ...o, syntheticQuoteVerifier: quote }, t);
+        return { ...c, claim: () => process.kill(process.pid, "SIGKILL") }; };
+      await createCreditManagerForTesting({ directory: process.argv[1], connect }).redeem(process.argv[2], { offerHash: process.argv[3] });`, dir, id, offer.offerHash],
+      { stdio: ["ignore", "ignore", "inherit"] });
+    const [, signal] = await once(child, "exit");
+    assert.equal(signal, "SIGKILL");
+    const crashed = savedRecord(dir);
+    assert.equal(crashed.state, "claiming"); assert.equal(claims(server).length, 0);
+    await pace();
+    const manager = createCreditManagerForTesting({ directory: dir, connect });
+    await assert.rejects(manager.redeem(id, { offerHash: offer.offerHash }), { code: "credit_intent_required" });
+    server.state.status = "ready";
+    assert.equal((await manager.redeem(id, { recover: true, ...fast })).state, "installed");
+    assert.equal(claims(server).length, 1);
+    assert.equal(claims(server)[0].recipient_key, couponAttestedRecipient(crashed.recipientKey).publicKey);
+    assert.equal(claims(server)[0].peer, crashed.localPeer);
+  } finally { await server.host.stop(); }
+});
+
+test("an unreserved claim during polling is not resent; explicit recover retries the same keys", { timeout: 30_000 }, async () => {
+  const server = await issuer(), dir = path.join(tempDir(), "credit");
+  try {
+    const manager = createCreditManagerForTesting({ directory: dir, connect });
+    const offer = await manager.inspect(coupon, server.admission); await pace();
+    server.state.claim = "in_progress"; server.state.status = "ready";
+    await assert.rejects(manager.redeem(id, { offerHash: offer.offerHash, ...fast }), { code: "claim_not_reserved" });
+    assert.equal(claims(server).length, 1); assert.equal(savedRecord(dir).state, "uncertain");
+    await pace(); server.state.claim = "grant";
+    assert.equal((await manager.redeem(id, { recover: true, ...fast })).state, "installed");
+    assert.equal(claims(server).length, 2);
+    assert.equal(claims(server)[0].recipient_key, claims(server)[1].recipient_key); assert.equal(claims(server)[0].peer, claims(server)[1].peer);
+  } finally { await server.host.stop(); }
+});
+
+for (const [name, change, code, state] of [["expired claim window", { status: "ready", claimExpired: true }, "claim_expired", "expired"],
+    ["accounting block", { status: "in_progress", accountingBlocked: true }, "reconciliation_required", "reconciliation_required"],
+    ["issuer reconciliation", { status: "reconciliation_required" }, "reconciliation_required", "reconciliation_required"]]) {
+  test(`${name} is terminal: nothing is resent and the saved state is never reset`, { timeout: 30_000 }, async () => {
+    const server = await issuer(), dir = path.join(tempDir(), "credit");
+    try {
+      const { offer } = await pendingClaim(server, dir);
+      Object.assign(server.state, change);
+      const manager = createCreditManagerForTesting({ directory: dir, connect });
+      await assert.rejects(manager.redeem(id, { recover: true, ...fast }), { code });
+      assert.equal(savedRecord(dir).state, state); assert.equal(claims(server).length, 1);
+      const frames = server.frames.length;
+      await assert.rejects(manager.redeem(id, { recover: true, ...fast }), { code });
+      await assert.rejects(manager.redeem(id, { offerHash: offer.offerHash }), { code });
+      assert.equal(server.frames.length, frames, "no further issuer request");
+      assert.equal((await manager.status(id)).state, state);
+    } finally { await server.host.stop(); }
+  });
+}
+
+test("record creation is atomic and exclusive: a crash leaves no partial record and an existing credit is never overwritten", { timeout: 30_000 }, async () => {
+  const server = await issuer(), dir = path.join(tempDir(), "credit"), store = creditStore(dir);
+  try {
+    // A creator killed between temp write and rename leaves only a temp file holding keys.
+    const stale = path.join(dir, `${id}.json.${"ab".repeat(16)}.tmp`);
+    fs.writeFileSync(stale, "{}", { mode: 0o600 });
+    const manager = createCreditManagerForTesting({ directory: dir, connect });
+    assert.equal((await manager.inspect(coupon, server.admission)).state, "offered");
+    assert.equal(fs.existsSync(stale), false, "the next lock holder removes it");
+    const file = path.join(dir, `${id}.json`), before = fs.readFileSync(file, "utf8");
+    assert.equal(fs.statSync(file).nlink, 1);
+    const unlock = store.lock(id);
+    try { assert.throws(() => store.write({ ...JSON.parse(before), state: "uncertain" }, { create: true }), { code: "credit_store_refused" }); }
+    finally { unlock(); }
+    assert.equal(fs.readFileSync(file, "utf8"), before);
+    assert.deepEqual(fs.readdirSync(dir).sort(), [`${id}.json`, `${id}.json.lock`]);
+  } finally { await server.host.stop(); }
+});
+
+test("pre-consent summary discloses the selected OutOfDate exception without trial boilerplate", { timeout: 30_000 }, async () => {
+  const server = await issuer(), dir = path.join(tempDir(), "credit");
+  try {
+    const admission = { ...server.admission, provider: { ...provider, policy: { ...provider.policy, gatewayTcb: OUT_OF_DATE_TRIAL_POLICY, modelTcb: OUT_OF_DATE_TRIAL_POLICY } } };
+    const offer = await createCreditManagerForTesting({ directory: dir, connect }).inspect(coupon, admission);
+    assert.equal(offer.outOfDateException, true); assert.equal(offer.providerTcbPolicy, OUT_OF_DATE_TRIAL_POLICY);
+    assert.equal(offer.disclosures.at(-1), OUT_OF_DATE_TRIAL_NOTICE);
+    assert.ok(!JSON.stringify(offer).includes("$5 "));
   } finally { await server.host.stop(); }
 });
 
@@ -196,7 +295,7 @@ test("saved records bind offer hash, issuer, provider scope, budget, Noise peer,
     for (const [name, mutate] of Object.entries(mutations)) {
       const r = structuredClone(base); mutate(r); fs.writeFileSync(file, JSON.stringify(r));
       await assert.rejects(manager.status(id), (e) => ["credit_record_refused", "credit_profile_refused"].includes(e.code), name);
-      await assert.rejects(manager.session(id), (e) => !!e.code, name);
+      await assert.rejects(manager.session(id), (e) => ["credit_record_refused", "credit_profile_refused"].includes(e.code), name);
     }
     fs.writeFileSync(file, good);
     assert.equal((await manager.status(id)).state, "installed");
@@ -304,6 +403,10 @@ test("credit CLI refuses incompatible or secret argv options and prints static, 
   assert.ok(!missing.stderr.includes(home) && !missing.stderr.includes(id) && !/ENOENT|at .*\.mjs/.test(missing.stderr));
   const empty = cli("status");
   assert.equal(empty.status, 0, empty.stderr); assert.deepEqual(JSON.parse(empty.stdout), []);
+  // At a real terminal --stdin would echo the code: refused before any trial, gift or issuer is read.
+  const tty = spawnSync("script", ["-qec", `${process.execPath} ${path.join(root, "bin/abalone.mjs")} credit inspect --trial /x/t.json --stdin`, "/dev/null"],
+    { encoding: "utf8", timeout: 20_000, env: { ...process.env, ABALONE_DIR: path.join(home, "state") }, input: "" });
+  assert.equal(tty.status, 1, tty.stdout + tty.stderr); assert.ok(tty.stdout.includes("--stdin reads a pipe only"));
   const trial = cli("inspect", "--trial", path.join(home, "missing-trial.json"), "--stdin");
   assert.equal(trial.status, 1); assert.ok(!trial.stderr.includes(home) && !trial.stderr.includes("ENOENT"));
 });

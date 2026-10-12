@@ -345,7 +345,10 @@ A v4 `delivery_profile` is either `x25519-aesgcm-session-only` or
 the hashed offer. Session-only recipients accept only the first label. `abalone credit`
 saves the original Noise seed, X25519 key and delivered credential in private user
 files, and accepts only `x25519-aesgcm-recipient-v1`. It refuses a session-only offer
-before claim.
+before claim. `credit recover` reads bound status first with the same keys: `ready` inside the
+claim window is retried once per explicit recover, `in_progress` is polled without a
+claim, and `delivered` is retrieved from the same winner. `claim_expired`,
+`reconciliation_required` and `accounting_blocked` are terminal; nothing is resent.
 
 Delivery authenticates canonical JSON:
 

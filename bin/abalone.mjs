@@ -36,8 +36,8 @@ import { admitAttestedCouponIssuerPin, admitAttestedCouponSessionIssuer, openAtt
   ATTESTED_COUPON_WAIT, ATTESTED_COUPON_RECOVER } from "../lib/coupon-attested-session.mjs";
 import { couponStagingGuardNotice } from "../lib/coupon-staging.mjs";
 import { createCreditManager } from "../lib/credit.mjs";
-import { couponInput, creditId, readPrivate } from "../lib/credit-store.mjs";
-import { loadTrial } from "../tools/coupon-first-use.mjs";
+import { couponInput, creditId, creditPreflight, readPrivate } from "../lib/credit-store.mjs";
+import { loadTrial, prepareWorkspace } from "../tools/coupon-first-use.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, def) => { const i = args.indexOf(name); if (i < 0) return def; const v = args[i + 1]; args.splice(i, 2); return v; };
@@ -51,8 +51,11 @@ const CREDIT_VALUES = { "--trial": (v) => path.isAbsolute(v), "--input-file": (v
 // Only these codes carry static, path-free messages; anything else is reported without raw detail.
 const CREDIT_CODES = new Set(["credit_usage", "credit_store_refused", "credit_record_refused", "credit_locked", "credit_intent_required", "credit_offer_refused",
   "credit_admission_changed", "credit_profile_refused", "credit_redemption_incomplete", "credit_unavailable", "coupon_input_refused", "claim_not_reserved",
+  "credit_not_claimed", "claim_pending", "claim_expired", "credit_flock_unavailable", "credit_input_refused", "credit_workspace_refused", "credit_runtime_refused",
   "reconciliation_required", "credential_refused", "staging_approval_expired", "issuer_unverified", "bundle_invalid", "issuer_inputs_missing",
   "issuer_pin_refused", "provider_not_admitted", "source_inputs_missing"]);
+// A failed local setup step reports what to repair without raw paths or exception text.
+const creditStep = (code, message, fn) => { try { return fn(); } catch { throw Object.assign(new Error(message), { code }); } };
 const creditUsage = () => Object.assign(new Error("Usage: abalone credit inspect --trial /abs/trial.json (--stdin | --input-file /abs/private-file); credit redeem (same) --accept-offer <offerHash>; credit recover --credit <id>; credit status [--credit <id>]; credit session --credit <id> [--mode rpc]. Gift codes and keys never belong in command arguments."), { code: "credit_usage" });
 
 async function creditCmd() {
@@ -77,20 +80,25 @@ async function creditAction() {
   if (command === "status") return void console.log(JSON.stringify(await manager.status(values["--credit"]), null, 2));
   if (command === "recover") {
     if (!values["--credit"]) throw creditUsage();
+    creditPreflight();
     return void console.log(JSON.stringify(await manager.redeem(values["--credit"], { recover: true }), null, 2));
   }
   if (command === "session") {
     if (!values["--credit"]) throw creditUsage();
     if (process.platform !== "linux" || gift.coupon()) throw Object.assign(new Error("Saved credit sessions need Linux owned-host incognito and no active routed gift; nothing was replaced."), { code: "credit_unavailable" });
     couponSlot = await manager.session(values["--credit"]);
-    canary.forSession(process.cwd(), false); verified(); runtimeDir(); memoryRoot();
+    // Same owned-host workspace preparation as first use: canaries are planted automatically when absent, then checked.
+    creditStep("credit_workspace_refused", "This folder's planted canary files are missing or changed, or could not be planted. Restore them or start in a fresh folder; nothing was sent.", () => prepareWorkspace(process.cwd(), { ownedHost: true }));
+    creditStep("credit_runtime_refused", "The curated runtime or owned-host runtime directories did not verify. Reinstall the reviewed release; nothing was sent.", () => { verified(); runtimeDir(); memoryRoot(); });
     process.stderr.write(`${OWNED_HOST_NOTICE}\n`);
-    console.error(`Saved credit $${couponSlot.info().nominalCapUsd} nominal cap; balance unknown. Sponsor can revoke/change limits. ${couponSlot.provider.maxTokens}-token request bound. Fresh conversation; saved credit remains available after close.`);
+    console.error(`${couponSlot.info().disclosures.join(" ")} Fresh incognito conversation; the saved credit remains available after close.`);
     args.splice(0, args.length, "--incognito", "--owned-host", "--model", `${couponSlot.provider.provider}/${couponSlot.provider.model}`,
       ...(values["--mode"] ? ["--mode", "rpc"] : []));
     return session;
   }
   if (!values["--trial"] || !!values["--stdin"] === !!values["--input-file"] || (command === "redeem" && !values["--accept-offer"])) throw creditUsage();
+  if (values["--stdin"] && process.stdin.isTTY) throw Object.assign(new Error("--stdin reads a pipe only, so a typed gift code is never echoed. At a terminal, save the code or link in a private 0600 file and use --input-file; nothing was claimed."), { code: "credit_input_refused" });
+  creditPreflight();
   const trial = loadTrial(values["--trial"]);
   let input;
   if (values["--input-file"]) input = readPrivate(values["--input-file"], 2048).toString();
@@ -616,7 +624,8 @@ async function session() {
     await couponSlot.broker(socketPath, { onState: (state) => console.error(`Coupon session: ${state}. Check /coupon; no alternate key is tried.`) });
     env.ABALONE_COUPON_SOCKET = socketPath; env.ABALONE_COUPON_MODEL = couponSlot.provider.model; env.ABALONE_COUPON_PROVIDER = couponSlot.provider.provider;
     loads.push("-e", admit(entries, path.join(ROOT, "curated/coupon-provider.ts"), "coupon provider extension"));
-    env.PI_RESUME_HINT = "Coupon session credentials are session-only and cannot be resumed after exit.";
+    env.PI_RESUME_HINT = couponSlot.savedCredit ? "This incognito conversation is not resumable. The saved credit remains: abalone credit session --credit <id> starts a fresh one."
+      : "Coupon session credentials are session-only and cannot be resumed after exit.";
   }
   // In strict incognito Pi's own dir (settings, crash and debug logs) is in the run dir, removed at exit.
   const agentDir = incognito ? path.join(run, "agent") : AGENT_DIR;
