@@ -4,7 +4,9 @@ Get the release, check it, and save model access from a gift coupon. The
 [setup skill](../skills/abalone-incognito/SKILL.md) gives your coding agent the
 same procedure; [getting started](getting-started.md) covers the session itself.
 [What incognito means here](../README.md#what-incognito-means-here) explains what
-is protected and what is not.
+is protected and what is not. The coupon is one way to get access; see
+[acquiring private inference](../guides/acquiring-private-inference/README.md)
+for the others and what each links to you.
 
 <!-- Release step: point the links, the install.sh SHA256 and the claim deadline below at the new release. -->
 **Current release:** [v0.1.0-preview.7.1](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.7.1)

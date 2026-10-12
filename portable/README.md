@@ -7,6 +7,5 @@ yet: USB/Tails is unqualified
 route fails on Tails because NVIDIA's attestation service refuses Tor exits
 (issue [#15](https://github.com/amiller/abalone/issues/15)).
 
-The direction is being explored in the maintainer's private research pull
-request "Research Abalone on Tails: portable session spike". Results that hold
-up will land here as public instructions and checks.
+A Tails-based portable session is being researched. Results that hold up will
+land here as public instructions and checks.

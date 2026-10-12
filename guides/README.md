@@ -41,5 +41,9 @@ A guide needs one of two reviews before its status becomes `reviewed`:
   its source and the [security profiles](../docs/security.md), and the pull
   request records what was checked. When in doubt, ask for this review.
 
+An acquisition route is marked `reviewed` only after a second person, not the
+author, has obtained access through it live and the pull request records the
+date and outcome.
+
 Changing a guide needs the documentation checks in
 [CONTRIBUTING](../CONTRIBUTING.md#changes-and-review), not the runtime suite.

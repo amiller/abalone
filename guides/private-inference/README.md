@@ -14,7 +14,10 @@ it sends anything: which code is running, on which hardware, with which GPU
 evidence. The request is encrypted to a key held inside that environment. The
 provider's operators handle ciphertext. Abalone checks provider and model
 attestation before the first prompt byte and refuses a provider that fails it
-([security profiles](../../docs/security.md#current-gift-trial)).
+([security profiles](../../docs/security.md#current-gift-trial)). The current
+NEAR route is an exception for synthetic material: it accepts cryptographically
+verified `OutOfDate` firmware with a warning before any effect, and strong
+private guarantees are unqualified under that exception.
 
 Attestation does not hide the rest. Look at it from the provider's side: it
 still sees when you connect, from which IP address, how much you use, and which

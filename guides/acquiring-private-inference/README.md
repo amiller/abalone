@@ -26,8 +26,8 @@ Rules that apply to every route:
 
 - Wallet seeds, spending keys and payment QR codes never go to a coding agent.
   Pay from your own wallet, outside the agent's view.
-- Gift codes go through stdin or a private file, never a command line, URL or
-  prompt ([redeem](../../docs/abalone-coupon-redeem.md#inspect-redeem-and-save-access)).
+- A gift code goes to the redeem command on standard input, never in a command
+  argument, URL query, environment variable or public log ([redeem](../../docs/abalone-coupon-redeem.md#inspect-redeem-and-save-access)).
 - A fresh wallet funded from an exchange account is not anonymous. Neither is a
   transparent deposit followed by a matching withdrawal.
 - Connect from Tor if the network address matters (see
@@ -40,8 +40,8 @@ redeem it with an issuer on the Dsmack network, which delivers a model credentia
 encrypted to keys generated on your computer. Follow
 [Redeem a coupon](../../docs/abalone-coupon-redeem.md).
 
-**You need:** Linux x86_64, Node 24 and the listed system tools. No account,
-card, VPN or wallet
+**You need:** Linux x86_64, Node 24 and the listed system tools. No VPN,
+provider account, manual API key or funded wallet
 ([conditions](../../docs/abalone-coupon-redeem.md#conditions-before-you-start)).
 
 **What is linked:**
