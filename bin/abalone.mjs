@@ -571,6 +571,7 @@ async function savedCreditCmd() {
   if (ready.length) throw new Error([`You have ${ready.length} saved credits. Open one with:`,
     ...ready.map((c) => `  abalone credit session --credit ${c.creditId}   (${c.model}, $${c.nominalCapUsd} nominal cap)`)].join("\n"));
   throw new Error([waiting.length ? "No saved credit is ready to use yet:" : "No saved credit yet.", ...waiting.map((c) => `  ${c.creditId}  ${c.state}: ${NEXT[c.state](c)}`),
+    ...(keys.list().length ? ["A configured key exists; use abalone sandbox (plain abalone opens coupon credit only, #21)."] : []),
     `To redeem a gift, open its link or ${REDEEM_PAGE} for the install steps (sh install.sh --credit prints your trial.json path).`,
     "Save the gift code or link in a private file (chmod 600 gift.txt), then:", ...REDEEM_STEPS, "Then run abalone again. abalone help lists every command."].join("\n"));
 }

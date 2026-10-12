@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 const root = path.resolve(import.meta.dirname, "..");
 const state = fs.mkdtempSync(path.join(os.tmpdir(), "abalone-keys-"));
@@ -28,8 +28,8 @@ test("a saved key is a 0600 kind:key record with no local cap, readable through 
   assert.equal(keys.TERMS, "no local cap; the provider's limit applies");
 });
 
-test("the same key twice and an empty key are refused; the same key for another provider is a separate record", () => {
-  assert.throws(() => keys.save("chutes", "again", "secret-one"), /already configured/);
+test("a second key under one provider and label and an empty key are refused; the same key for another provider is a separate record", () => {
+  assert.throws(() => keys.save("chutes", "one", "secret-other"), /already configured/);
   assert.throws(() => keys.save("chutes", "empty", ""), /empty key/);
   keys.save("nearai", "one", "secret-one");
   assert.equal(keys.list().filter((k) => k.key === "secret-one").length, 2);
@@ -60,7 +60,7 @@ test("a key record without its key or provider is refused by the store", () => {
 
 test("forget needs --label when several keys exist, then removes the record and its lock", () => {
   assert.throws(() => keys.forget("chutes"), /name one with --label/);
-  assert.throws(() => keys.forget("chutes", "nope"), /no chutes key labelled nope/);
+  assert.throws(() => keys.forget("chutes", "nope"), /^Error: no such key is configured/);
   const gone = keys.forget("chutes", "one");
   assert.equal(gone.label, "one");
   assert.ok(!fs.existsSync(path.join(dir, `${gone.id}.json`)) && !fs.existsSync(path.join(dir, `${gone.id}.json.lock`)));
@@ -78,4 +78,54 @@ test("CLI: list never prints a key; a key in arguments is refused without echo; 
   assert.ok(!argv.stderr.includes("secret-in-argv"));
   assert.match(cli("help").stdout, /abalone key add\|list\|forget <provider>/);
   assert.ok(!/\bnode (keys|serve|relay)\b/.test(cli("help").stdout));
+});
+
+test("two concurrent adds under one label: exactly one is saved", async () => {
+  const run = (key) => new Promise((ok) => {
+    const c = spawn(process.execPath, ["-e", `import(${JSON.stringify(path.join(root, "lib/keys.mjs"))}).then((k) => k.save("chutes", "race", require("fs").readFileSync(0, "utf8")))`], { env: { ...process.env, ABALONE_DIR: state }, stdio: ["pipe", "ignore", "ignore"] });
+    c.stdin.end(key); c.on("exit", ok);
+  });
+  const codes = await Promise.all([run("race-a"), run("race-b")]);
+  assert.deepEqual(codes.sort(), [0, 1]);
+  assert.equal(keys.list().filter((k) => k.label === "race").length, 1);
+  keys.forget("chutes", "race");
+});
+
+test("lock(): a lock taken on an unlinked lock file is retried on the current file", async () => {
+  const s = creditStore(dir), id = "b".repeat(64), lockFile = path.join(dir, `${id}.json.lock`), open = fs.openSync;
+  const raceOnce = (then) => { let done = false; fs.openSync = (p, ...a) => { const fd = open(p, ...a); if (p === lockFile && !done) { done = true; fs.unlinkSync(lockFile); then(); } return fd; }; };
+  try {
+    raceOnce(() => {});
+    const unlock = s.lock(id);
+    const other = spawnSync("flock", ["-n", "-x", lockFile, "true"]);
+    assert.equal(other.status, 1, "the returned lock is on the file at the path, so another process cannot take it");
+    unlock();
+    let holder;
+    raceOnce(() => { fs.writeFileSync(lockFile, "", { mode: 0o600 }); holder = spawn("flock", ["-x", lockFile, "sleep", "30"]); spawnSync("sleep", ["0.3"]); });
+    assert.throws(() => s.lock(id), { code: "credit_locked" }, "the current file's holder excludes us; the orphaned inode does not count");
+    holder.kill();
+    await new Promise((r) => holder.on("exit", r));
+  } finally { fs.openSync = open; }
+  fs.unlinkSync(lockFile);
+});
+
+test("unknown providers and unknown keys are reported without echoing the argument", () => {
+  const add = cli("key", "add", "sk-PASTED-123");
+  assert.notEqual(add.status, 0);
+  assert.match(add.stderr, /unknown provider; expected one of .*nearai/);
+  const forget = cli("key", "forget", "sk-PASTED-123");
+  assert.match(forget.stderr, /no such key is configured/);
+  assert.ok(!(add.stderr + forget.stderr).includes("sk-PASTED"));
+});
+
+test("an unreadable credit record is named and listing keeps failing", () => {
+  const bad = path.join(dir, `${"c".repeat(64)}.json`);
+  fs.writeFileSync(bad, "{}", { mode: 0o644 });
+  assert.throws(() => keys.list(), (e) => e.message.startsWith(`credit record ${bad} is unreadable or unsafe`));
+  fs.unlinkSync(bad);
+});
+
+test("plain abalone with only a configured key points to abalone sandbox", () => {
+  const r = spawnSync(process.execPath, [path.join(root, "bin/abalone.mjs")], { env: { ...process.env, ABALONE_DIR: state }, encoding: "utf8", input: "" });
+  assert.match(r.stderr, /A configured key exists; use abalone sandbox \(plain abalone opens coupon credit only, #21\)\./);
 });
