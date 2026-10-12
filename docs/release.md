@@ -51,7 +51,7 @@ do not regenerate that archive for instructions-only changes.
    ```
 
    Review that file and serve it with all five sibling assets. `tools/release.sh
-   REV BASE` alone emits a generic installer; it does not assemble a friend bundle
+   REV BASE` alone emits a generic installer; it does not assemble a trial bundle
    or this checksum file.
 
    `sh install.sh --credit` is the recipient's install-only entry for the
@@ -62,8 +62,9 @@ do not regenerate that archive for instructions-only changes.
    links `~/.local/bin/abalone` and prints the absolute paths. It needs `flock`,
    not bubblewrap, and requires pins for the `linux-node24-owned-host` profile.
    It redeems nothing and starts nothing. Bare `sh install.sh` installs, prints
-   a legacy redeem hint and asks about canaries; it has no other options. The
-   release notes must say the release provides `--credit`.
+   a legacy redeem hint and asks about canaries. Its only other form is the
+   legacy `--peer <peer address> <code>.<grant>` redeem. The release notes must
+   say the release provides `--credit`.
 5. Rehearse the actual installer on a clean supported Linux machine as nonroot.
    Verify no ambient account/operator credentials, pre-bearer readiness, human
    input, bounded redemption, first request, admission expiry, trace choices and

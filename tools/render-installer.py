@@ -45,7 +45,7 @@ if args.trial_dir:
     if trial.get('platform') != 'linux-node24-owned-host':
         parser.error('install.sh --credit supports only the linux-node24-owned-host profile.')
     if trial.get('issuer', {}).get('pin') != 'issuer-pin.json' or trial.get('issuer', {}).get('approval') != 'staging-approval.json':
-        parser.error('The friend bundle must use the exact public sibling filenames.')
+        parser.error('The trial bundle must use the exact public sibling filenames.')
 text = args.template.read_text()
 for key, value in values.items():
     text = text.replace('@' + key + '@', value)

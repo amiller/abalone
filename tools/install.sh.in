@@ -102,7 +102,7 @@ if [ ! -x "$app/abalone/bin/abalone" ]; then
   curl -fsSL "@ARTIFACT_BASE@/abalone-@REV@.tar.gz" -o "$tmp/a.tgz"
   echo "@SHA256@  $tmp/a.tgz" | sha256sum -c --quiet - || { echo "The download does not match the expected release (@REV@). Nothing was installed." >&2; exit 1; }
   mkdir -p "$app"
-  tar -xzf "$tmp/a.tgz" -C "$app" || { echo "The verified archive could not be extracted. Nothing was started." >&2; exit 1; }
+  tar -xzf "$tmp/a.tgz" -C "$app" || { echo "The verified archive could not be extracted. Nothing was installed." >&2; exit 1; }
   rm -rf "$tmp"
 fi
 mkdir -p "$HOME/.local/bin" && ln -sf "$app/abalone/bin/abalone" "$HOME/.local/bin/abalone"

@@ -17,6 +17,12 @@ out2=$(cd "$R/h2" && HOME="$R/h2" ABALONE_PLANT_CANARIES=no sh "$R/install.sh" -
 check "with a gift code it redeems it" '[[ $code2 == 0 && $out2 == *"stub abalone redeem --peer /ip4/1.2.3.4/tcp/1/p2p/x g1CODE.grant"* ]]'
 mkdir "$R/h3"; out3=$(HOME="$R/h3" sh "$R/install.sh" --friend 2>&1); code3=$?
 check "an unknown option is refused before anything is downloaded or installed" '[[ $code3 != 0 && $out3 == *"Usage: install.sh [--credit | --peer"* && -z $(ls -A "$R/h3") ]]'
+mkdir "$R/h4" "$R/h5" "$R/nobwrap" "$R/tar-fail"; for cmd in node curl tar sha256sum bash sh uname; do ln -s "$(command -v "$cmd")" "$R/nobwrap/$cmd"; done
+printf '#!/bin/sh\nexit 1\n' > "$R/tar-fail/tar"; chmod +x "$R/tar-fail/tar"
+out4=$(cd "$R/h4" && HOME="$R/h4" PATH="$R/nobwrap" sh "$R/install.sh" 2>&1); code4=$?
+check "plain install on Linux without bubblewrap refuses and writes nothing" '[[ $code4 != 0 && $out4 == *"requires bubblewrap"* && -z $(ls -A "$R/h4") ]]'
+out5=$(cd "$R/h5" && HOME="$R/h5" PATH="$R/tar-fail:$PATH" ABALONE_PLANT_CANARIES=no sh "$R/install.sh" 2>&1); code5=$?
+check "plain install with failed extraction refuses and installs nothing" '[[ $code5 != 0 && $out5 == *"could not be extracted. Nothing was installed."* && $out5 != *"Installed abalone"* && ! -e "$R/h5/.abalone-app/test/abalone" && ! -e "$R/h5/.local/bin/abalone" ]]'
 # --credit: install-only owned-host entry. A credit-capable stub archive records any launch in $R/launched; uname and
 # id are the real host's (Linux x86_64, non-root) except where a mock directory is put first on PATH.
 mkdir -p "$R/cbuild/abalone/bin" "$R/cbuild/abalone/lib" "$R/cpub" "$R/cpath" "$R/cwork"
@@ -109,7 +115,6 @@ for platform in linux-node24-bubblewrap unknown; do
   python3 "$root/tools/render-installer.py" --rev ddddddd --artifact-sha256 "$csha" --base https://example.org/credit --trial-dir "$R/rpub" --out "$R/refused-$platform.sh" > /dev/null 2>&1; rc=$?
   check "renderer refuses the $platform profile before creating an installer" '[[ $rc != 0 && ! -e $R/refused-$platform.sh ]]'
 done
-mkdir "$R/tar-fail"; printf '#!/bin/sh\nexit 1\n' > "$R/tar-fail/tar"; chmod +x "$R/tar-fail/tar"
 c18=$(PATH_C="$R/tar-fail:$R/cpath" credit "$R/credit h10" sh "$R/credit-install.sh" --credit); cc18=$?
 check "failed extraction refuses before any install or launcher" '[[ $cc18 != 0 && $c18 == *"could not be extracted"* && $c18 != *"Installed abalone"* && ! -e "$R/credit h10/.abalone-app/ddddddd/abalone" && ! -e "$R/credit h10/.local/bin/abalone" ]]'
 # tools/release.sh in a throwaway clone (this checkout's release.sh copied in), with npm stubbed: install.sh only with a base.
