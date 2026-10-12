@@ -54,7 +54,10 @@ Neither incognito nor provider encryption gives IP anonymity.
 Session-only mode discards managed conversation trace appends. Optional
 `--keep-trace` encrypts a durable managed trace with a user-held key; see the
 [trace format and recovery](protocols/trace-store.md). This does not encrypt all
-workspace files or revoke provider credentials. tmpfs may swap; terminal logs,
+workspace files or revoke provider credentials. Saved credit under
+`~/.abalone/credit` holds the credential and recovery keys in 0600 files; it
+survives close and is readable by the administrator and same-user processes.
+tmpfs may swap; terminal logs,
 backups, crashes and copied files have their own lifetimes. Deleting files is
 not a guarantee of secure erasure.
 

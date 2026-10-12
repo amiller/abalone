@@ -1,88 +1,74 @@
 # Start an Abalone incognito session
 
-**Redemption is paused:** the fresh public-installed connection is failing.
-Do not redeem until resolved; see the [current friend status](friend-preview.md).
+Abalone gives you a terminal session for working with a remote model. Dsmack
+exchanges a gifted coupon for capped NEAR provider access; Abalone then checks
+the provider's attestation and encrypts each inference request directly to the
+model. Dsmack redemption and NEAR inference are separate network paths, and the
+conversation never passes through Dsmack.
 
-The friend preview uses a gifted coupon to obtain a capped credential for remote
-NEAR inference. The [entry skill](../skills/abalone-incognito/SKILL.md) guides a
-setup agent through preparing the helper and handing its terminal to you.
+**Use synthetic, non-sensitive material with the available NEAR access route.**
+It accepts verified firmware warnings, and the coupon operator can read and
+revoke the issued credential. Read [security profiles](security.md).
 
-**Use synthetic, non-sensitive material only in this preview.** The current
-signed debug-staging profile allows issuer-operator access to issued keys and
-explicit verified firmware exceptions. Read [security profiles](security.md).
-The public friend entry and current signed bundle are still being qualified in
-[issue 4](https://github.com/amiller/abalone/issues/4). Do not substitute an old
-trial or invent a download URL.
+## Let your setup agent explain first
+
+Ask your coding agent to read the [setup skill](../skills/abalone-incognito/SKILL.md).
+Before proposing installation it should explain what Abalone does, the two network
+paths above, what the installer will download and change on your computer, and
+the trust limits. An explanation request is not permission to install or spend.
+
+The agent can then install the release, handle your coupon and save the
+resulting credential under ordinary private file permissions, as described in
+[access and installation](friend-preview.md). It can redeem and run a synthetic
+test when you ask. Handling the credential does not entitle it to your private
+documents, prompts or answers; none of these are sent to the setup agent
+automatically.
 
 ## Supported system
 
-The selected recipient profile is Linux x86_64 with compatible Node 24, bash,
-curl, tar, sha256sum and an existing Linux tmpfs, running as an ordinary user
-on a trusted owned host. It has no OS isolation: tools have the ordinary account's
-filesystem/network access. macOS, Windows, Docker and USB/Tails recipient
-profiles are unqualified. No VPN, provider account, manual API key or funded
-recipient wallet is required.
+Linux x86_64 with Node 24, bash, curl, tar, sha256sum, `flock` and an existing
+Linux tmpfs, running as an ordinary user on a trusted owned host. There is no OS
+isolation: tools have the account's filesystem and network access, and the
+administrator is trusted. Abalone does not hide your IP address. macOS, Windows,
+Docker and USB/Tails are unqualified. No VPN, provider account, manual API key
+or funded wallet is required.
 
 The distribution includes the launcher, patched Pi, curated extensions,
 verification and broker. A skill installed in stock Pi or Hermes does not add
-this runtime. Bubblewrap containment is a separate profile and later milestone;
-it is never selected as a fallback from a failed setup.
+this runtime.
 
-## Prepare and hand over
+## Access paths
 
-The setup agent checks the published profile and prepares the exact reviewed
-installer and signed public inputs. It rehearses with synthetic material, ends
-its captures and background watchers, then hands you an interactive terminal.
-A same-user agent stepping aside is cooperation, not enforced exclusion.
+- **Saved Abalone access:** `abalone credit status` lists saved credits. Reuse one;
+  do not redeem another coupon.
+- **Coupon:** inspect, redeem and save it as in [access and installation](friend-preview.md).
+- **Existing provider key:** importing a separate provider key is not supported
+  in this release. Only NEAR access obtained through Abalone is supported.
 
-When a current release is qualified, download and inspect its installer and
-verify its published checksum before running:
+## Open, work and close
 
-```sh
-sh install.sh --friend
-```
-
-Enter your coupon only at the hidden terminal prompt. Never put it in a URL,
-command argument, environment value, shell history or AI message. Read the
-offer before confirming. Keep the same window open during pending delivery;
-its recipient keys are needed to receive the credential. A reconciliation error
-requires operator help, not another redemption.
-
-## Retention and useful work
-
-Default session-only use needs no trace passphrase and writes no durable managed
-conversation trace. To deliberately keep an encrypted trace instead:
+Open a fresh terminal of your own and run:
 
 ```sh
-sh install.sh --friend --keep-trace
+abalone credit session --credit CREDIT_ID
 ```
 
-Enter the trace passphrase at its hidden prompt. It protects local retained
-traces, not the coupon, and does not change inference encryption or verification.
-Keep it if you want to reopen the trace: lost-passphrase recovery is unqualified.
-Workspace files, terminal scrollback, swap and host captures are separate from
-managed trace retention.
+Stop any recording or observation by the setup agent first; its stepping aside
+is cooperation, not enforced exclusion. Ask a question or select a synthetic
+plain text file: `Summarize @notes.txt`, or `@"meeting notes.txt"` for a name
+with spaces. Abalone reads that file locally and places its text in the encrypted
+model request. A read or extraction failure refuses before inference.
 
-Inside the session, ask a question or select a synthetic plain text file:
-`Summarize @notes.txt`, or `@"meeting notes.txt"` for a name with spaces.
-The helper reads that file locally and places its text in the encrypted model
-request. Do not send its contents to the setup agent. A read/extraction failure
-refuses before inference. PDF reading is unqualified in this preview.
+Closing discards the managed conversation by default. It does not delete saved
+access or revoke the upstream credential; the next session reuses the same credit
+with fresh provider admission and never triggers another redemption. Workspace files,
+terminal scrollback, swap and host captures have their own lifetimes; closing is not
+secure erasure.
 
-## Check state and close
-
-Inference runs remotely at NEAR; a local broker does not make the model local.
-Use `/coupon` for session, admission and trust details. A $1 cap is not a
-segregated purse, wallet transfer or verified remaining balance. The provider
-or sponsor can revoke access and caps can overshoot.
-
-Normal close drops the process's recipient keys and credential references.
-It does not revoke the upstream credential or securely erase host memory.
-Closed-session credential recovery is unqualified; fresh provider admission in
-the same live session uses the same credential and never redeems another coupon.
 An inference may already have been charged when its reply fails; do not blindly
-repeat it. Closing does not authorize a transcript or summary to the setup agent.
+repeat it. A nominal cap is not a verified remaining balance, and the provider or
+operator can revoke access.
 
-Keep diagnostics deliberate and metadata-only by default. Never post a coupon,
-credential, private prompt or raw trace to an issue. Report private concerns
-through [the security policy](../SECURITY.md).
+Keep diagnostics deliberate and metadata-only. Never post a coupon, credential,
+private prompt or raw trace to an issue. Report private concerns through
+[the security policy](../SECURITY.md).

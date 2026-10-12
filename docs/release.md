@@ -4,10 +4,12 @@ This is the packaging contract for [friend-URL acceptance](https://github.com/am
 It prepares files locally; it does not publish source, change visibility or
 authorize provider spending. Runtime/trace-choice changes need independent review.
 
-The friend entry is the outside [Abalone incognito skill](../skills/abalone-incognito/SKILL.md).
-Its setup agent prepares the reviewed helper, then hands an interactive terminal
-to the user and stops observing before hidden/private input. The helper remains
-the patched Pi/Abalone distribution; this is not stock Pi/Hermes integration.
+The friend entry is the static page `site/redeem/index.html` (served by GitHub
+Pages) and the [Abalone incognito skill](../skills/abalone-incognito/SKILL.md). The
+setup agent explains Abalone, installs the reviewed release, redeems and saves
+access with `abalone credit`, then opens a fresh user terminal for
+`abalone credit session`. The helper remains the patched Pi/Abalone distribution;
+this is not stock Pi/Hermes integration.
 Milestone 1 is the explicit trusted-owned-host profile without OS isolation;
 bubblewrap containment/setup is milestone 2. Prior isolated helper checks do not
 qualify that changed profile. Current checks are separate from an agent's skill discovery and
@@ -19,8 +21,8 @@ do not regenerate that archive for instructions-only changes.
    declared development fixtures, and record the actual result. Review synthetic/
    recorded fixture provenance; omit private plans, logs, credentials, live traces,
    operator state and private history.
-2. Build once with `tools/release.sh REV`. It selects `site/friend.html` as the
-   generated landing; there is no separate legacy landing to replace. Record source SHA/tree, locks/build
+2. Build once with `tools/release.sh REV`. It copies `site/friend.html`, a static
+   doorway to the hosted entry and this guide, as the prepared `index.html`. Record source SHA/tree, locks/build
    evidence, artifact SHA256, licenses/notices and security contact. Compare selected
    source bytes and safe archive members to the package. Reused evidence is not fresh.
 3. Assemble genuine four-file public inputs against that exact artifact:
@@ -49,8 +51,20 @@ do not regenerate that archive for instructions-only changes.
 
    Review that file and serve it with all five sibling assets. `tools/release.sh
    REV BASE` alone emits a generic installer; it does not assemble a friend bundle
-   or this checksum file. Its prepared landing must not be published as a working
-   friend entry until this assembly, review and acquisition check are complete.
+   or this checksum file.
+
+   The rendered installer has two relevant modes. `sh install.sh` installs and
+   links the verified archive, prints a legacy `abalone redeem --peer` hint and
+   asks about planting a canary file; it fetches no trial files and redeems
+   nothing. `sh install.sh --friend` runs the process-only
+   `tools/coupon-first-use.mjs` flow, which does not save access. The durable
+   credit procedure in [access and installation](friend-preview.md) uses
+   install-only mode followed by `abalone credit`, with the recipient downloading
+   the four public files beside `FRIEND-SHA256SUMS`. The release notes must say
+   that the release provides `abalone credit`, and a fresh install must show it in
+   `abalone credit --help`. Before qualifying a credit release, check that the
+   installer verifies the `flock` prerequisite and does not demand bubblewrap for
+   the owned-host profile; the current template does neither.
 5. Rehearse the actual installer on a clean supported Linux machine as nonroot.
    Verify no ambient account/operator credentials, pre-bearer readiness, human
    input, bounded redemption, first request, admission expiry, trace choices and
@@ -60,8 +74,13 @@ do not regenerate that archive for instructions-only changes.
    sanitized notes. Request final publication authorization after the concrete files
    and owner-approved walkthrough are ready. Never expose private workspace/history.
 7. After authorized publication, download every recipient URL without maintainer
-   authentication and compare reviewed hashes. Only then update README status.
-   A private repo/404 is not public acquisition.
+   authentication and compare reviewed hashes. Only then replace the availability
+   line in [access and installation](friend-preview.md) with the exact release
+   links. A private repo/404 is not public acquisition.
+8. Publish the entry page separately: select GitHub Actions as the Pages source,
+   run `.github/workflows/pages.yml` from reviewed main, and load the page with a
+   synthetic `#code=` fragment to confirm no request carries it. The page does no
+   redemption; deploying it is not a release.
 
 The first slice is bounded direct NEAR on the selected Dsmack public testnet
 profile. Another provider, optimistic settlement, portable IP isolation and
@@ -86,11 +105,10 @@ the actual supported claim deadline; a previously green observation is insuffici
 
 ## Supported landing and qualification scope
 
-`site/friend.html` is the single landing source. The build's `index.html` is a
-local prepared asset, not a hosted site. It uses hidden coupon input through the
-reviewed installer; no gift appears in a URL or shell command. Before publication,
-review the landing's availability message, installer/checksum links and actual
-supported host against the exact public bundle. Do not advertise readiness merely
+`site/redeem/index.html` is the hosted entry; `site/friend.html` is a static
+doorway that links to it and to this repository's guides, and the build copies it
+as `index.html`. Neither page reads, forwards or redeems a coupon, and neither
+carries version-specific installer links. Do not advertise readiness merely
 because packaging completed.
 
 The current debug-staging friend trial permits synthetic, non-sensitive content

@@ -1,92 +1,111 @@
-# Abalone friend preview
+# Abalone access and installation
 
-**Limited synthetic-text preview.** Use only synthetic, non-sensitive inputs.
-The issuer runs on the Mac mini; the reference client runs on your trusted Linux
-host. Public client/source qualification and service admission do not replace the
-owner's useful-document walkthrough acceptance.
+This page explains how to obtain a credit-capable Abalone release, check it, and
+save model access from a gifted coupon. The [setup skill](../skills/abalone-incognito/SKILL.md)
+is the agent-facing version of the same procedure; [getting started](getting-started.md)
+covers the session itself.
 
-Preview.5 passed aggregate offline coverage, installed runtime checks and unauthenticated public acquisition.
-**Bounded synthetic preview qualified: new claims only before 2026-10-11 23:56:53 UTC. Do not retry a failed or uncertain claim.**
-The installed preview completed one new $0.05 Mac-mini coupon claim, encrypted selected synthetic document request and clean close in 55.7 seconds. The service ledger confirms one delivered $0.05 claim; provider-reported history contains one matching request. Owner useful-document acceptance remains pending.
+**Availability:** no published release implements the `abalone credit` commands yet. Until one is listed, this procedure cannot be completed.
 
-## Start with the skill
+## Conditions before you start
 
-Ask your setup agent to use the [Abalone incognito skill](../skills/abalone-incognito/SKILL.md).
-It checks support, prepares the pinned reference runtime, and hands the interactive
-terminal to you. The distribution includes patched Pi, the Abalone launcher,
-verification and a credential broker; a short skill does not replace that code.
+- Linux x86_64, run as an ordinary (non-root) user on a computer you trust.
+- Node 24, bash, curl, tar, sha256sum, `flock` (util-linux) and an existing
+  Linux tmpfs at `/dev/shm`. The current installer template also refuses
+  install-only use on Linux without bubblewrap (`bwrap`), although the session
+  does not use it; check the selected release's installer for that requirement.
+- No VPN, provider account, manual API key or funded wallet is needed.
+- **Use synthetic, non-sensitive material with the available NEAR access route.**
+  It accepts verified `OutOfDate` firmware warnings, and the coupon operator can
+  read and revoke the model credential it issues.
+- There is no OS isolation: local tools have your account's file and network
+  access, the administrator is trusted, and Abalone does not hide your IP
+  address. See [security details](security.md).
 
-Supported: Linux x86_64, compatible Node 24, bash, curl, tar, sha256sum, and an
-existing Linux tmpfs. Run as an ordinary user on a trusted owned host. No manual
-bubblewrap installation is needed in this profile. Tools retain your account's
-filesystem and network access; OS isolation is a later milestone. No VPN, provider
-account, manual API key or funded recipient wallet is required.
+## What is installed and what changes
 
-The setup agent must stop observing and recording before you enter your coupon,
-passphrase or private session input. Do not send those to its chat. A same-user
-agent stepping aside is cooperation, not isolation from that agent or administrator.
+A release contains a client archive `abalone-REV.tar.gz` (the launcher, patched Pi,
+Abalone extensions, provider verification and credential broker), an `install.sh`
+pinned to that archive's SHA256, four signed public trial files (`trial.json`,
+`issuer-pin.json`, `staging-approval.json`, `readiness.json`) and a
+`FRIEND-SHA256SUMS` listing the installer and those files.
 
-Download and inspect the
-[installer](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.5/install.sh)
-and verify it against
-[FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.5/FRIEND-SHA256SUMS).
-The current issuance window permits new claims only before 2026-10-11 23:56:53 UTC. The issuer management login expires at 2026-10-12 00:07:43 UTC; that is not the expiry of a delivered inference key. Check current availability before claiming.
+Run without arguments, `install.sh` downloads the archive, verifies its digest,
+extracts it to `~/.abalone-app/REV/` and links `~/.local/bin/abalone`. It then
+asks whether to plant a canary file in the current folder; answer no, or set
+`ABALONE_PLANT_CANARIES=no`, if you do not want one. Nothing is redeemed.
 
-The installer pins the package and all four public trial files by checksum; the
-helper verifies the signed issuer controls. In your interactive terminal, run:
+Saved access lives in `~/.abalone/credit/` (or `$ABALONE_DIR/credit/`), with a
+0700 directory and 0600 files owned by your account. These files hold the
+credential and its recovery keys, never conversations.
+
+## Select and check a release
+
+Open the [release listing](https://github.com/amiller/abalone/releases) and pick
+the newest release whose notes state it provides the `abalone credit` commands.
+Earlier releases, including `v0.1.0-preview.5`, only provide the process-only
+`install.sh --friend` launcher and do not save access; do not use them for this
+procedure.
+
+Download `install.sh`, `FRIEND-SHA256SUMS` and the four trial files into one new
+private directory, then:
 
 ```sh
-sh install.sh --friend
+sha256sum -c FRIEND-SHA256SUMS
+less install.sh
+sh install.sh
+abalone credit --help
 ```
 
-Enter the coupon at the hidden prompt. Review the offer before confirming CLAIM;
-keep that window open through pending delivery. Never put the coupon in a command
-argument, environment variable, URL or AI message. An uncertain claim is not
-permission to redeem again with new keys.
+Read the installer before running it: its version, archive URL and pinned digest,
+and the install locations above. A matching checksum shows the bytes are the
+published ones; it does not make them safe. `abalone credit --help` must list
+`inspect`, `redeem`, `status`, `recover` and `session`. If `credit` is unknown,
+the installed client is the wrong release; stop rather than use `--friend`.
 
-Session-only is the default: no trace passphrase and no durable managed
-prompt/response trace. To deliberately retain a local encrypted trace, use:
+## Inspect, redeem and save access
+
+Put the gift link or code in a 0600 file in a private directory, or pass it on
+standard input with `--stdin`. Never put it in a command argument, URL query,
+environment variable or public log. Use the absolute path of the downloaded
+`trial.json`:
 
 ```sh
-sh install.sh --friend --keep-trace
+abalone credit inspect --trial /ABS/trial.json --input-file /private/gift.txt
 ```
 
-The passphrase protects that trace, not the coupon; keep it for later unlocking.
-Files you deliberately create in the workspace can remain after close.
+Read the returned offer: provider, cap, expiry and restrictions. To accept that
+exact offer:
 
-## Review a selected text file
-
-This preview permits **synthetic, non-sensitive input only**. Put a synthetic text
-file in the working folder without sharing its contents with the setup agent.
-Inside Abalone, type:
-
-```text
-@meeting-notes.txt Summarize this file
+```sh
+abalone credit redeem --trial /ABS/trial.json --input-file /private/gift.txt --accept-offer OFFER_HASH
+abalone credit status
 ```
 
-For spaces: `@"meeting notes.txt" Summarize this file`. Abalone reads the selected
-file and includes its contents in the encrypted model request. PDF extraction is
-not qualified by this text walkthrough. Review the answer inside Abalone; send
-only content you deliberately approve back to the setup agent. Close normally
-when finished.
+Keep the returned credit ID. If redemption is interrupted or uncertain, do not
+redeem again; resume the same claim:
 
-## What the preview promises
+```sh
+abalone credit recover --credit CREDIT_ID
+```
 
-The issuer runs on the Mac mini through the native signed runner and an Apple
-Containerization ARM workload. Apple App Attest admission binds code identity,
-compose, a fresh challenge, issuer key and policies. The host/operator and stand-in
-KMS can read issuer secrets and created API keys; this is an identity-only preview,
-not Secure Enclave custody. Direct NEAR inference has its separate verified
-encryption and admission boundary; accepted security-update exceptions remain
-visible. Ordinary IP connectivity does not hide your address.
+A nominal cap is not a spent amount, an owned wallet or a verified remaining
+balance. The operator or provider can revoke access; caps can overshoot.
 
-A coupon delivers capped, owner-revocable provider access, not an owned reserved
-purse or a verified remaining balance. Admission renewal uses the same live
-credential; it cannot undo upstream revocation and does not create a replacement
-entitlement. Keep session keys alive for pending delivery. Closed-session recovery
-is not qualified. Use `/coupon` for details. Base RPC-safe confirmation is not
-independent Ethereum L1 finality.
+## Open a session
 
-[Client preview and immutable provenance](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.5)
-· [Dsmack source](https://github.com/amiller/dsmack)
-· [Friend acceptance](https://github.com/amiller/abalone/issues/4)
+Open a fresh terminal of your own and run:
+
+```sh
+abalone credit session --credit CREDIT_ID
+```
+
+No password, tmux or new coupon is needed. Closing discards the managed
+conversation by default and keeps saved access for the next session; reopening
+uses the same credit with fresh provider admission and never redeems again.
+Continue with [getting started](getting-started.md).
+
+[Releases](https://github.com/amiller/abalone/releases) ·
+[Source](https://github.com/amiller/abalone) ·
+[Dsmack source](https://github.com/amiller/dsmack) ·
+[Acceptance](https://github.com/amiller/abalone/issues/4)
