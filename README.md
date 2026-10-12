@@ -73,7 +73,8 @@ scrollback have their own lifetimes.
 
 After a session closes, `~/.abalone/credit` keeps the gift code, the model
 credential and the recovery keys until `abalone credit forget` removes them; no
-conversation file is written by default. A fresh session is not deletion; see
+conversation file is written by default. One session at a time uses a credit; a
+second is refused while the first runs. A fresh session is not deletion; see
 [local host and retention](docs/security.md#local-host-and-retention).
 
 Read the installer before running it. A matching checksum shows the bytes are the

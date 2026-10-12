@@ -354,6 +354,8 @@ test("inspect writes nothing: no record, lock or temp file exists until redempti
     assert.deepEqual(fs.readdirSync(dir), [], "a wrong offer hash writes nothing");
     await assert.rejects(manager.redeem(id, { recover: true }), { code: "credit_unavailable" });
     assert.deepEqual(fs.readdirSync(dir), [], "recover of an unknown id creates no lock file");
+    await assert.rejects(manager.session(id), { code: "credit_unavailable" });
+    assert.deepEqual(fs.readdirSync(dir), [], "a session for an unknown id creates no lock file");
     assert.ok(!server.frames.some((f) => f.op === "claim"));
     assert.equal((await manager.redeem(id, { offerHash: offer.offerHash })).state, "installed");
     assert.equal(savedRecord(dir).localPeer, claims(server)[0].peer, "the record holds the keys that claimed");
@@ -449,6 +451,7 @@ test("kernel locks exclude a live writer across processes, release on crash and 
     // Two contenders while the holder lives: both refused, and neither removes the live lock.
     for (let i = 0; i < 2; i++) assert.throws(() => creditStore(dir).lock(id), { code: "credit_locked" });
     assert.equal(fs.statSync(lockFile).ino, inode);
+    store.write({ version: 1, id, state: "installed" }, { create: true });
     await assert.rejects(createCreditManagerForTesting({ directory: dir, connect }).session(id), { code: "credit_locked" });
     child.kill("SIGKILL"); await once(child, "exit");
     const again = store.lock(id);
