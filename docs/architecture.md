@@ -44,7 +44,6 @@ exploratory notebooks and abandoned variants in a private workspace or an issue.
 | `contracts/` | On-chain contract implementation and tests for the paths that reference it |
 | `tests/`, `tests/fixtures/` | Reproducible positive/adversarial checks and selected synthetic/recorded inputs |
 | `tools/` | Build, installer, fixture recording, manifest and development-checkout tooling |
-| `site/` | One supported hidden-entry gift landing source |
 | `guides/` | Privacy guides independent of the client: private inference, acquiring access, networking |
 | `portable/` | Reserved for portable live-system sessions; nothing supported yet |
 | `docs/`, `docs/protocols/` | User/security/build guides and maintained interface contracts |

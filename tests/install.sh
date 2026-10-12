@@ -121,13 +121,15 @@ check "failed extraction refuses before any install or launcher" '[[ $cc18 != 0 
 git clone -q --shared "$root" "$R/repo" && cp "$root/tools/release.sh" "$R/repo/tools/"
 mkdir -p "$R/stub" && printf '#!/bin/sh\nexit 0\n' > "$R/stub/npm" && chmod +x "$R/stub/npm"
 rev=$(git -C "$R/repo" rev-parse --short HEAD) rel="$R/repo/local-data/release"
-o=$(PATH="$R/stub:$PATH" "$R/repo/tools/release.sh" 2>&1)
+echo '<!doctype html><title>template fixture</title>' > "$R/friend.html"
+o0=$(PATH="$R/stub:$PATH" "$R/repo/tools/release.sh" 2>&1); c0=$?
+check "release.sh without --site-template refuses before building" '[[ $c0 == 2 && $o0 == *"usage: tools/release.sh --site-template FILE"* && ! -e $rel ]]'
+o=$(PATH="$R/stub:$PATH" "$R/repo/tools/release.sh" --site-template "$R/friend.html" 2>&1)
 check "release.sh without a base URL writes the tarball and no install.sh, and says how to get one" '[[ -f $rel/$rev/abalone-$rev.tar.gz && ! -e $rel/$rev/install.sh && $o == *"no base URL given, so no install.sh"* ]]'
-check "release.sh emits the scriptless friend doorway to the hosted entry and setup skill, with no versioned installer link" 'cmp -s "$rel/$rev/index.html" "$R/repo/site/friend.html" && grep -q "default-src '"'"'none'"'"'" "$rel/$rev/index.html" && grep -q "href=\"https://amiller.github.io/abalone/redeem\"" "$rel/$rev/index.html" && grep -q "skills/abalone-incognito/SKILL.md" "$rel/$rev/index.html" && ! grep -qiE "<script|location[.]hash|install[.]sh|releases/download|preview[.][0-9]" "$rel/$rev/index.html"'
+check "release.sh copies the given landing template as index.html" 'cmp -s "$rel/$rev/index.html" "$R/friend.html"'
 tar -tzf "$rel/$rev/abalone-$rev.tar.gz" > "$R/archive-members"
-check "release source archive keeps guides, protocols, setup skill and the static Pages entry without historical notes or eval results" 'grep -q "^abalone/docs/getting-started.md$" "$R/archive-members" && grep -q "^abalone/docs/protocols/coupon.md$" "$R/archive-members" && grep -q "^abalone/skills/abalone-incognito/SKILL.md$" "$R/archive-members" && grep -q "^abalone/site/redeem/index.html$" "$R/archive-members" && ! grep -qE "^abalone/(notes/|evals/results/)" "$R/archive-members"'
-check "archived Pages root is the scriptless doorway to the redeem entry, not a legacy landing" 'tar -xzOf "$rel/$rev/abalone-$rev.tar.gz" abalone/site/index.html > "$R/pages-root" && cmp -s "$R/pages-root" "$R/repo/site/index.html" && grep -q "href=\"redeem/\"" "$R/pages-root" && ! grep -qiE "<script|location[.]hash|install[.]sh" "$R/pages-root"'
-PATH="$R/stub:$PATH" "$R/repo/tools/release.sh" HEAD https://example.org/r > /dev/null 2>&1
+check "release source archive keeps guides, protocols and setup skill without historical notes, eval results or the Pages site" 'grep -q "^abalone/docs/getting-started.md$" "$R/archive-members" && grep -q "^abalone/docs/protocols/coupon.md$" "$R/archive-members" && grep -q "^abalone/skills/abalone-incognito/SKILL.md$" "$R/archive-members" && ! grep -qE "^abalone/(notes/|evals/results/|site/)" "$R/archive-members"'
+PATH="$R/stub:$PATH" "$R/repo/tools/release.sh" --site-template "$R/friend.html" HEAD https://example.org/r > /dev/null 2>&1
 check "release.sh with a base URL pins it in install.sh" 'grep -q "curl -fsSL \"https://example.org/r/abalone-$rev.tar.gz\"" $rel/$rev/install.sh'
 rm -rf "$R"
 echo "install: $([[ $fail == 0 ]] && echo PASS || echo FAIL)"; exit $fail

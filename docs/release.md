@@ -4,8 +4,8 @@ This is the packaging contract for [gift-URL acceptance](https://github.com/amil
 It prepares files locally; it does not publish source, change visibility or
 authorize provider spending. Runtime/trace-choice changes need independent review.
 
-The gift entry is the static page `site/redeem/index.html` (served by GitHub
-Pages) and the [Abalone incognito skill](../skills/abalone-incognito/SKILL.md). The
+The gift entry is the static page `redeem/index.html` on the `pages` branch
+(served by GitHub Pages at https://amiller.github.io/abalone/redeem) and the [Abalone incognito skill](../skills/abalone-incognito/SKILL.md). The
 setup agent explains Abalone, installs the reviewed release, redeems and saves
 access with `abalone credit`, then opens a fresh user terminal for
 `abalone credit session`. The helper remains the patched Pi/Abalone distribution;
@@ -28,8 +28,10 @@ do not regenerate that archive for instructions-only changes.
    `local-data/usability/<run>/`. Its XFAIL list holds checks that fail until a
    known fix integrates. Do not add entries to make a release pass; an entry is
    removed when its fix integrates (a passing entry fails the gate).
-2. Build once with `tools/release.sh REV`. It copies `site/friend.html`, a static
-   doorway to the hosted entry and this guide, as the prepared `index.html`. Record source SHA/tree, locks/build
+2. Build once with `tools/release.sh --site-template FILE REV`, where FILE is
+   `friend.html` from the `pages` branch (`git fetch https://github.com/amiller/abalone.git pages`,
+   then `git show FETCH_HEAD:friend.html > FILE`). It copies that static doorway to
+   the hosted entry and this guide as the prepared `index.html`. Record source SHA/tree, locks/build
    evidence, artifact SHA256, licenses/notices and security contact. Compare selected
    source bytes and safe archive members to the package. Reused evidence is not fresh.
 3. Assemble genuine four-file public inputs against that exact artifact:
@@ -58,7 +60,7 @@ do not regenerate that archive for instructions-only changes.
    ```
 
    Review that file and serve it with all five sibling assets. `tools/release.sh
-   REV BASE` alone emits a generic installer; it does not assemble a trial bundle
+   --site-template FILE REV BASE` alone emits a generic installer; it does not assemble a trial bundle
    or this checksum file.
 
    `sh install.sh --credit` is the recipient's install-only entry for the
@@ -91,7 +93,7 @@ do not regenerate that archive for instructions-only changes.
    line in [access and installation](abalone-coupon-redeem.md) with the exact release
    links. A private repo/404 is not public acquisition.
 8. Publish the entry page separately: select GitHub Actions as the Pages source,
-   run `.github/workflows/pages.yml` from reviewed main, and load the page with a
+   push the reviewed `pages` branch (its `.github/workflows/pages.yml` deploys it), and load the page with a
    synthetic `#code=` fragment to confirm no request carries it. The page does no
    redemption; deploying it is not a release.
 
@@ -118,7 +120,7 @@ the actual supported claim deadline; a previously green observation is insuffici
 
 ## Supported landing and qualification scope
 
-`site/redeem/index.html` is the hosted entry; `site/friend.html` is a static
+On the `pages` branch, `redeem/index.html` is the hosted entry; `friend.html` is a static
 doorway that links to it and to this repository's guides, and the build copies it
 as `index.html`. Neither page reads, forwards or redeems a coupon, and neither
 carries version-specific installer links. Do not advertise readiness merely
