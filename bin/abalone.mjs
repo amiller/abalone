@@ -35,11 +35,79 @@ import { couponEntry } from "../lib/coupon-input.mjs";
 import { admitAttestedCouponIssuerPin, admitAttestedCouponSessionIssuer, openAttestedCouponSession, readAttestedCouponAdmissionFile,
   ATTESTED_COUPON_WAIT, ATTESTED_COUPON_RECOVER } from "../lib/coupon-attested-session.mjs";
 import { couponStagingGuardNotice } from "../lib/coupon-staging.mjs";
+import { createCreditManager } from "../lib/credit.mjs";
+import { couponInput, creditId, readPrivate } from "../lib/credit-store.mjs";
+import { loadTrial } from "../tools/coupon-first-use.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, def) => { const i = args.indexOf(name); if (i < 0) return def; const v = args[i + 1]; args.splice(i, 2); return v; };
 const PEER = () => flag("--peer", process.env.ABALONE_PEER);
 let couponSlot = null;
+
+const CREDIT_OPTIONS = { inspect: ["--trial", "--stdin", "--input-file"], redeem: ["--trial", "--stdin", "--input-file", "--accept-offer"],
+  recover: ["--credit"], status: ["--credit"], session: ["--credit", "--mode"] };
+const CREDIT_VALUES = { "--trial": (v) => path.isAbsolute(v), "--input-file": (v) => path.isAbsolute(v), "--credit": (v) => /^[0-9a-f]{64}$/.test(v),
+  "--accept-offer": (v) => /^[0-9a-f]{64}$/.test(v), "--mode": (v) => v === "rpc" };
+// Only these codes carry static, path-free messages; anything else is reported without raw detail.
+const CREDIT_CODES = new Set(["credit_usage", "credit_store_refused", "credit_record_refused", "credit_locked", "credit_intent_required", "credit_offer_refused",
+  "credit_admission_changed", "credit_profile_refused", "credit_redemption_incomplete", "credit_unavailable", "coupon_input_refused", "claim_not_reserved",
+  "reconciliation_required", "credential_refused", "staging_approval_expired", "issuer_unverified", "bundle_invalid", "issuer_inputs_missing",
+  "issuer_pin_refused", "provider_not_admitted", "source_inputs_missing"]);
+const creditUsage = () => Object.assign(new Error("Usage: abalone credit inspect --trial /abs/trial.json (--stdin | --input-file /abs/private-file); credit redeem (same) --accept-offer <offerHash>; credit recover --credit <id>; credit status [--credit <id>]; credit session --credit <id> [--mode rpc]. Gift codes and keys never belong in command arguments."), { code: "credit_usage" });
+
+async function creditCmd() {
+  let next;
+  try { next = await creditAction(); }
+  catch (e) { throw new Error(CREDIT_CODES.has(e?.code) ? e.message : "Credit command failed; details withheld. Run abalone credit status; original keys are never replaced."); }
+  if (next) return next();
+}
+
+async function creditAction() {
+  const command = args[1], allowed = CREDIT_OPTIONS[command], values = {};
+  if (!Object.hasOwn(CREDIT_OPTIONS, command)) throw creditUsage();
+  for (let i = 2; i < args.length; i++) {
+    const key = args[i];
+    if (!allowed.includes(key) || Object.hasOwn(values, key)) throw creditUsage();
+    if (key === "--stdin") { values[key] = true; continue; }
+    const value = args[++i];
+    if (typeof value !== "string" || !CREDIT_VALUES[key](value)) throw creditUsage();
+    values[key] = value;
+  }
+  const manager = createCreditManager({ directory: path.join(STATE, "credit") });
+  if (command === "status") return void console.log(JSON.stringify(await manager.status(values["--credit"]), null, 2));
+  if (command === "recover") {
+    if (!values["--credit"]) throw creditUsage();
+    return void console.log(JSON.stringify(await manager.redeem(values["--credit"], { recover: true }), null, 2));
+  }
+  if (command === "session") {
+    if (!values["--credit"]) throw creditUsage();
+    if (process.platform !== "linux" || gift.coupon()) throw Object.assign(new Error("Saved credit sessions need Linux owned-host incognito and no active routed gift; nothing was replaced."), { code: "credit_unavailable" });
+    couponSlot = await manager.session(values["--credit"]);
+    canary.forSession(process.cwd(), false); verified(); runtimeDir(); memoryRoot();
+    process.stderr.write(`${OWNED_HOST_NOTICE}\n`);
+    console.error(`Saved credit $${couponSlot.info().nominalCapUsd} nominal cap; balance unknown. Sponsor can revoke/change limits. ${couponSlot.provider.maxTokens}-token request bound. Fresh conversation; saved credit remains available after close.`);
+    args.splice(0, args.length, "--incognito", "--owned-host", "--model", `${couponSlot.provider.provider}/${couponSlot.provider.model}`,
+      ...(values["--mode"] ? ["--mode", "rpc"] : []));
+    return session;
+  }
+  if (!values["--trial"] || !!values["--stdin"] === !!values["--input-file"] || (command === "redeem" && !values["--accept-offer"])) throw creditUsage();
+  const trial = loadTrial(values["--trial"]);
+  let input;
+  if (values["--input-file"]) input = readPrivate(values["--input-file"], 2048).toString();
+  else {
+    const chunks = []; let size = 0;
+    for await (const chunk of process.stdin) { size += chunk.length; if (size > 2048) throw creditUsage(); chunks.push(chunk); }
+    input = Buffer.concat(chunks).toString();
+  }
+  const coupon = couponInput(input);
+  const admission = { peer: trial.bundle.issuer.peer, pin: trial.pin,
+    approval: fs.readFileSync(path.join(trial.base, trial.bundle.issuer.approval)).toString("base64"),
+    approvalRoot: trial.bundle.issuer.approvalRoot, provider: trial.bundle.provider };
+  const offer = await manager.inspect(coupon, admission);
+  if (command === "inspect") return void console.log(JSON.stringify(offer, null, 2));
+  if (values["--accept-offer"] !== offer.offerHash) throw Object.assign(new Error("The accepted hash is not this offer's hash. Review credit inspect's nominal amount, sponsor powers and synthetic-only policy; nothing was claimed."), { code: "credit_intent_required" });
+  console.log(JSON.stringify(await manager.redeem(creditId(coupon), { offerHash: values["--accept-offer"] }), null, 2));
+}
 
 async function couponSessionCmd() {
   args.shift();
@@ -653,7 +721,7 @@ Reopen: abalone --incognito ${/\s/.test(here) ? JSON.stringify(here) : here} --w
   closeBrowser();
   tor.close();
   if (g) await g.close();
-  if (couponSlot) { await couponSlot.close(); couponSlot = null; console.error("Coupon session closed. Local coupon identity, delivery key and credential were forgotten by this process. This is not upstream revocation or secure erasure. Conversation and workspace retention follow the session mode."); }
+  if (couponSlot) { const saved = couponSlot.savedCredit; await couponSlot.close(); couponSlot = null; console.error(saved ? "Incognito session closed. Saved credit remains available for a fresh process; no ordinary conversation trace was saved." : "Coupon session closed. Local coupon identity, delivery key and credential were forgotten by this process. This is not upstream revocation or secure erasure. Conversation and workspace retention follow the session mode."); }
   if (next) process.exit(spawnSync(process.execPath, [import.meta.filename, ...next, ...args], { stdio: "inherit" }).status);
   process.exit(code);
 }
@@ -667,6 +735,7 @@ try {
   else if (args[0] === "gifts") await giftsCmd();
   else if (args[0] === "redeem") await redeemCmd();
   else if (args[0] === "coupon-session") await couponSessionCmd();
+  else if (args[0] === "credit") await creditCmd();
   else if (args[0] === "offers") await offersCmd();
   else if (args[0] === "commission") await commissionCmd();
   else if (args[0] === "tasks") await tasksCmd();

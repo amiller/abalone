@@ -28,6 +28,7 @@ suites=(
   "offline|coupon-attested (connection-bound issuer identity and v4 terms)|node --test tests/coupon-attested.test.mjs"
   "offline|coupon-attested-session (v4 consent, pending delivery and direct provider broker)|node --test tests/coupon-attested-session.test.mjs"
   "offline|coupon-input (responsive hidden terminal and descriptor input)|node --test tests/coupon-input.test.mjs"
+  "offline|credit (durable recipient credit, original-key recovery and private store)|node --test tests/credit.test.mjs"
   "offline|coupon-first-use (public inputs and local VPN observations)|node --test tests/coupon-first-use.test.mjs"
   "offline|owned-host retention (tmpfs, crash, unsafe-root refusal)|node --test tests/owned-host.test.mjs"
   "offline|coupon replay boundary (real SDK and Pi synthetic request counts)|node --test tests/coupon-no-replay.test.mjs"

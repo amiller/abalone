@@ -340,6 +340,13 @@ The exact authoritative offer is hashed as SHA-256 of
 retains a deeply frozen accepted offer with its actual local Noise PeerId. A
 copied offer or another client's accepted bundle cannot select a different winner.
 
+A v4 `delivery_profile` is either `x25519-aesgcm-session-only` or
+`x25519-aesgcm-recipient-v1`. Both use the delivery format below; the label is part of
+the hashed offer. Session-only recipients accept only the first label. `abalone credit`
+saves the original Noise seed, X25519 key and delivered credential in private user
+files, and accepts only `x25519-aesgcm-recipient-v1`. It refuses a session-only offer
+before claim.
+
 Delivery authenticates canonical JSON:
 
 ```js
