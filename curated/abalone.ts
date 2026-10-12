@@ -442,7 +442,7 @@ export default async function (pi: ExtensionAPI) {
     } });
   if (COUPON_SESSION) command("status", { description: "What this session has used, what abalone keeps and who can see it, and what was verified",
     handler: async (_a, ctx) => show(ctx, [usage(ctx.sessionManager.getEntries(), true), privacyPlain({ cwd: ctx.cwd, model: ctx.model, run: path.basename(process.env.ABALONE_EGRESS!) }),
-      evidence({ model: ctx.model, entries: ctx.sessionManager.getEntries() })].join("\n\n")) });
+      "Verified: the launcher checks the model's attestation outside this session before the first request and at each new admission; /coupon shows the admission state and any firmware advisories."].join("\n\n")) });
   // Remote agent tasks (lib/commission.mjs): the launcher runs them, since the session has no network. Only what the
   // command names leaves: the prompt and the files under --repo. This conversation is never sent.
   command("commission", { description: "Commission an agent task on the gift's worker: /commission --repo <dir> --label open|released --cap <amount>usd [--check <cmd>] <task> (no args: show the offer)",

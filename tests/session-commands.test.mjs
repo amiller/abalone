@@ -32,3 +32,10 @@ test("a credit session registers only /status and /coupon", async () => {
 test("other sessions keep the full list and have no /coupon or /status", async () => {
   assert.deepEqual(await commands({}), ["about", "browser", "commission", "cost", "decide", "evidence", "fetch", "folder", "gift", "notebook", "privacy", "redeem", "report", "search", "tasks"]);
 });
+
+test("a credit session's system prompt names only /status and /coupon", async () => {
+  process.env.ABALONE_COUPON_SOCKET = "/nonexistent/coupon.sock"; process.env.ABALONE_OWNED_HOST = "1";
+  const { systemPrompt } = await import("../lib/welcome.mjs");
+  const prompt = systemPrompt({ cwd: "work", model: "nearai/m", place: "◈ attested", tools: "in-content", usage: "u", browser: null });
+  assert.deepEqual([...new Set(prompt.match(/(?<![\w/.])\/[a-z]+\b/g))].sort(), ["/coupon", "/status"]);
+});
