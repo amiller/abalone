@@ -14,7 +14,7 @@ declare -A XFAIL=(
   [screen-120x40-light-dark-block]="nacre arrival art bakes in a near-black background"
   [screen-120x40-dark-dark-block]="nacre arrival art bakes in a near-black background"
 )
-node tests/usability/cold-run.mjs "$out" > "$out/checks.txt"
+node tests/usability/cold-run.mjs "$out" > "$out/checks.txt" || { echo "usability offline: FAIL (cold-run.mjs exited $?)"; exit 1; }
 . "$out/session.env"
 t="abalone-usability-$$"; tmux() { command tmux -L "$t" -f /dev/null "$@"; }
 trap 'tmux kill-server 2>/dev/null; rm -rf $USABILITY_BASES "$out/session.env"' EXIT
@@ -40,4 +40,9 @@ while read -r result id rest; do
   echo "$result $id $rest"
 done < "$out/checks.txt" | tee "$out/results.txt"
 grep -q "^FAIL\|^XPASS" "$out/results.txt" && fail=1
+# Exactly the expected checks ran, and every XFAIL entry names one of them.
+expected=(expired-fixture cold-valid-inspect cold-valid-redeem cold-valid-session commands cold-expired-inspect cold-expired-no-claim cold-expired-redeem cold-errors)
+for s in 80x24 120x40; do for t in light dark; do for c in wordmark ready dark-block overflow warnings; do expected+=("screen-$s-$t-$c"); done; done; done
+[[ $(cut -d' ' -f2 "$out/results.txt" | sort) == $(printf '%s\n' "${expected[@]}" | sort) ]] || { echo "FAIL ran: the checks that ran are not exactly the ${#expected[@]} expected ids"; fail=1; }
+for k in "${!XFAIL[@]}"; do [[ " ${expected[*]} " == *" $k "* ]] || { echo "FAIL xfail: $k is not an expected check id"; fail=1; }; done
 echo "usability offline: $([[ $fail == 0 ]] && echo PASS || echo FAIL) (evidence: local-data/usability/$run)"; exit $fail
