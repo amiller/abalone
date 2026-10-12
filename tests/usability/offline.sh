@@ -7,13 +7,7 @@
 set -uo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$root"
 run=${1:-$(date -u +%Y%m%dT%H%M%SZ)}; out="$root/local-data/usability/$run"; mkdir -p "$out"
-declare -A XFAIL=(
-  [commands]="credit sessions show legacy and information-only commands"
-  [cold-expired-inspect]="inspect reports offered for a closed claim window"
-  [cold-expired-no-claim]="redeem claims without checking the deadline"
-  [screen-120x40-light-dark-block]="nacre arrival art bakes in a near-black background"
-  [screen-120x40-dark-dark-block]="nacre arrival art bakes in a near-black background"
-)
+declare -A XFAIL=()
 node tests/usability/cold-run.mjs "$out" > "$out/checks.txt" || { echo "usability offline: FAIL (cold-run.mjs exited $?)"; exit 1; }
 . "$out/session.env"
 t="abalone-usability-$$"; tmux() { command tmux -L "$t" -f /dev/null "$@"; }
