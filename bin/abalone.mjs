@@ -86,14 +86,11 @@ async function creditAction() {
     if (!values["--credit"]) throw creditUsage();
     if (process.platform !== "linux" || gift.coupon()) throw Object.assign(new Error("Saved credit sessions need Linux owned-host incognito and no active routed gift; nothing was replaced."), { code: "credit_unavailable" });
     couponSlot = await manager.session(values["--credit"]);
-    // Lazy: the peer image ships bin/ and lib/ without tools/.
-    const { prepareWorkspace } = await import("../tools/coupon-first-use.mjs");
-    // Same owned-host workspace preparation as first use: canaries are planted automatically when absent, then checked.
-    creditStep("credit_workspace_refused", "This folder's planted canary files are missing or changed, or could not be planted. Restore them or start in a fresh folder; nothing was sent.", () => prepareWorkspace(process.cwd(), { ownedHost: true }));
     creditStep("credit_runtime_refused", "The curated runtime or owned-host runtime directories did not verify. Reinstall the reviewed release; nothing was sent.", () => { verified(); runtimeDir(); memoryRoot(); });
     process.stderr.write(`${OWNED_HOST_NOTICE}\n`);
     console.error(["Saved credit:", ...couponSlot.info().disclosures, "Fresh incognito conversation; the saved credit remains available after close."].join("\n"));
-    args.splice(0, args.length, "--incognito", "--owned-host", "--model", `${couponSlot.provider.provider}/${couponSlot.provider.model}`,
+    // No decoy file: canaries guard the disclosure filter, which a credit session does not use.
+    args.splice(0, args.length, "--incognito", "--owned-host", "--no-canaries", "--model", `${couponSlot.provider.provider}/${couponSlot.provider.model}`,
       ...(values["--mode"] ? ["--mode", "rpc"] : []));
     return session;
   }

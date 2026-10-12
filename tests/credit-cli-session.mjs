@@ -33,7 +33,6 @@ const recordFile = path.join(state, "credit", `${id}.json`), recordBytes = fs.re
 
 fs.copyFileSync(path.join(root, "tests/fixtures/docs/tenancy-renewal.pdf"), path.join(work, "tenancy-renewal.pdf"));
 const env = { PATH: process.env.PATH, LANG: "C.UTF-8", HOME: home, ABALONE_DIR: state, XDG_RUNTIME_DIR: xdg, TMPDIR: tmp, ABALONE_SYNTHETIC_NEAR_LOG: log };
-// No manual canary step: credit session prepares the owned-host workspace and plants canaries itself.
 
 function session(marker) {
   const argv = ["--import", hook, path.join(root, "bin/abalone.mjs"), "credit", "session", "--credit", id, "--mode", "rpc"];
@@ -60,7 +59,7 @@ for (const run of [1, 2]) {
   assert.ok(answer(r.events).includes(`SYNTHETIC FIXTURE ANSWER for ${marker}`), `run ${run}: ${r.err.slice(-1500)}`);
   for (const text of ["SYNTHETIC FIXTURE: NEAR attestation verdict", "Nominal cap $5.00 from the offer", "Usage: not reported.", "Sponsor can revoke the credential or change its limits",
       "separately bounded to 4096 output tokens", "staging operator can access the credential", "Saved credit remains available for a fresh process"]) assert.ok(r.err.includes(text), `run ${run} stderr lacks: ${text}`);
-  if (run === 1) assert.ok(fs.readdirSync(work).length > 1, "canaries were planted automatically");
+  assert.deepEqual(fs.readdirSync(work), ["tenancy-renewal.pdf"], "no decoy file is planted");
   assert.ok(!/\$5 |\$5\/|5 trial/.test(r.err), "no fixed $5 trial text");
   for (const secret of [coupon, credential, record.noiseSeed, record.recipientKey]) assert.ok(!r.out.includes(secret) && !r.err.includes(secret) && !r.argv.join(" ").includes(secret));
   pass(`run ${run}: fresh CLI process answers through the saved credit, discloses amount/balance/sponsor/request facts separately, shows no secret`);
