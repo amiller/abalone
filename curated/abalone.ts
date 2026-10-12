@@ -323,8 +323,8 @@ export default async function (pi: ExtensionAPI) {
 
   const show = (ctx: any, text: string) => ctx.ui.notify(text, "info");
   const fail = (ctx: any, e: any) => ctx.ui.notify(e.message, "error");
-  // A credit session lists only what works in it; information topics fold into /status, and gift/notebook commands are legacy.
-  const CREDIT_COMMANDS = ["status", "folder", "fetch", "report", "coupon"];
+  // A credit session lists only what works in it: the launcher refuses /folder, /fetch and /report there, information topics fold into /status, and gift/notebook commands are legacy.
+  const CREDIT_COMMANDS = ["status", "coupon"];
   const command = (name: string, spec: any) => { if (!COUPON_SESSION || CREDIT_COMMANDS.includes(name)) pi.registerCommand(name, spec); };
   command("evidence", { description: "Full verifier output and where each resource runs",
     handler: async (_a, ctx) => show(ctx, evidence({ model: ctx.model, entries: ctx.sessionManager.getEntries() })) });
@@ -333,7 +333,7 @@ export default async function (pi: ExtensionAPI) {
   const recent = (): string[] => (fs.existsSync(FOLDERS) ? JSON.parse(fs.readFileSync(FOLDERS, "utf8")) : []);
   if (!INCOGNITO) pi.on("session_start", async (_e, ctx) => fs.writeFileSync(FOLDERS, JSON.stringify([ctx.cwd, ...recent().filter((f) => f !== ctx.cwd)].slice(0, 8)), { mode: 0o600 }));
   // "switch to another folder" in plain words: the model cannot do it, so point at /folder instead of asking it.
-  pi.on("input", async (event, ctx) => {
+  if (!COUPON_SESSION) pi.on("input", async (event, ctx) => {
     if (event.source === "extension" || event.text.length > 100 || !/\b(switch|change|move|go|open|use)\b.{0,40}\b(folder|directory)\b/i.test(event.text)) return { action: "continue" };
     ctx.ui.notify("To work in another folder, type /folder to pick a recent one or a path, or /folder <path>.", "info");
     return { action: "handled" };

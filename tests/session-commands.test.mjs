@@ -24,9 +24,9 @@ async function commands(env) {
   return reply.data.commands.filter((c) => c.source === "extension").map((c) => c.name).sort();
 }
 
-test("a credit session registers only /status, /folder, /fetch, /report and /coupon", async () => {
+test("a credit session registers only /status and /coupon", async () => {
   assert.deepEqual(await commands({ ABALONE_OWNED_HOST: "1", ABALONE_COUPON_SOCKET: "/nonexistent/coupon.sock", ABALONE_COUPON_MODEL: "m", ABALONE_COUPON_PROVIDER: "nearai" }),
-    ["coupon", "fetch", "folder", "report", "status"]);
+    ["coupon", "status"]);
 });
 
 test("other sessions keep the full list and have no /coupon or /status", async () => {
