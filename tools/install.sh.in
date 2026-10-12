@@ -1,8 +1,8 @@
 #!/bin/sh
-# abalone @REV@: installs exactly abalone-@REV@.tar.gz (sha256 @SHA256@) and redeems the gift given as arguments (if any).
-#   sh install.sh --credit                                                     install the durable-credit runtime and public inputs only
-#   sh install.sh                                                              install only
-#   curl -fsSL @BASE@/install.sh | sh -s -- --peer <peer address> <code>.<grant>    install and redeem a gift
+# abalone @REV@: installs exactly abalone-@REV@.tar.gz (sha256 @SHA256@).
+#   sh install.sh --credit    install the durable-credit runtime and public inputs only (recipients: docs/redeem.md)
+#   sh install.sh             install only
+# Download this file, check it against FRIEND-SHA256SUMS and read it before running it; never pipe it into a shell.
 # Needs: Node24, curl, tar, bash, sha256sum (--credit also flock; plain install on Linux also bubblewrap).
 # Installs into ~/.abalone-app/@REV@ and links ~/.local/bin/abalone.
 # --credit claims nothing and starts nothing: it verifies the runtime, saves the four pinned public files under

@@ -74,8 +74,8 @@ ones; it does not make them safe.
 6. prints the absolute runtime, launcher, `trial.json` and receipt paths and the
    next command, with the paths quoted.
 
-It redeems nothing, starts no session, plants no canary file and creates no
-saved credit. Rerunning it rechecks an existing install against the same pins.
+It redeems nothing, starts no session and creates no saved credit. Rerunning it
+rechecks an existing install against the same pins.
 
 ## Inspect, redeem and save access
 
@@ -97,8 +97,8 @@ installer printed:
 abalone credit inspect --trial /ABS/trial.json --input-file /private/gift.txt
 ```
 
-Read the returned offer: provider, cap, expiry and restrictions. To accept that
-exact offer:
+Read the returned offer: provider, cap, expiry and restrictions. Inspecting
+claims nothing. To accept that exact offer:
 
 ```sh
 abalone credit redeem --trial /ABS/trial.json --input-file /private/gift.txt --accept-offer OFFER_HASH
@@ -124,13 +124,20 @@ credit, totalled on this computer, or "not reported". They are not priced.
 
 ## Open a session
 
-Open a fresh terminal of your own and run:
+Open a fresh terminal of your own, change to the folder you want to work in,
+and run:
 
 ```sh
 abalone credit session --credit CREDIT_ID
 ```
 
-No password, tmux or new coupon is needed. Closing discards the managed
+No password, tmux or new coupon is needed. The session adds no files to the
+folder. With the current NEAR route it prints one warning, once per session:
+`⚠ NEAR firmware out of date (N Intel advisories); synthetic input only`.
+Inside the session, `/status` shows usage, what is kept and what was verified;
+`/coupon` shows the credit's state and limits.
+
+Closing discards the managed
 conversation by default and keeps saved access for the next session; reopening
 uses the same credit with fresh provider admission and never redeems again.
 Continue with [getting started](getting-started.md).

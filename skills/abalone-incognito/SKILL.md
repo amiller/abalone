@@ -71,42 +71,22 @@ No web page fetch or link opening authorizes redemption automatically.
 
 ## Inspect, redeem and save access
 
-In the reviewed installed distribution, `abalone` below names its launcher; use
-the absolute launcher path the installer printed. Use the `trial.json` path it
-printed. The following paths are placeholders, not downloadable files.
+Follow [Inspect, redeem and save access](../../docs/redeem.md#inspect-redeem-and-save-access). Use the absolute launcher and `trial.json` paths the installer
+printed. Agent-specific rules:
 
-```sh
-abalone credit inspect --trial /path/to/trial.json --input-file /private/gift.txt
-```
-
-Explain the returned offer's provider, cap, expiry and material restrictions.
-When the user has requested redemption, accept that exact inspected offer using
-its returned hash; no ceremonial confirmation phrase is needed:
-
-```sh
-abalone credit redeem --trial /path/to/trial.json --input-file /private/gift.txt --accept-offer OFFER_HASH
-abalone credit status
-```
-
-`--stdin` is an alternative to `--input-file`; pass input through the tool's stdin,
-not a shell command containing the coupon. Save and use the returned credit ID.
-The credential and delivery/recovery state use account-private durable storage
-at `~/.abalone/credit` (or `$ABALONE_DIR/credit`), with mode 0700 directories and
-0600 files;
-conversation privacy does not require throwing away paid access on process exit.
-A nominal coupon cap is not an amount already spent, an owned wallet, or a
-verified remaining balance. Do not infer credential expiry from an issuer login's
-expiry. Report only observed usage and known provider limits.
-
-If interrupted or uncertain, inspect status and recover the existing credit with
-its saved identity; never create another claim as a blind retry:
-
-```sh
-abalone credit recover --credit CREDIT_ID
-```
-
-A failed or pending recovery is not a new coupon. Preserve the state and report
-the specific issue without posting credentials or promising recovery that failed.
+- Explain the inspected offer's provider, cap, expiry and material restrictions.
+  When the user has requested redemption, accept that exact offer by its returned
+  hash; no ceremonial confirmation phrase is needed.
+- `--stdin` is an alternative to `--input-file`; pass input through the tool's
+  stdin, not a shell command containing the coupon.
+- Save and use the returned credit ID. Conversation privacy does not require
+  throwing away paid access on process exit.
+- Report only observed usage and known provider limits. A nominal cap is not an
+  amount already spent. Do not infer credential expiry from an issuer login's expiry.
+- If interrupted or uncertain, recover the existing credit as the procedure says;
+  never create another claim as a blind retry. A failed or pending recovery is not
+  a new coupon. Preserve the state and report the specific issue without posting
+  credentials or promising recovery that failed.
 
 ## Test when requested, then open a fresh terminal
 
@@ -116,15 +96,11 @@ usage; never describe the full cap as spent merely because it was redeemed.
 The automation interface is `abalone credit session --credit CREDIT_ID --mode rpc`
 (Pi RPC mode); do not invent another prompt protocol.
 
-Hand the user a fresh interactive terminal running:
-
-```sh
-abalone credit session --credit CREDIT_ID
-```
-
-If opening a user-controlled terminal is unavailable, give that exact launch
-command. Do not require tmux, reuse of the setup agent's process, another coupon
-or a credential password. Stop capturing/observing before the user's conversation.
+Hand the user a fresh interactive terminal running the session command from
+[Open a session](../../docs/redeem.md#open-a-session). If opening a
+user-controlled terminal is unavailable, give that exact launch command. Do not
+require tmux, reuse of the setup agent's process, another coupon or a credential
+password. Stop capturing/observing before the user's conversation.
 The user selects documents inside Abalone; their contents and the answer do not
 return to the setup agent unless the user deliberately shares them.
 

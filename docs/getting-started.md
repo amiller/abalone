@@ -40,7 +40,7 @@ this runtime.
 
 ## Access paths
 
-- **Saved Abalone access:** `abalone credit status` lists saved credits. Reuse one;
+- **Saved Abalone access:** reuse it as in [Open a session](redeem.md#open-a-session);
   do not redeem another coupon.
 - **Coupon:** inspect, redeem and save it as in [Redeem a coupon](redeem.md).
 - **Existing provider key:** importing a separate provider key is not supported
@@ -48,15 +48,10 @@ this runtime.
 
 ## Open, work and close
 
-Open a fresh terminal of your own and run:
-
-```sh
-abalone credit session --credit CREDIT_ID
-```
-
-Stop any recording or observation by the setup agent first; its stepping aside
-is cooperation, not enforced exclusion. Ask a question or select a synthetic
-text or PDF file: `Summarize @notes.txt`, `Summarize @report.pdf`, or
+Open the session in a fresh terminal of your own, as in
+[Open a session](redeem.md#open-a-session). Stop any recording or observation
+by the setup agent first; its stepping aside is cooperation, not enforced
+exclusion. Ask a question or select a synthetic text or PDF file: `Summarize @notes.txt`, `Summarize @report.pdf`, or
 `@"meeting notes.txt"` for a name with spaces. Abalone reads that file locally
 and places its text in the encrypted model request; a PDF is converted with
 `pdftotext`, so only its extractable text is sent, with page markers. Scanned
