@@ -17,7 +17,7 @@ import { FIRST_USE_SOURCE_FILES } from "../../tools/coupon-first-use.mjs";
 import { OUT_OF_DATE_TRIAL_POLICY } from "../../lib/near.mjs";
 
 const root = path.resolve(import.meta.dirname, "../.."), out = path.resolve(process.argv[2]);
-const AGREED = ["coupon", "fetch", "folder", "report", "status"];
+const AGREED = ["coupon", "status"];
 const NEXT = /(^|[.;:!]\s+|\n\s*)(run|ask|retry|use|review|accept|restore|reinstall|start|supply|remove|open|type|request|get|contact|wait)\b/i;
 const sha = (b) => crypto.createHash("sha256").update(b).digest("hex");
 const check = (name, ok, detail = "") => console.log(`${ok ? "PASS" : "FAIL"} ${name}${detail ? ` (${detail})` : ""}`);
@@ -27,7 +27,7 @@ const paired = JSON.parse(fs.readFileSync(path.join(root, "tests/fixtures/coupon
 // The recorded expired offer is well formed for the paired producer's issuer, scope and budget: only a deadline check can refuse it.
 const info = paired.issuer_info.response.result;
 let wellFormed = true;
-try { creditOfferBound("near", expiredOffer.offer, expiredOffer.offer_hash, expiredOffer.coupon, info, { approval: { deliveryProfile: paired.approval.payload.delivery_profile,
+try { creditOfferBound("near", expiredOffer.offer, expiredOffer.offer_hash, expiredOffer.coupon, info, { approval: { deliveryProfile: paired.approval.payload.delivery_profile, nativeAuthority: false,
   payload: { provider_scope_commitment: paired.approval.payload.provider_scope_commitment }, maxCouponNanoUsd: paired.approval.payload.max_coupon_nano_usd },
   peerId: paired.config.payload.issuer_peer_id, pin: { identityPolicy: {}, expectedIssuerPublicKeySha256: sha(Buffer.from(info.issuer_public_key_hex, "hex")) } }); }
 catch { wellFormed = false; }
