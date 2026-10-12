@@ -24,15 +24,15 @@ export const quote = async (hex) => JSON.parse(Buffer.from(hex, "hex").toString(
 export const connect = (addr, options, transport) => couponAttestedClientForTesting(addr, { ...options, syntheticQuoteVerifier: quote }, transport);
 export const pace = () => new Promise((resolve) => setTimeout(resolve, 220));
 export const bundle = (offer) => ({ offer, offer_hash: sha(Buffer.concat([Buffer.from("dsmack-coupon-offer-v4\0"), Buffer.from(canonicalCouponJson(offer))])) });
-export const terms = (peerId, profile = "x25519-aesgcm-recipient-v1") => ({ version: 4, coupon_digest: sha(coupon),
+export const terms = (peerId, profile = "x25519-aesgcm-recipient-v1", code = coupon) => ({ version: 4, coupon_digest: sha(code),
   issuer: { peer_id: peerId, policy: "dstack-tdx-coupon-v1", identity_policy_sha256: identity.info.identity_policy_sha256,
     issuance_policy_sha256: identity.info.issuance_policy_sha256, issuer_public_key_sha256: issuerKeySha },
   provider: { id: "near", scope_commitment: scope }, claim_policy: "first-authenticated-bearer", delivery_profile: profile,
   budget_nano_usd: "5000000000", cap_semantics: "nominal-provider-limit", claim_expires_at: "2030-10-10T00:00:00Z", provider_expires_at: null, sponsor_powers: ["revoke", "change_limits"] });
 
-export function delivery(accepted, recipientKey, peer) {
-  const keyId = `near-key-${sha(coupon).slice(0, 16)}`, recipient = Buffer.from(recipientKey, "base64");
-  const aad = Buffer.from(canonicalCouponJson({ domain: "dsmack-coupon-delivery-v4", version: 4, offer_hash: accepted.offer_hash, coupon_digest: sha(coupon), key_id: keyId,
+export function delivery(accepted, recipientKey, peer, code = coupon) {
+  const keyId = `near-key-${sha(code).slice(0, 16)}`, recipient = Buffer.from(recipientKey, "base64");
+  const aad = Buffer.from(canonicalCouponJson({ domain: "dsmack-coupon-delivery-v4", version: 4, offer_hash: accepted.offer_hash, coupon_digest: sha(code), key_id: keyId,
     recipient_key_sha256: sha(recipient), recipient_peer_sha256: couponAttestedRecipientPeerHash(peer) }));
   const pair = crypto.generateKeyPairSync("x25519"), remote = crypto.createPublicKey({ key: Buffer.concat([Buffer.from("302a300506032b656e032100", "hex"), recipient]), format: "der", type: "spki" });
   const key = crypto.hkdfSync("sha256", crypto.diffieHellman({ privateKey: pair.privateKey, publicKey: remote }), Buffer.alloc(0), Buffer.concat([Buffer.from("dsmack-coupon-v1\0"), aad]), 32);
@@ -41,7 +41,7 @@ export function delivery(accepted, recipientKey, peer) {
   return { key_id: keyId, envelope: JSON.stringify({ version: 1, aad: aad.toString("base64"), ephemeral: pair.publicKey.export({ format: "der", type: "spki" }).subarray(-32).toString("base64"), nonce: nonce.toString("base64"), ciphertext: ciphertext.toString("base64") }) };
 }
 
-export async function issuer(profile) {
+export async function issuer(profile, code = coupon) {
   // statuses is consumed first (one per bound status frame), then status repeats once a claim was sent; before any claim it is ready.
   // lost answers every v4 frame with the generic failure a losing holder gets once another recipient won.
   const frames = [], state = { claim: "grant", status: "in_progress", statuses: [], claimExpired: false, accountingBlocked: false, lost: false };
@@ -56,14 +56,14 @@ export async function issuer(profile) {
       if (frame.op === "offer") return send({ id: frame.id, ok: true, result: state.offer });
       if (frame.op === "claim") {
         if (state.claim === "in_progress") return send({ id: frame.id, ok: true, result: { state: "in_progress", automatic_retry_allowed: false, deposit_release_authorized: false } });
-        return send({ id: frame.id, ok: true, result: delivery(state.offer, frame.recipient_key, auth.remotePeer.toString()) });
+        return send({ id: frame.id, ok: true, result: delivery(state.offer, frame.recipient_key, auth.remotePeer.toString(), code) });
       }
       const current = state.statuses.shift() ?? (frames.some((f) => f.op === "claim") ? state.status : "ready");
       return send({ id: frame.id, ok: true, result: { state: current, claim_expired: state.claimExpired, accounting_blocked: state.accountingBlocked, automatic_retry_allowed: false,
-        deposit_release_authorized: false, ...(current === "delivered" ? { key_id: `near-key-${sha(coupon).slice(0, 16)}` } : {}) } });
+        deposit_release_authorized: false, ...(current === "delivered" ? { key_id: `near-key-${sha(code).slice(0, 16)}` } : {}) } });
     } },
   } });
-  state.offer = bundle(terms(host.peerId.toString(), profile));
+  state.offer = bundle(terms(host.peerId.toString(), profile, code));
   const address = String(host.getMultiaddrs()[0]);
   return { host, state, frames, admission: { peer: address, pin: pin(), approval: approval.bytes.toString("base64"), approvalRoot: signer.rootHex, provider } };
 }

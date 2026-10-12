@@ -1,5 +1,6 @@
 // Fresh-process CLI fixture: the real `bin/abalone.mjs credit session --credit <id> --mode rpc`, run twice over
-// one persisted credit, with a selected synthetic PDF through the normal curated @mention path.
+// one persisted credit, with a selected synthetic PDF through the normal curated @mention path; then plain `abalone`
+// over one, two and only-expired saved credits.
 // Explicit synthetic boundaries, nothing else substituted:
 //  - the credit is created over the real v4 protocol against the loopback synthetic issuer, then relabelled
 //    testing:false under the record lock, because the real CLI opens no testing record and cannot redeem against
@@ -13,7 +14,8 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { createCreditManagerForTesting } from "../lib/credit.mjs";
 import { creditStore } from "../lib/credit-store.mjs";
-import { coupon, id, sha, credential, provider, connect, pace, issuer } from "./lib/credit-fixture.mjs";
+import { coupon, id, sha, credential, provider, connect, pace, issuer, bundle, terms } from "./lib/credit-fixture.mjs";
+import { creditId } from "../lib/credit-store.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const base = fs.mkdtempSync(path.join(os.tmpdir(), "abalone-credit-cli-"));
@@ -21,14 +23,20 @@ const [state, home, xdg, work, tmp] = ["state", "home", "x", "work", "tmp"].map(
 const log = path.join(base, "synthetic-near.jsonl"), hook = path.join(root, "tests/fixtures/near/synthetic-near-hook.mjs");
 const pass = (name) => console.log(`PASS ${name}`);
 
-const server = await issuer();
-const manager = createCreditManagerForTesting({ directory: path.join(state, "credit"), connect });
-const offer = await manager.inspect(coupon, server.admission); await pace();
-await manager.redeem(id, { offerHash: offer.offerHash });
-await server.host.stop();
+// Saves one synthetic gift into dir (redeemed unless expiresAt overrides its claim window) and relabels it
+// testing:false so the real CLI opens it.
+async function saved(dir, code, expiresAt) {
+  const server = await issuer(undefined, code), manager = createCreditManagerForTesting({ directory: dir, connect });
+  if (expiresAt) server.state.offer = bundle({ ...terms(server.host.peerId.toString(), undefined, code), claim_expires_at: expiresAt });
+  const offer = await manager.inspect(code, server.admission); await pace();
+  if (!expiresAt) await manager.redeem(creditId(code), { offerHash: offer.offerHash });
+  await server.host.stop();
+  const store = creditStore(dir), record = store.read(creditId(code)), unlock = store.lock(record.id);
+  try { store.write({ ...record, testing: false }); } finally { unlock(); }
+  return { server, record };
+}
+const { server, record } = await saved(path.join(state, "credit"), coupon);
 const claims = server.frames.filter((f) => f.op === "claim").length;
-const store = creditStore(path.join(state, "credit")), record = store.read(id), unlock = store.lock(id);
-try { store.write({ ...record, testing: false }); } finally { unlock(); }
 const recordFile = path.join(state, "credit", `${id}.json`), recordBytes = fs.readFileSync(recordFile);
 
 fs.copyFileSync(path.join(root, "tests/fixtures/docs/tenancy-renewal.pdf"), path.join(work, "tenancy-renewal.pdf"));
@@ -71,10 +79,40 @@ requests.forEach((q, i) => {
   assert.equal(q.url, "https://cloud-api.near.ai/v1/chat/completions"); assert.equal(q.pdfText, true); assert.equal(q.plaintextInBody, false);
 });
 pass("each fresh process uses the original saved credential; the selected synthetic PDF reaches the model only inside the encrypted request");
-const { usage, ...saved } = JSON.parse(fs.readFileSync(recordFile, "utf8"));
-assert.deepEqual(saved, JSON.parse(recordBytes)); assert.equal(server.frames.filter((f) => f.op === "claim").length, claims);
-assert.deepEqual(usage, { responses: 2, reported: 0, inputTokens: 0, outputTokens: 0, reasoningTokens: 0 }); assert.equal(fs.statSync(recordFile).mode & 0o777, 0o600);
+const usageOnly = () => { const { usage, ...rest } = JSON.parse(fs.readFileSync(recordFile, "utf8")); assert.deepEqual(rest, JSON.parse(recordBytes)); return usage; };
+assert.deepEqual(usageOnly(), { responses: 2, reported: 0, inputTokens: 0, outputTokens: 0, reasoningTokens: 0 }); assert.equal(fs.statSync(recordFile).mode & 0o777, 0o600);
+assert.equal(server.frames.filter((f) => f.op === "claim").length, claims);
 pass("the persisted credit is unchanged after both sessions except its 0600 usage total, and no claim was made");
+
+// Plain `abalone`: one saved credit opens its session; several are listed; none points to the redeem page.
+function plain(dir) {
+  const child = spawn(process.execPath, ["--import", hook, path.join(root, "bin/abalone.mjs")], { cwd: work, env: { ...env, ABALONE_DIR: dir }, stdio: ["pipe", "pipe", "pipe"] });
+  let out = "", err = "";
+  child.stdout.on("data", (d) => { out += d; }); child.stderr.on("data", (d) => { err += d; if (err.includes("Fresh incognito conversation")) child.stdin.end(); });
+  return new Promise((resolve) => child.on("exit", (code) => resolve({ code, out, err })));
+}
+const one = await plain(state);
+assert.equal(one.code, 0, one.err.slice(-2000));
+for (const text of ["Saved credit:", "Nominal cap $5.00 from the offer", "Fresh incognito conversation", "Saved credit remains available for a fresh process"]) assert.ok(one.err.includes(text), `plain abalone stderr lacks: ${text}`);
+assert.ok(!one.err.includes("no canaries") && !one.err.includes("bubblewrap")); assert.deepEqual(fs.readdirSync(work), ["tenancy-renewal.pdf"], "no decoy file is planted");
+assert.equal(usageOnly().responses, 2); assert.equal(server.frames.filter((f) => f.op === "claim").length, claims);
+pass("plain abalone with one saved credit opens that credit's session, like credit session --credit <id>");
+const two = path.join(base, "two"), second = "d".repeat(43);
+await saved(path.join(two, "credit"), second);
+fs.copyFileSync(recordFile, path.join(two, "credit", `${id}.json`)); fs.chmodSync(path.join(two, "credit", `${id}.json`), 0o600);
+const several = await plain(two);
+assert.equal(several.code, 1);
+assert.ok(several.err.includes("You have 2 saved credits. Open one with:\n"), several.err);
+for (const each of [id, creditId(second)]) assert.ok(several.err.includes(`  abalone credit session --credit ${each}   (${provider.model}, $5.00 nominal cap)`), several.err);
+assert.ok(!several.err.includes("Saved credit:"), "no session opened");
+pass("plain abalone with several saved credits lists each with its session command and opens none");
+const late = path.join(base, "late"), lapsed = "e".repeat(43);
+await saved(path.join(late, "credit"), lapsed, "2026-01-01T00:00:00Z");
+const waiting = await plain(late);
+assert.equal(waiting.code, 1);
+assert.ok(waiting.err.includes(`No saved credit is ready to use yet:\n  ${creditId(lapsed)}  expired: Claim window closed; the deadline was 2026-01-01 00:00 UTC. This gift can no longer be redeemed: ask the sponsor for a new gift.\n`), waiting.err);
+assert.ok(waiting.err.includes("https://amiller.github.io/abalone/redeem/"));
+pass("plain abalone with only an expired offer says so, with the deadline and 'ask the sponsor for a new gift'");
 const leftovers = [];
 const scan = (dir) => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name);
   if (e.isDirectory()) scan(p); else if (e.isFile() && p !== log && markers.some((m) => fs.readFileSync(p).includes(m))) leftovers.push(path.relative(base, p)); } };
