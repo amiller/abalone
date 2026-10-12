@@ -28,6 +28,7 @@ if [ "${1:-}" = --credit ]; then
     [ "${#pinned}" = 64 ] || { echo "This installer has no fully pinned public credit bundle. Nothing was installed." >&2; exit 1; }
   done
   [ "$friend_platform" = linux-node24-owned-host ] || { echo "This installer pins the $friend_platform profile; --credit needs the trusted linux-node24-owned-host profile. Nothing was installed." >&2; exit 1; }
+  case "$HOME" in /*) ;; *) echo "HOME must be an absolute path. Nothing was installed." >&2; exit 1 ;; esac
 fi
 if [ "${1:-}" = --friend ]; then
   friend=yes
@@ -70,7 +71,7 @@ if [ "$credit" = yes ]; then
   umask 077
   refuse() { printf '%s\n' "$1" >&2; exit 1; }
   same() { [ "$(sha256sum < "$1")" = "$(sha256sum < "$2")" ]; }
-  listing() { (cd "$1" && { find abalone ! -type d ! -type f -printf '%y %p -> %l\n'; find abalone -type f -exec sha256sum {} +; } | LC_ALL=C sort); }
+  listing() { (cd "$1" && { find abalone -printf '%y %m %p -> %l\n'; find abalone -type f -exec sha256sum {} +; } | LC_ALL=C sort); }
   bundle_id=$(printf '%s\n' '@TRIAL_SHA256@' '@PIN_SHA256@' '@APPROVAL_SHA256@' '@READINESS_SHA256@' | sha256sum | cut -c1-16)
   pub="$app/public-credit"
   bundle="$pub/$bundle_id"
@@ -84,6 +85,7 @@ if [ "$credit" = yes ]; then
   flock -n 9 || refuse "Another abalone credit install is running. Nothing was installed."
   stage=$(mktemp -d "$HOME/.abalone-app/.credit-stage.XXXXXX")
   trap 'rm -rf "$stage"' EXIT
+  trap 'exit 1' HUP INT TERM
   curl -fsSL "@ARTIFACT_BASE@/abalone-@REV@.tar.gz" -o "$stage/a.tgz" || refuse "The release archive could not be downloaded. Nothing was installed."
   printf '%s\n' "@SHA256@  $stage/a.tgz" | sha256sum -c --quiet - || refuse "The download does not match the expected release (@REV@). Nothing was installed."
   mkdir "$stage/tree" "$stage/bundle"
@@ -105,7 +107,7 @@ if [ "$credit" = yes ]; then
     "$(sha256sum < "$stage/tree.list" | cut -c1-64)" > "$stage/bundle/receipt.json"
   if [ -e "$app/abalone" ]; then
     listing "$app" > "$stage/existing.list" && same "$stage/tree.list" "$stage/existing.list" \
-      || refuse "The existing $app/abalone does not match the verified @REV@ release (modified, partial or extra files). It was left untouched; move it aside and rerun. Nothing was installed."
+      || refuse "The existing $app/abalone does not match the verified @REV@ release (modified, partial, extra or re-permissioned files). It was left untouched; move it aside and rerun. Nothing was installed."
   fi
   if [ -e "$bundle" ]; then
     for name in trial.json issuer-pin.json staging-approval.json readiness.json receipt.json; do

@@ -29,7 +29,8 @@ automatically.
 Linux x86_64 with Node 24, bash, curl, tar, sha256sum, `flock` and an existing
 Linux tmpfs, running as an ordinary user on a trusted owned host. There is no OS
 isolation: tools have the account's filesystem and network access, and the
-administrator is trusted. Abalone does not hide your IP address. macOS, Windows,
+administrator is trusted. Abalone does not hide your IP address. Selecting a PDF
+also needs `pdftotext` (Poppler). macOS, Windows,
 Docker and USB/Tails are unqualified. No VPN, provider account, manual API key
 or funded wallet is required.
 
@@ -55,9 +56,12 @@ abalone credit session --credit CREDIT_ID
 
 Stop any recording or observation by the setup agent first; its stepping aside
 is cooperation, not enforced exclusion. Ask a question or select a synthetic
-plain text file: `Summarize @notes.txt`, or `@"meeting notes.txt"` for a name
-with spaces. Abalone reads that file locally and places its text in the encrypted
-model request. A read or extraction failure refuses before inference.
+text or PDF file: `Summarize @notes.txt`, `Summarize @report.pdf`, or
+`@"meeting notes.txt"` for a name with spaces. Abalone reads that file locally
+and places its text in the encrypted model request; a PDF is converted with
+`pdftotext`, so only its extractable text is sent, with page markers. Scanned
+images are not read. A missing `pdftotext`, read or extraction
+failure refuses before inference.
 
 Closing discards the managed conversation by default. It does not delete saved
 access or revoke the upstream credential; the next session reuses the same credit

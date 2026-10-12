@@ -110,7 +110,10 @@ credit "$H3" sh "$R/credit-install.sh" --credit > /dev/null
 echo extra > "$A3/abalone/lib/extra.mjs"
 c5=$(credit "$H3" sh "$R/credit-install.sh" --credit); cc5=$?
 check "existing runtime with an extra file is refused" '[[ $cc5 != 0 && $c5 == *"does not match the verified"* ]]'
-rm "$A3/abalone/lib/extra.mjs"; ln -sf /etc/passwd "$A3/abalone/lib/credit-link.mjs"
+rm "$A3/abalone/lib/extra.mjs"; chmod go+w "$A3/abalone/lib/credit.mjs"
+c5c=$(credit "$H3" sh "$R/credit-install.sh" --credit); cc5c=$?
+check "existing runtime with a widened file mode is refused" '[[ $cc5c != 0 && $c5c == *"re-permissioned"* ]]'
+chmod go-w "$A3/abalone/lib/credit.mjs"; ln -sf /etc/passwd "$A3/abalone/lib/credit-link.mjs"
 c5b=$(credit "$H3" sh "$R/credit-install.sh" --credit); cc5b=$?
 check "existing runtime with a redirected symlink is refused" '[[ $cc5b != 0 && $c5b == *"does not match the verified"* ]]'
 ln -sfn credit.mjs "$A3/abalone/lib/credit-link.mjs"
@@ -137,6 +140,8 @@ check "installer without public credit pins refuses" '[[ $cc11 != 0 && $c11 == *
 c12=$(credit "$R/credit h7" sh "$R/credit-install.sh" --credit --peer x g1CODE.grant); cc12=$?
 check "--credit with extra arguments refuses" '[[ $cc12 != 0 && $c12 == *"Usage: install.sh --credit"* && $c12 != *g1CODE* && ! -s $R/curls ]]'
 mkdir "$R/noflock"; for f in "$R"/cpath/*; do [[ ${f##*/} == flock ]] || ln -s "$(readlink -f "$f")" "$R/noflock/${f##*/}"; done; rm "$R/noflock/curl"; cp "$R/cpath/curl" "$R/noflock/"
+c12b=$(credit "$R/credit h7" env HOME=relative sh "$R/credit-install.sh" --credit); cc12b=$?
+check "relative HOME refuses before download so printed paths stay absolute" '[[ $cc12b != 0 && $c12b == *"HOME must be an absolute path"* && ! -s $R/curls && ! -e "$R/cwork/relative" ]]'
 c13=$(PATH_C="$R/noflock" credit "$R/credit h7" sh "$R/credit-install.sh" --credit); cc13=$?
 check "missing flock refuses before download" '[[ $cc13 != 0 && $c13 == *"needs flock"* && ! -s $R/curls && ! -e "$R/credit h7/.abalone-app" ]]'
 mkdir "$R/arm" "$R/root"
@@ -152,9 +157,10 @@ mkdir -p "$R/stub" && printf '#!/bin/sh\nexit 0\n' > "$R/stub/npm" && chmod +x "
 rev=$(git -C "$R/repo" rev-parse --short HEAD) rel="$R/repo/local-data/release"
 o=$(PATH="$R/stub:$PATH" "$R/repo/tools/release.sh" 2>&1)
 check "release.sh without a base URL writes the tarball and no install.sh, and says how to get one" '[[ -f $rel/$rev/abalone-$rev.tar.gz && ! -e $rel/$rev/install.sh && $o == *"no base URL given, so no install.sh"* ]]'
-check "release.sh emits the hidden-input friend landing and its friend checksum link" 'cmp -s "$rel/$rev/index.html" "$R/repo/site/friend.html" && grep -q "hidden prompt" "$rel/$rev/index.html" && ! grep -q "location.hash" "$rel/$rev/index.html" && grep -Eq "href=\"(FRIEND-SHA256SUMS|https://github[.]com/amiller/abalone/releases/download/v0[.]1[.]0-preview[.][0-9]+/FRIEND-SHA256SUMS)\"" "$rel/$rev/index.html"'
+check "release.sh emits the scriptless friend doorway to the hosted entry and setup skill, with no versioned installer link" 'cmp -s "$rel/$rev/index.html" "$R/repo/site/friend.html" && grep -q "default-src '"'"'none'"'"'" "$rel/$rev/index.html" && grep -q "href=\"https://amiller.github.io/abalone/redeem\"" "$rel/$rev/index.html" && grep -q "skills/abalone-incognito/SKILL.md" "$rel/$rev/index.html" && ! grep -qiE "<script|location[.]hash|install[.]sh|releases/download|preview[.][0-9]" "$rel/$rev/index.html"'
 tar -tzf "$rel/$rev/abalone-$rev.tar.gz" > "$R/archive-members"
-check "release source archive keeps maintained guides and protocols without historical notes or the legacy landing" 'grep -q "^abalone/docs/getting-started.md$" "$R/archive-members" && grep -q "^abalone/docs/protocols/coupon.md$" "$R/archive-members" && ! grep -qE "^abalone/(notes/|site/index.html$|evals/results/)" "$R/archive-members"'
+check "release source archive keeps guides, protocols, setup skill and the static Pages entry without historical notes or eval results" 'grep -q "^abalone/docs/getting-started.md$" "$R/archive-members" && grep -q "^abalone/docs/protocols/coupon.md$" "$R/archive-members" && grep -q "^abalone/skills/abalone-incognito/SKILL.md$" "$R/archive-members" && grep -q "^abalone/site/redeem/index.html$" "$R/archive-members" && ! grep -qE "^abalone/(notes/|evals/results/)" "$R/archive-members"'
+check "archived Pages root is the scriptless doorway to the redeem entry, not a legacy landing" 'tar -xzOf "$rel/$rev/abalone-$rev.tar.gz" abalone/site/index.html > "$R/pages-root" && cmp -s "$R/pages-root" "$R/repo/site/index.html" && grep -q "href=\"redeem/\"" "$R/pages-root" && ! grep -qiE "<script|location[.]hash|install[.]sh" "$R/pages-root"'
 PATH="$R/stub:$PATH" "$R/repo/tools/release.sh" HEAD https://example.org/r > /dev/null 2>&1
 check "release.sh with a base URL pins it in install.sh" 'grep -q "curl -fsSL \"https://example.org/r/abalone-$rev.tar.gz\"" $rel/$rev/install.sh'
 rm -rf "$R"

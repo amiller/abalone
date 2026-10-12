@@ -35,12 +35,9 @@ merely because the user asked what Abalone does.
 
 - **Saved Abalone access:** use `abalone credit status`, select the relevant saved
   credit, and open a fresh session. Do not redeem another coupon.
-- **Existing provider credential:** identify its provider and the installed
-  supported adapter/import path. Reuse supported access; do not demand a coupon
-  or send the credential to a different provider. Check the selected release's
-  documented credential interface before importing. If unsupported, explain the
-  precise compatibility gap and available supported route rather than inventing
-  an import command or treating all keys as NEAR keys.
+- **Existing provider credential:** importing a separate provider key is not
+  implemented. Say so plainly; do not invent an import command, treat it as a
+  NEAR key or send it to a different provider.
 - **Coupon or gift link:** inspect the offer and redeem when instructed, using
   the commands below. Save delivered access independently of conversation state.
 - **No access yet:** explain the currently available coupon and provider-account
@@ -50,10 +47,12 @@ merely because the user asked what Abalone does.
   claim. A future funding design is not a working acquisition path.
 
 Use the [release/access instructions](../../docs/friend-preview.md) to obtain the
-reviewed distribution and matching signed public trial inputs. Check actual
+reviewed distribution; its `install.sh --credit` fetches and checks the pinned
+public trial files and prints their path. Check actual
 availability and expiry there. Use a release exposing the `credit` commands;
 do not substitute an older process-only coupon launcher. Supported recipient:
-trusted Linux x86_64 with the documented Node 24 and system prerequisites. Name a
+trusted Linux x86_64 with the documented Node 24 and system prerequisites, plus
+`pdftotext` (Poppler) if the user will select PDFs. Name a
 missing capability before changing anything; do not silently switch profiles.
 
 ## Read a gift link safely
@@ -73,8 +72,8 @@ No web page fetch or link opening authorizes redemption automatically.
 ## Inspect, redeem and save access
 
 In the reviewed installed distribution, `abalone` below names its launcher; use
-its absolute path if it is not on PATH. Use the actual signed trial file supplied
-with that version. The following paths are placeholders, not downloadable files.
+the absolute launcher path the installer printed. Use the `trial.json` path it
+printed. The following paths are placeholders, not downloadable files.
 
 ```sh
 abalone credit inspect --trial /path/to/trial.json --input-file /private/gift.txt
@@ -114,8 +113,8 @@ the specific issue without posting credentials or promising recovery that failed
 A requested test uses bounded synthetic input and the same saved access. Do not
 send a private document as a setup test. Confirm only the result and observed
 usage; never describe the full cap as spent merely because it was redeemed.
-Do not invent a noninteractive prompt protocol: inspect the installed session
-interface before automating a test.
+The automation interface is `abalone credit session --credit CREDIT_ID --mode rpc`
+(Pi RPC mode); do not invent another prompt protocol.
 
 Hand the user a fresh interactive terminal running:
 

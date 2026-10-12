@@ -53,18 +53,17 @@ do not regenerate that archive for instructions-only changes.
    REV BASE` alone emits a generic installer; it does not assemble a friend bundle
    or this checksum file.
 
-   The rendered installer has two relevant modes. `sh install.sh` installs and
-   links the verified archive, prints a legacy `abalone redeem --peer` hint and
-   asks about planting a canary file; it fetches no trial files and redeems
-   nothing. `sh install.sh --friend` runs the process-only
-   `tools/coupon-first-use.mjs` flow, which does not save access. The durable
-   credit procedure in [access and installation](friend-preview.md) uses
-   install-only mode followed by `abalone credit`, with the recipient downloading
-   the four public files beside `FRIEND-SHA256SUMS`. The release notes must say
-   that the release provides `abalone credit`, and a fresh install must show it in
-   `abalone credit --help`. Before qualifying a credit release, check that the
-   installer verifies the `flock` prerequisite and does not demand bubblewrap for
-   the owned-host profile; the current template does neither.
+   `sh install.sh --credit` is the recipient's install-only entry for the
+   durable credit procedure in [access and installation](friend-preview.md). It
+   downloads the archive and the four public files, checks each pinned SHA256,
+   refuses an archive without `abalone credit`, rechecks any existing install,
+   saves the files with a receipt under `~/.abalone-app/REV/public-credit/`,
+   links `~/.local/bin/abalone` and prints the absolute paths. It needs `flock`,
+   not bubblewrap, and requires pins for the `linux-node24-owned-host` profile.
+   It redeems nothing and starts nothing. `sh install.sh --friend` remains the
+   process-only `tools/coupon-first-use.mjs` flow, which does not save access;
+   bare `sh install.sh` installs, prints a legacy redeem hint and asks about
+   canaries. The release notes must say the release provides `--credit`.
 5. Rehearse the actual installer on a clean supported Linux machine as nonroot.
    Verify no ambient account/operator credentials, pre-bearer readiness, human
    input, bounded redemption, first request, admission expiry, trace choices and
@@ -118,3 +117,8 @@ owner powers, recovery/rollback behavior, retention and relevant settlement
 checks. Network anonymity needs its own selected routing/loss qualification.
 Keep these scope limits with [the security profile](security.md); do not turn a
 passing synthetic fixture into a production privacy or funding claim.
+
+PDF selection in a credit session uses the owned-host extraction path
+(`pdftotext`). Earlier PDF evidence came from a preinstalled synthetic run and
+covers only that captured path; the installed durable-credit PDF path still needs
+its own live check.
