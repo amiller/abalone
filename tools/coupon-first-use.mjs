@@ -13,7 +13,7 @@ import { couponIssuerPolicyHash } from "../lib/coupon-attested.mjs";
 import { validateCouponNearProfile, OUT_OF_DATE_TRIAL_POLICY, OUT_OF_DATE_TRIAL_NOTICE } from "../lib/coupon-near.mjs";
 import { verifyCouponStagingAdmission, couponStagingGuardNotice } from "../lib/coupon-staging.mjs";
 import { keyInfo } from "../lib/trace.mjs";
-import * as nodekeys from "../lib/nodekeys.mjs";
+import * as keys from "../lib/keys.mjs";
 import * as gift from "../lib/gift.mjs";
 import * as canary from "../lib/canary.mjs";
 import { piArgv } from "../lib/sandbox.mjs";
@@ -93,7 +93,7 @@ export async function preflight(file, { keepTrace = false } = {}) {
   if (keepTrace) check("trace key", () => { if (!keyInfo()) throw fail("trace_key_missing", "Run ./bin/abalone trace key init before gift entry."); });
   check("local workspace", () => { canary.forSession(process.cwd(), false); });
   check("runtime directories", () => { const dirs = trial.bundle.platform === "linux-node24-owned-host" ? [STATE, memoryRoot(), runtimeDir()] : [STATE, APPROVALS, RUNNER_HOME, runtimeDir()]; for (const dir of dirs) if (!fs.statSync(dir).isDirectory()) throw fail("runtime_unavailable", "Prepare local runtime directories before gift entry."); });
-  check("credential slot", () => { const p = providers(); if (gift.coupon() || nodekeys.load().keys.some((k) => ["near", "nearai"].includes(k.provider)) || Object.keys(process.env).some((k) => /^(NEAR.*(?:KEY|TOKEN)|ABALONE_COUPON_(?:SOCKET|MODEL))$/.test(k) && process.env[k]) || p.admitted.some((a) => ["near", "nearai"].includes(a.id) && process.env[a.keyEnv])) throw fail("credential_slot_occupied", "Use a fresh session profile without an existing gift, NEAR credential or coupon socket."); });
+  check("credential slot", () => { const p = providers(); if (gift.coupon() || keys.list().some((k) => ["near", "nearai"].includes(k.provider)) || Object.keys(process.env).some((k) => /^(NEAR.*(?:KEY|TOKEN)|ABALONE_COUPON_(?:SOCKET|MODEL))$/.test(k) && process.env[k]) || p.admitted.some((a) => ["near", "nearai"].includes(a.id) && process.env[a.keyEnv])) throw fail("credential_slot_occupied", "Use a fresh session profile without an existing gift, NEAR credential or coupon socket."); });
   check("VPN", () => trial.bundle.profile === "debug-staging-incognito-synthetic-prompts" && trial.bundle.vpn === null
     ? "Not selected for standalone incognito; no VPN privacy or qualification is claimed."
     : inspectVpn(trial.bundle.vpn, trial.base));

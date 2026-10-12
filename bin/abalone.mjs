@@ -17,7 +17,7 @@ import { browserBridge } from "../lib/browser.mjs";
 import { history } from "../lib/ui/tool-display.mjs";
 import { piArgv } from "../lib/sandbox.mjs";
 import { memoryRoot, memoryRun, ownedHostEnvironment, OWNED_HOST_NOTICE } from "../lib/owned-host.mjs";
-import * as nodekeys from "../lib/nodekeys.mjs";
+import * as keys from "../lib/keys.mjs";
 import * as gift from "../lib/gift.mjs";
 import * as consent from "../lib/consent/index.mjs";
 import * as p2p from "../lib/p2p.mjs";
@@ -162,7 +162,7 @@ async function couponSessionCmd() {
   runtimeDir();
   if (process.platform !== "linux" || spawnSync("bwrap", ["--version"], { stdio: "pipe" }).status !== 0) throw new Error("This synthetic session requires the Linux sandbox installed before claim. Nothing was claimed.");
   couponSlot = await openCouponSession({ peerAddr, admit: p.peers.admit, config: p, model: selected.slice("synthetic-near/".length), experimental,
-    occupied: nodekeys.load().keys.some((k) => k.provider === "synthetic-near"), ambient: !!process.env.SYNTHETIC_COUPON_API_KEY || !!process.env.ABALONE_COUPON_SOCKET });
+    occupied: keys.list().some((k) => k.provider === "synthetic-near"), ambient: !!process.env.SYNTHETIC_COUPON_API_KEY || !!process.env.ABALONE_COUPON_SOCKET });
   const code = await couponEntry("ABALONE_COUPON_FD", "Paste the synthetic coupon (hidden; not a command argument): ", true);
   const offer = await couponSlot.inspect(code);
   process.stderr.write(`${offer.text}\n`);
@@ -231,11 +231,11 @@ async function attestedCouponSessionCmd(peerAddr) {
   const poll = Number(process.env.ABALONE_COUPON_POLL_MS ?? 30_000);
   admitAttestedCouponSessionIssuer({ profile, peerAddr, admit: p.peers?.admit, issuerPin: pin, stagingApproval, allowOutOfDateTrial, model: model.slice(prefix.length),
     config: p, ...(profile === "fixture-local" ? { syntheticQuoteVerifier: async (hex) => JSON.parse(Buffer.from(hex, "hex").toString()) } : {}),
-    occupied: nodekeys.load().keys.some((k) => k.provider === slotProvider),
+    occupied: keys.list().some((k) => k.provider === slotProvider),
     ambient: profile === "fixture-local" ? !!process.env.SYNTHETIC_COUPON_API_KEY || !!process.env.ABALONE_COUPON_SOCKET : !!process.env.ABALONE_COUPON_SOCKET || !!(nearKeyEnv && process.env[nearKeyEnv]) });
   couponSlot = await openAttestedCouponSession({ peerAddr, admit: p.peers?.admit, profile, issuerPin: pin, stagingApproval, allowOutOfDateTrial, model: model.slice(prefix.length), config: p,
     ...(profile === "fixture-local" ? { syntheticQuoteVerifier: async (hex) => JSON.parse(Buffer.from(hex, "hex").toString()) } : {}),
-    occupied: nodekeys.load().keys.some((k) => k.provider === slotProvider),
+    occupied: keys.list().some((k) => k.provider === slotProvider),
     ambient: profile === "fixture-local" ? !!process.env.SYNTHETIC_COUPON_API_KEY || !!process.env.ABALONE_COUPON_SOCKET : !!process.env.ABALONE_COUPON_SOCKET || !!(nearKeyEnv && process.env[nearKeyEnv]),
     ...(Number.isSafeInteger(poll) && poll >= 1000 && poll <= 600_000 ? { pollRoundMs: poll } : {}) });
   const guardNotice = couponStagingGuardNotice(couponSlot.stagingAdmission?.guard);
@@ -295,32 +295,37 @@ async function readSecret(prompt) {
   return s.split("\n")[0];
 }
 
-async function nodeKeys([cmd, prov, label]) {
-  if (cmd === "add") {
-    await nodekeys.add(prov, label ?? "default", await readSecret(`paste the ${prov} API key (hidden): `));
-    return console.log(`added ${prov}/${label ?? "default"}`);
+// abalone key add <provider> [--label l] [--input-file /abs/0600-file] | key list | key forget <provider> [--label l].
+// The key comes from hidden stdin or a private file, never from arguments. A provider's newest key is the one used.
+async function keyCmd() {
+  const label = flag("--label"), file = flag("--input-file"), [, cmd, prov, extra] = args;
+  if (cmd === "add" && prov && !extra) {
+    let key;
+    if (file) try { key = readPrivate(file, 4096).toString(); } catch { throw new Error("--input-file must be a regular file you own with mode 0600 (chmod 600 it), holding only the key."); }
+    else key = await readSecret(`paste the ${prov} API key (hidden): `);
+    await keys.add(prov, label ?? "default", key);
+    return console.log(`added ${prov} key ${label ?? "default"}: ${keys.TERMS}`);
   }
-  if (cmd === "use") return nodekeys.use(prov, label);
-  if (cmd === "rm") return nodekeys.rm(prov, label);
-  if (cmd === "list") {
-    for (const k of nodekeys.list()) console.log([k.active ? "*" : " ", k.provider, k.label, `…${k.key.slice(-4)}`, k.added.slice(0, 10), "balance: n/a (provider exposes no balance endpoint)"].join("  "));
+  if (cmd === "list" && !prov && !label && !file) {
+    for (const k of keys.list()) console.log([k.provider, k.label, `added ${k.added.slice(0, 10)}`, `last used ${k.lastUsed?.slice(0, 10) ?? "never"}`, keys.TERMS].join("  "));
     return;
   }
-  throw new Error("usage: abalone node keys add|list|use|rm <provider> [label]");
+  if (cmd === "forget" && prov && !extra && !file) { const k = keys.forget(prov, label); return console.log(`forgot ${k.provider} key ${k.label}`); }
+  throw new Error("usage: abalone key add <provider> [--label <label>] [--input-file /abs/0600-file] | abalone key list | abalone key forget <provider> [--label <label>]. Keys come from hidden stdin or a private file, never from arguments.");
 }
 
-// abalone node serve [--listen /ip4/0.0.0.0/tcp/4001] [--relay <relay multiaddr>] [--evidence appattest --probe <App.app> | --evidence dev]
-// abalone node serve --evidence macrunner --relay <relay multiaddr> --reserve 6usd --ledger /abalone-ledger   (inside the Mac runner)
+// abalone peer serve [--listen /ip4/0.0.0.0/tcp/4001] [--relay <relay multiaddr>] [--evidence appattest --probe <App.app> | --evidence dev]
+// abalone peer serve --evidence macrunner --relay <relay multiaddr> --reserve 6usd --ledger /abalone-ledger   (inside the Mac runner)
 //                    --reserve 6usd [--ledger dir] [--model id] [--issuer pubhex] [--chain <rpc url> --registry <address>]
-async function serveNode() {
+async function servePeer() {
   const { serve } = await import("../lib/node.mjs");
   const evidence = { kind: flag("--evidence", "appattest"), app: flag("--probe") }, reserve = flag("--reserve");
   // Under the Mac runner the guest has no NIC: it listens only on /p2p-circuit through the relay, reached by CONNECT.
   if (evidence.kind === "macrunner" && (args.includes("--listen") || evidence.app || !args.includes("--relay"))) throw new Error("--evidence macrunner needs --relay <multiaddr> and takes no --listen or --probe");
   const listen = [flag("--listen", "/ip4/0.0.0.0/tcp/4001")], relays = [flag("--relay")].filter(Boolean);
-  // Under the Mac runner the provider key stays with the runner; otherwise it comes from this node's keystore.
-  const k = evidence.kind === "macrunner" ? { key: null, label: "runner" } : nodekeys.active("nearai");
-  if (!k) throw new Error("no nearai key in the node keystore: abalone node keys add nearai <label>");
+  // Under the Mac runner the provider key stays with the runner; otherwise it is this machine's configured nearai key.
+  const k = evidence.kind === "macrunner" ? { key: null, label: "runner" } : keys.active("nearai");
+  if (!k) throw new Error("no nearai key configured: abalone key add nearai");
   if (!reserve) throw new Error("--reserve <amount>usd: the credit prepaid on this peer's NEAR key that gifts may claim");
   if (evidence.kind === "appattest" && !evidence.app) throw new Error("--evidence appattest needs --probe <the approved App Attest app>");
   // The issuer's public key. Inside the Mac runner it must be given (the guest must not invent an issuer); elsewhere
@@ -349,14 +354,14 @@ async function serveNode() {
   console.log(`addresses:\n${[...new Set([...p.getMultiaddrs().map(String).filter((a) => !relays.length || !a.includes("p2p-circuit")), ...relays.map((r) => `${r}/p2p-circuit/p2p/${p.peerId}`)])].map((a) => `  ${a}`).join("\n")}`);
 }
 
-// abalone node relay [--listen /ip4/0.0.0.0/tcp/4002] [--ws-listen /ip4/127.0.0.1/tcp/4003/ws] [--seed-file f]
+// abalone peer relay [--listen /ip4/0.0.0.0/tcp/4002] [--ws-listen /ip4/127.0.0.1/tcp/4003/ws] [--seed-file f]
 //                    [--announce <multiaddr>[,…]] [--onion /onion3/<addr>:<port>] [--addrs-file f]
 // The minimal circuit relay v2 we run (no attestation needed: it carries Noise-encrypted bytes between peers and clients
 // that verify each other). With a seed file its PeerId survives restarts. --announce names its public addresses (a
 // Cloudflare quick tunnel's /dns4/<host>/tcp/443/wss), which change when the tunnel restarts. An onion address is not
 // announced to libp2p (its address manager cannot parse /onion3 in reservation replies) and is only listed. --addrs-file
 // gets all public addresses, each ending /p2p/<relay id>, for whoever issues gifts.
-async function relayNode() {
+async function relayPeer() {
   const seedFile = flag("--seed-file"), ws = flag("--ws-listen"), announce = (flag("--announce") ?? "").split(",").filter(Boolean), onion = flag("--onion"), addrsFile = flag("--addrs-file");
   if (seedFile && !fs.existsSync(seedFile)) fs.writeFileSync(seedFile, (await import("node:crypto")).randomBytes(32).toString("hex"), { mode: 0o600, flag: "wx" });
   const key = seedFile && await (await import("@libp2p/crypto/keys")).generateKeyPairFromSeed("Ed25519", Buffer.from(fs.readFileSync(seedFile, "utf8"), "hex"));
@@ -516,7 +521,7 @@ the passphrase and the traces are gone. Keep a copy in your password manager: ab
   throw new Error(`unknown: abalone trace ${shown(cmd)}`);
 }
 
-// caps.mjs resolves paths as Pi does, so it imports pi/: loaded only here, never on the node serve/relay path,
+// caps.mjs resolves paths as Pi does, so it imports pi/: loaded only here, never on the peer serve/relay path,
 // whose image has no pi/ (tests/peer-image-smoke.sh).
 async function printCaps(json) {
   const doc = (await import("../lib/caps.mjs")).document(process.cwd());
@@ -544,6 +549,7 @@ ${REDEEM_STEPS.map((l) => `  ${l}`).join("\n")}
   abalone credit status [--credit <id>]   saved credits and their state
   abalone credit recover --credit <id>    finish an interrupted redeem with the same keys
   abalone credit session --credit <id> [--mode rpc]   open a session with one saved credit
+  abalone key add|list|forget <provider>  configure your own provider API key (from stdin, never arguments)
   abalone help                            this text
 
 No gift yet, or no install? Start at ${REDEEM_PAGE}
@@ -551,7 +557,7 @@ No gift yet, or no install? Start at ${REDEEM_PAGE}
 Older and developer commands:
   abalone sandbox [folder] [Pi options]   the bubblewrap-sandboxed session using providers.json models
   caps, approvals, canary init, trace, notebook, ask, report, show evidence, verify, setup,
-  gift, gifts, redeem, offers, commission, tasks, coupon-session, node keys|serve|relay`;
+  gift, gifts, redeem, offers, commission, tasks, coupon-session, peer serve|relay`;
 const NEXT = { offered: (c) => `${c.claimWindow} Redeem it with abalone credit redeem ... --accept-offer ${c.offerHash}`, expired: (c) => c.claimWindow,
   claiming: (c) => `A claim may be in progress; finish it with abalone credit recover --credit ${c.creditId}`, reconciliation_required: () => "The issuer's operator must reconcile this claim before it can be used.",
   refused: (c) => `This saved credit was refused (${c.code}); abalone credit status --credit ${c.creditId} shows why.` };
@@ -644,9 +650,10 @@ async function session() {
   for (const a of p.admitted) {
     delete env[a.keyEnv]; // the agent never holds a provider key of its own
     if (couponSlot) continue; // synthetic sessions cannot fall back to another credential/provider
-    // An ACI provider attests at load, and Chutes needs a key to verify anything: with no node key either could serve
-    // nothing, so it is not contacted at all.
-    if ((a.transport === "aci/1" || a.needsKey) && !nodekeys.active(a.id)) continue;
+    // An ACI provider attests at load, and Chutes needs a key to verify anything: with no configured key either could
+    // serve nothing, so it is not contacted at all.
+    const k = keys.active(a.id);
+    if ((a.transport === "aci/1" || a.needsKey) && !k) continue;
     // Behind an ACI aggregator, only models whose every upstream our policy admits (lib/upstream.mjs, issue 0007).
     // A provider whose listing fails, or that has no admitted model, is not loaded: its models are refused.
     if (a.upstreams) {
@@ -657,9 +664,7 @@ async function session() {
       for (const [id, l] of Object.entries(v.admitted)) via[`${a.id}/${id}`] = l;
     }
     loads.push("-e", admit(entries, path.join(ROOT, a.extension), "provider extension"));
-    // devNode: until the gateway exists, the agent reads the active key from the local node keystore.
-    const k = nodekeys.active(a.id);
-    if (k) { env[a.keyEnv] = k.key; env.ABALONE_DEV_NODE = [env.ABALONE_DEV_NODE, `${a.id}:${k.label}:${k.key.slice(-4)}`].filter(Boolean).join(","); }
+    if (k) { keys.used(k.id); env[a.keyEnv] = k.key; env.ABALONE_PROVIDER_KEYS = [env.ABALONE_PROVIDER_KEYS, `${a.id}:${k.label}:${k.key.slice(-4)}`].filter(Boolean).join(","); }
   }
   env.ABALONE_VIA = JSON.stringify(via);
   for (const e of entries) {
@@ -796,9 +801,9 @@ try {
   else if (["help", "--help", "-h"].includes(args[0])) console.log(HELP);
   else if (args[0] === "sandbox") { args.shift(); await session(); }
   else if (args[0] === "caps") await printCaps(args[1] === "--json");
-  else if (args[0] === "node" && args[1] === "keys") await nodeKeys(args.slice(2));
-  else if (args[0] === "node" && args[1] === "serve") await serveNode();
-  else if (args[0] === "node" && args[1] === "relay") await relayNode();
+  else if (args[0] === "key") await keyCmd();
+  else if (args[0] === "peer" && args[1] === "serve") await servePeer();
+  else if (args[0] === "peer" && args[1] === "relay") await relayPeer();
   else if (args[0] === "gift") await giftCmd();
   else if (args[0] === "gifts") await giftsCmd();
   else if (args[0] === "redeem") await redeemCmd();

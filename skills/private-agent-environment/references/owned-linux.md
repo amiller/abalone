@@ -39,7 +39,7 @@ bin/abalone sandbox --incognito "$workspace" --model "$local_model_id" --with-tr
 `trace_id` is obtained from the completed run, not guessed. Do not collect the
 output of `trace open` or `trace key export` into the setup agent's context for
 a private session. Export/import key recovery exists, but export prints a raw
-identity; rehearse only with disposable synthetic keys. `node keys add` validates
+identity; rehearse only with disposable synthetic keys. `abalone key add` validates
 against a remote endpoint and is outside this offline procedure.
 
 ## State to verify

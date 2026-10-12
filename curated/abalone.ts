@@ -496,13 +496,13 @@ export default async function (pi: ExtensionAPI) {
     if (miss) return { block: true, reason: `✗ refused: missing capability ${miss}` };
   });
 
-  // devNode: a provider key failure names the key and stops. No other key is tried.
+  // A configured provider key's failure names the key and stops. No other key is tried.
   pi.on("message_end", async (event, ctx) => {
     const m = event.message as { role: string; stopReason?: string; errorMessage?: string; provider?: string };
-    if (m.role !== "assistant" || m.stopReason !== "error" || !process.env.ABALONE_DEV_NODE) return;
+    if (m.role !== "assistant" || m.stopReason !== "error" || !process.env.ABALONE_PROVIDER_KEYS) return;
     if (/✗ refused/.test(m.errorMessage ?? "") || !/\b(401|402)\b|invalid api key|insufficient|quota|credit/i.test(m.errorMessage ?? "")) return;
-    const key = process.env.ABALONE_DEV_NODE.split(",").find((k) => k.startsWith(`${m.provider}:`)) ?? process.env.ABALONE_DEV_NODE;
-    const msg = `✗ node ⌂ dev key ${key} failed: ${m.errorMessage}. No other key is tried; switch with: abalone node keys use <provider> <label>`;
+    const key = process.env.ABALONE_PROVIDER_KEYS.split(",").find((k) => k.startsWith(`${m.provider}:`)) ?? process.env.ABALONE_PROVIDER_KEYS;
+    const msg = `✗ configured key ${key} failed: ${m.errorMessage}. No other key is tried; replace it with: abalone key add <provider>`;
     if (ctx.hasUI) ctx.ui.notify(msg, "error");
     else console.error(msg);
   });

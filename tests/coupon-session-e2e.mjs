@@ -151,7 +151,7 @@ raise SystemExit(peer_worker.main(sys.argv[3:]))
   assert.equal(creates, 1); assert.equal(prompts.length, 1); assert.ok(environment.length > 0);
   for (const content of [...environment, ...argv, ...logs, session.stderr, JSON.stringify(session.events)]) assert.ok(!content.includes(credential) && !content.includes(gift.coupon), "no raw credential or coupon in exercised child/log/transcript channels");
   assert.ok(frames.every((f) => !f.includes(prompt) && !f.includes(credential))); // coupon itself intentionally crosses claim wire
-  assert.equal(fs.existsSync(path.join(recipient, "node/keys.json")), false);
+  assert.equal(fs.existsSync(path.join(recipient, "credit")), false);
   assert.deepEqual(fs.readdirSync(runtime), []);
   for (const folder of [recipient, work]) for (const file of fs.readdirSync(folder, { recursive: true })) {
     const full = path.join(folder, file); if (!fs.statSync(full).isFile()) continue;

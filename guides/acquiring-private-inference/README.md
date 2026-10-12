@@ -6,16 +6,15 @@ A session needs model access that a verified provider accepts. How you pay for
 that access decides what the payment links to you. Each route below says what
 you need, what an observer can connect, and whether it works with Abalone today.
 
-Abalone currently uses access delivered by a coupon. Importing a key bought
-directly from a provider is not supported in this release
-([getting started](../../docs/getting-started.md#access-paths)), so routes that
-end in a provider key are listed for when it is (issue
-[#21](https://github.com/amiller/abalone/issues/21)).
+The `abalone` session uses access delivered by a coupon. A key bought
+directly from a provider can be saved, but only the developer session
+`abalone sandbox` uses it so far (see [Configure your own key](#configure-your-own-key)
+and issue [#21](https://github.com/amiller/abalone/issues/21)).
 
 | Route | Works with Abalone today | What is linked |
 | --- | --- | --- |
 | [Abalone coupon](#abalone-coupon) | Yes, preview releases; synthetic material only | The sponsor knows who they gave the code to; the issuer sees the code at redemption; your IP address |
-| Provider key bought directly (card or crypto top-up) | No. Needs provider-key import | The provider account, and the card or paying wallet's history |
+| [Provider key bought directly](#configure-your-own-key) (card or crypto top-up) | `abalone sandbox` only | The provider account, and the card or paying wallet's history |
 | Zcash payment for a coupon | No. Not released | Not yet described; needs current verification before it is published |
 
 Routes that do not qualify: services that pay for inference privately but then
@@ -57,3 +56,29 @@ so use synthetic, non-sensitive material. Each release has a claim deadline;
 check it in [Redeem a coupon](../../docs/abalone-coupon-redeem.md). On Tails, the
 NEAR route currently fails: NVIDIA's attestation service refuses Tor exits
 (issue [#15](https://github.com/amiller/abalone/issues/15)).
+
+## Configure your own key
+
+Buy access from a provider listed in [providers.json](../../providers.json)
+(`admitted`), then save its API key:
+
+```sh
+abalone key add nearai                  # paste the key at the hidden prompt
+abalone key add chutes --label work --input-file /abs/chutes-key.txt   # or a 0600 file
+abalone key list                        # provider, label, added, last used; never the key
+abalone key forget chutes --label work
+```
+
+The key is never a command argument. Abalone checks it with one authenticated
+call that carries no prompt, then saves it as a 0600 file in its credit store.
+`abalone sandbox --model <provider>/<model>` gives the session that provider's
+most recently added key and verifies the provider's attestation before any
+prompt is sent, as for any admitted provider. The plain `abalone` session does not use
+configured keys yet.
+
+**What is linked:** the provider account and how you paid for it; the provider
+sees every request's size and timing and your IP address unless you use Tor.
+
+**Limits:** there is no local spending cap; the provider's limit applies. Abalone
+does not verify the provider's attestation when you add the key, only in the
+session.

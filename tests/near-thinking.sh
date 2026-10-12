@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Live on NEAR (node key in ~/.abalone, a few hundredths of a cent): with no --model the session opens on providers.json
+# Live on NEAR (configured key in ~/.abalone, a few hundredths of a cent): with no --model the session opens on providers.json
 # "default" (nearai/z-ai/glm-5.3-flash), and with reasoning off by default GLM answers without a thinking block
 # (near-provider sends chat_template_kwargs.enable_thinking=false; GLM still writes a short thought ending in </think>
 # into the content, which near-provider passes on as reasoning).

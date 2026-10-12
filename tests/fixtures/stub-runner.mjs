@@ -7,7 +7,7 @@
 //   runner.local/task/{start,status,stop,collect} and CONNECT task-<id>.runner.local:1
 //                             → the task API of docs/protocols/runner-task.md, with bin/task-guest.mjs run as a
 //                               plain local process (no VM, no isolation, no receipts: guest/ holds only app-compose.json)
-//   anything else             → forwarded to https://<Host><path>; the NEAR key from the node keystore is injected
+//   anything else             → forwarded to https://<Host><path>; the configured NEAR key in $HOME/.abalone is injected
 //                               (chat requests reserve max_tokens from a per-boot budget of STUB_BUDGET tokens, default
 //                               200000, and are refused 402 "exceeds remaining per-boot budget" past it, as the runner),
 //                               unless <dir>/refuse names that path: then 502 text/plain "runner refused: …", as the real runner
@@ -20,9 +20,9 @@ import net from "node:net";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { tarPack, tarUnpack } from "../../lib/task.mjs";
+import { active } from "../../lib/keys.mjs";
 const [sock, dir] = process.argv.slice(2);
-const store = JSON.parse(fs.readFileSync(path.join(process.env.HOME, ".abalone/node/keys.json"), "utf8"));
-const KEY = store.keys.find((k) => k.provider === "nearai" && k.label === store.active.nearai).key;
+const KEY = active("nearai", path.join(process.env.HOME, ".abalone/credit")).key;
 const masterFile = path.join(dir, "master");
 if (!fs.existsSync(masterFile)) fs.writeFileSync(masterFile, crypto.randomBytes(32), { mode: 0o600 });
 const master = fs.readFileSync(masterFile);

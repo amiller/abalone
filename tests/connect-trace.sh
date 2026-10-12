@@ -4,7 +4,7 @@
 # admitted hosts (inside the sandbox there is no resolver). 127.0.0.1 is the egress to a ⌂ local model port.
 set -uo pipefail
 . "$(dirname "$0")/lib/env.sh"
-devkey redpill t dummy; devkey phala t dummy
+printf dummy | devkey redpill t; printf dummy | devkey phala t
 out="$(mktemp -d)"
 if [[ "${1:-}" == --tui ]]; then
   # Interactive session on a pty for 30s, then SIGINT: covers TUI-only startup network paths.

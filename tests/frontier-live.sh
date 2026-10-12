@@ -2,7 +2,7 @@
 # J1 live, in the interactive session: the synthetic tenancy letter mentioned with runner/claude selected. The mediator
 # (policy.json, NEAR glm-5.3-flash, RELAXED config copy as tests/private-work-near.sh --relaxed) reads it first and drafts
 # a pour; "send once" sends it through real `claude -p` in the bwrap runner on runner-home/claude. The private-only baseline for the same
-# question is the `abalone ask` run in local-data/evidence/j1-disclose-live.txt. Uses the real ABALONE_DIR (node key). Spend: a few NEAR turns, one Claude turn.
+# question is the `abalone ask` run in local-data/evidence/j1-disclose-live.txt. Uses the real ABALONE_DIR (configured key). Spend: a few NEAR turns, one Claude turn.
 set -uo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 state="${ABALONE_DIR:-$HOME/.abalone}"

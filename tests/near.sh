@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NEAR AI, live, admitted per model. Needs a key in the node keystore (abalone node keys add nearai <label>)
+# NEAR AI, live, admitted per model. Needs a configured key (abalone key add nearai)
 # and uses the real ~/.abalone. Spend: one short turn on a small TEE model.
 #   1. models NEAR proxies to outside vendors (anthropic/*, openai/*) are refused for private agents;
 #   2. with the default policy (gateway TCB must be UpToDate) a TEE model is refused while NEAR's gateway is OutOfDate;

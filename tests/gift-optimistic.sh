@@ -19,7 +19,7 @@ ABALONE_CONFIG="$W/config" node "$root/tools/rehash-manifest.mjs" > /dev/null
 export ABALONE_CONFIG="$W/config"
 RPC=http://127.0.0.1:$((20000 + RANDOM % 20000)) OWN=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 anvil --port "${RPC##*:}" --block-time 1 --slots-in-an-epoch 30 > "$W/anvil.log" 2>&1 & anvil=$!
-"$root/bin/abalone" node relay --listen /ip4/127.0.0.1/tcp/0 > "$W/relay.log" 2>&1 & relay=$!
+"$root/bin/abalone" peer relay --listen /ip4/127.0.0.1/tcp/0 > "$W/relay.log" 2>&1 & relay=$!
 trap 'kill $anvil $relay $(cat "$W"/*.pid 2>/dev/null) 2>/dev/null; rm -rf "$W"' EXIT
 waitfor "$W/relay.log" "/tcp/"; R=$(grep -o "/ip4/127.0.0.1/tcp/[0-9]*/p2p/[A-Za-z0-9]*" "$W/relay.log" | head -1)
 sleep 2
@@ -35,7 +35,7 @@ newpeer() {
 }
 ISS=$(ABALONE_DIR="$W/i" "$root/bin/abalone" gift --issuer-pub)
 A=$(newpeer "$W/a"); B=$(newpeer "$W/b")
-"$root/bin/abalone" node serve --listen /ip4/127.0.0.1/tcp/0 --relay "$R" --evidence dev --reserve 6usd --ledger "$W/a" --issuer "$ISS" --chain "$RPC" --registry "$REG" > "$W/a.log" 2>&1 & echo $! > "$W/a.pid"
+"$root/bin/abalone" peer serve --listen /ip4/127.0.0.1/tcp/0 --relay "$R" --evidence dev --reserve 6usd --ledger "$W/a" --issuer "$ISS" --chain "$RPC" --registry "$REG" > "$W/a.log" 2>&1 & echo $! > "$W/a.pid"
 waitfor "$W/a.log" "p2p-circuit" || { cat "$W/a.log"; exit 1; }
 P=$(grep -o "/ip4/127.0.0.1/tcp/[0-9]*/p2p/[A-Za-z0-9]*/p2p-circuit/p2p/[A-Za-z0-9]*" "$W/a.log" | head -1)
 ABALONE_DIR="$W/i" "$root/bin/abalone" gift --setup 6usd > /dev/null

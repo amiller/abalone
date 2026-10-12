@@ -94,7 +94,7 @@ export async function nearProvider(pi: ExtensionAPI, id: string, gift: Gift | nu
   let ui: any = null;
   pi.on("session_start", async (_e: any, ctx: any) => { ui = ctx.ui; });
   const cfg = providers().admitted.find((a: any) => a.id === "nearai");
-  const key = () => { const k = process.env[cfg.keyEnv]; if (!k) throw new Error(`no ${cfg.keyEnv}: add one with  abalone node keys add nearai <label>`); return k; };
+  const key = () => { const k = process.env[cfg.keyEnv]; if (!k) throw new Error(`no ${cfg.keyEnv}: add one with  abalone key add nearai`); return k; };
   const getReport = (p: string) => gift ? fetch(gift.url + p, { headers: deviceHeaders(gift.coupon, "GET", p, "", "") }) : withKey(cfg.baseUrl, key())(p);
   // A retried request (same plaintext body in this process) reuses its idempotency key and response key,
   // so the node answers it from its stored copy and never debits twice.
@@ -167,7 +167,7 @@ export async function nearProvider(pi: ExtensionAPI, id: string, gift: Gift | nu
   const streams = openAICompletionsApi();
   return {
     id, name: gift ? `NEAR AI through the gift peer ${gift.peer}` : "NEAR AI (per-model attestation)", baseUrl: cfg.baseUrl,
-    // The key comes only from the node (devNode env), never from an agent-side /login.
+    // The key comes only from the launcher (a configured key, abalone key add), never from an agent-side /login.
     // With a gift there is no key on this machine; the device signature authenticates each request.
     auth: { apiKey: gift ? { name: "abalone gift", resolve: async () => ({ auth: { apiKey: "gift" }, source: `gift peer ${gift.peer}` }) }
       : { ...envApiKeyAuth("NEAR AI API key", [cfg.keyEnv]), login: undefined } } as any,

@@ -35,9 +35,10 @@ merely because the user asked what Abalone does.
 
 - **Saved Abalone access:** use `abalone credit status`, select the relevant saved
   credit, and open a fresh session. Do not redeem another coupon.
-- **Existing provider credential:** importing a separate provider key is not
-  implemented. Say so plainly; do not invent an import command, treat it as a
-  NEAR key or send it to a different provider.
+- **Existing provider credential:** `abalone key add <provider>` saves it (the
+  user pastes it at the hidden prompt; never take it into your context), and
+  only `abalone sandbox` uses it, not the `abalone` session. Do not treat it as
+  a NEAR key or send it to a different provider.
 - **Coupon or gift link:** inspect the offer and redeem when instructed, using
   the commands below. Save delivered access independently of conversation state.
 - **No access yet:** explain the currently available coupon and provider-account

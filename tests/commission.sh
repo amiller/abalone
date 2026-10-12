@@ -27,7 +27,7 @@ until_state() { for _ in $(seq ${3:-300}); do state "$1" | grep -q "$2" && retur
 trap 'kill ${relay:-} ${peer:-} ${stub:-} 2>/dev/null; [[ -n ${KEEP:-} ]] && mkdir -p "$KEEP" && cp -r "$W/r" "$W"/*.log "$KEEP/"; rm -rf "$W"' EXIT
 
 if [[ -z ${TASK_PEER:-} ]]; then
-  "$root/bin/abalone" node relay --listen /ip4/127.0.0.1/tcp/0 > "$W/relay.log" 2>&1 & relay=$!
+  "$root/bin/abalone" peer relay --listen /ip4/127.0.0.1/tcp/0 > "$W/relay.log" 2>&1 & relay=$!
   waitfor "$W/relay.log" "/tcp/" || { cat "$W/relay.log"; exit 1; }
   R=$(grep -o "/ip4/127.0.0.1/tcp/[0-9]*/p2p/[A-Za-z0-9]*" "$W/relay.log" | head -1)
   ISS=$(ABALONE_DIR="$W/i" "$root/bin/abalone" gift --issuer-pub)
@@ -36,9 +36,9 @@ if [[ -z ${TASK_PEER:-} ]]; then
     node "$root/tests/fixtures/stub-runner.mjs" "$W/runner/egress.sock" "$W/runner" > "$W/runner/log" 2>&1 & stub=$!
     waitfor "$W/runner/log" "stub runner on" || { cat "$W/runner/log"; exit 1; }
     cp "$W/runner/compose" "$W/l/.abalone-persistent"
-    ABALONE_DIR="$W/peerhome" ABALONE_RUNNER_SOCK="$W/runner/egress.sock" unshare -rn sh -c 'ip link set lo up && exec "$0" "$@"' "$root/bin/abalone" node serve --relay "$R" --evidence macrunner --reserve 2usd --ledger "$W/l" --issuer "$ISS" --tasks independent --task-rate 200 --task-image "$STUB_IMAGE" > "$W/peer.log" 2>&1 & peer=$!
+    ABALONE_DIR="$W/peerhome" ABALONE_RUNNER_SOCK="$W/runner/egress.sock" unshare -rn sh -c 'ip link set lo up && exec "$0" "$@"' "$root/bin/abalone" peer serve --relay "$R" --evidence macrunner --reserve 2usd --ledger "$W/l" --issuer "$ISS" --tasks independent --task-rate 200 --task-image "$STUB_IMAGE" > "$W/peer.log" 2>&1 & peer=$!
   else
-    "$root/bin/abalone" node serve --listen /ip4/127.0.0.1/tcp/0 --relay "$R" --evidence dev --reserve 2usd --ledger "$W/l" --issuer "$ISS" --tasks independent --task-rate 200 > "$W/peer.log" 2>&1 & peer=$!
+    "$root/bin/abalone" peer serve --listen /ip4/127.0.0.1/tcp/0 --relay "$R" --evidence dev --reserve 2usd --ledger "$W/l" --issuer "$ISS" --tasks independent --task-rate 200 > "$W/peer.log" 2>&1 & peer=$!
   fi
   waitfor "$W/peer.log" "p2p-circuit" || { cat "$W/peer.log"; exit 1; }
   TASK_PEER=$(grep -o "/ip4/127.0.0.1/tcp/[0-9]*/p2p/[A-Za-z0-9]*/p2p-circuit/p2p/[A-Za-z0-9]*" "$W/peer.log" | tail -1)

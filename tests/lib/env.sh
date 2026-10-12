@@ -1,12 +1,9 @@
-# Shared test setup: a fresh ABALONE_DIR (sessions run without folder canaries unless a test plants them), and devNode keys written straight into the node keystore
-# (bypassing `abalone node keys add` validation, which tests/keys.sh covers).
+# Shared test setup: a fresh ABALONE_DIR (sessions run without folder canaries unless a test plants them), and configured
+# provider keys written straight into its credit store (bypassing `abalone key add` validation, which tests/keys.sh covers).
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 export ABALONE_DIR="$(mktemp -d)" ABALONE_NO_CANARIES=1
-devkey() { # provider label key...
-  node -e 'const fs=require("fs"),f=process.argv[1];fs.mkdirSync(require("path").dirname(f),{recursive:true});
-    const s=fs.existsSync(f)?JSON.parse(fs.readFileSync(f)):{active:{},keys:[]};
-    s.keys.push({kind:"api-key",provider:process.argv[2],label:process.argv[3],key:process.argv[4],added:new Date().toISOString()});
-    s.active[process.argv[2]]??=process.argv[3]; fs.writeFileSync(f,JSON.stringify(s),{mode:0o600})' "$ABALONE_DIR/node/keys.json" "$@"
+devkey() { # provider label; the key on stdin, so it is never in any argv
+  node -e 'import(process.argv[1]).then((k) => k.save(process.argv[2], process.argv[3], require("fs").readFileSync(0, "utf8").trim()))' "$root/lib/keys.mjs" "$1" "$2"
 }
 standing() { # answerer policies-json: the standing policies a human would make with abalone approvals --standing
   node -e 'const f=process.argv[1],fs=require("fs");fs.mkdirSync(require("path").dirname(f),{recursive:true,mode:0o700});const s=fs.existsSync(f)?JSON.parse(fs.readFileSync(f)):{};s[process.argv[2]]=JSON.parse(process.argv[3]);fs.writeFileSync(f,JSON.stringify(s),{mode:0o600})' "$ABALONE_DIR/approvals/standing.json" "$1" "$2"

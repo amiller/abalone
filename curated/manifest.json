@@ -9,7 +9,7 @@
   {
    "kind": "extension",
    "path": "curated/abalone.ts",
-   "sha256": "d50f63bf0acbcf4ea28ae7e563ab388d4fcb042975a32af3fde492206c489822"
+   "sha256": "2b5fb99918a65f233b17462b21e1728afd4b6a767afe0ac992944ce3d1fbe6b2"
   },
   {
    "kind": "extension",
@@ -29,7 +29,7 @@
   {
    "kind": "tree",
    "path": "lib",
-   "sha256": "1275fcf3c342e555a676931dfb5b5a40d7af3e0e31f9f88777cf21b6677c606b"
+   "sha256": "ccbb946960b8b682e78502b16935da0051899ed841ae8191ba831fe52988862e"
   },
   {
    "kind": "skill",
@@ -74,12 +74,12 @@
   {
    "kind": "provider",
    "path": "curated/near-provider.ts",
-   "sha256": "5ddbaf8f1d33a98c13a0404ce064d61a85c94e0eecd448e285ed5d455a3cd570"
+   "sha256": "b99ce1cc9319015274281ae9d73090609748813196a14f907cb3d916ecc6edc5"
   },
   {
    "kind": "provider",
    "path": "curated/chutes-provider.ts",
-   "sha256": "b897b1868a109f4da60234ce1843c06d26e328538fcd5c33ad99a7623e58b9c4"
+   "sha256": "b0ed2a97f9556a4b989bb531a3b60e095720e47ce19bb7e59e73ef72eef1c1a0"
   },
   {
    "kind": "tree",

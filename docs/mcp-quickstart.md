@@ -20,7 +20,7 @@ $REPO/bin/abalone canary init ~/private/folder     # plants ref-<id>.txt, record
 Keep the planted file. abalone refuses to start in a folder whose canary file is missing or changed, and in a folder with no canaries unless you pass `--no-canaries` (then the strip and the tool description say so).
 
 Choose the private model, which reads the folder:
-- ◈ attested: `--model nearai/z-ai/glm-5.3-flash`, after `$REPO/bin/abalone node keys add nearai default` (paste a NEAR AI key). Attestation is verified before the first prompt byte; a failure refuses, with no fallback route.
+- ◈ attested: `--model nearai/z-ai/glm-5.3-flash`, after `$REPO/bin/abalone key add nearai` (paste a NEAR AI key). Attestation is verified before the first prompt byte; a failure refuses, with no fallback route.
 - ⌂ local: `--model ollama/<model>` with ollama on 127.0.0.1:11434, or `llama.cpp/<model>` on 127.0.0.1:8080.
 
 ## 2. The MCP config

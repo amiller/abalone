@@ -4,7 +4,7 @@
 # hijack outside the sandbox. Needs no API key (a dummy one is used).
 set -uo pipefail
 . "$(dirname "$0")/lib/env.sh"
-devkey redpill t dummy
+printf dummy | devkey redpill t
 tmp="$ABALONE_DIR/neg"; mkdir -p "$tmp"   # inside ABALONE_DIR, so the sandbox can read the CA
 host=tee.redpill.ai
 # Every other admitted host goes through a pass-through logging MITM too (a witness), so any prompt byte sent on any
@@ -81,7 +81,7 @@ run keyset  'id-2: [^;]*'                              keyset
 run compose 'id-4: [^;]*'                              compose
 run release 'id-4: [^;]*not accepted[^;]*|id-4: [^;]*' none REDPILL_ACCEPTED_COMPOSE_HASHES=$(printf '0%.0s' {1..64})
 # Gateway failure scope: a provider that fails the gate is refused; the other admitted providers keep working.
-devkey phala t dummy
+printf dummy | devkey phala t
 log="$tmp/scope.mitm.jsonl"; : > "$log"
 node "$root/tests/mitm/server.mjs" "$tmp/leaf.pem" "$tmp/leaf.key" "$log" "$host" spki > "$tmp/scope.port" & pid=$!
 until [[ -s $tmp/scope.port ]]; do sleep 0.1; done

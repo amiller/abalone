@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # M2 end-to-end, live: the user's Claude Code (haiku, an open orchestrator) asks abalone-mcp about the
 # private demo corpus; a private agent on an attested model reads it and answers under a catalog policy;
-# the canary check runs over Claude Code's whole stream-json transcript. Uses the real ~/.abalone (node keys).
+# the canary check runs over Claude Code's whole stream-json transcript. Uses the real ~/.abalone (configured keys).
 # Usage: tests/demo-live.sh <provider/model> [gatewayTcb=reported]
 set -uo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"

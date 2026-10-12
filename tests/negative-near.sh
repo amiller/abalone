@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# G8 for NEAR, on both routes: direct (node key on this machine) and gift (the route gifts use: the client reaches a real
+# G8 for NEAR, on both routes: direct (configured key on this machine) and gift (the route gifts use: the client reaches a real
 # gift peer over libp2p through a relay, fetches the report through it and sends E2EE chat to it; the peer pins NEAR's
 # SPKI on its own upstream). The peer runs here with --evidence dev, admitted by a config copy (peers.admit.dev).
 # Each tampered verification step must be refused with an error naming the failed check, with zero chat POSTs reaching
@@ -9,13 +9,12 @@
 # alike: it relays the live report and NRAS verdict and changes one thing, set per case through a mode file. The client's
 # egress redirect, and an egress socket dir with egress-preload for the peer, stand in for a route hijack. Every other
 # admitted host gets a pass-through logging witness, and the ⌂ local ports get logging witnesses.
-# Needs the real nearai node key (the report endpoint needs auth and a fresh nonce, so it cannot be recorded).
+# Needs the real configured nearai key (abalone key add nearai) (the report endpoint needs auth and a fresh nonce, so it cannot be recorded).
 # No chat request reaches NEAR, so nothing is spent.
 set -uo pipefail
 . "$(dirname "$0")/lib/env.sh"
-key=$(node -e 'const s=require(process.argv[1]);const k=s.keys.find(k=>k.provider==="nearai"&&k.label===s.active.nearai);if(!k)process.exit(1);console.log(k.key)' "$HOME/.abalone/node/keys.json") \
-  || { echo "no active nearai key in ~/.abalone/node/keys.json: cannot run"; exit 1; }
-devkey nearai neg "$key"
+ABALONE_DIR="$HOME/.abalone" node -e 'import(process.argv[1]).then((k) => process.stdout.write(k.active("nearai").key))' "$root/lib/keys.mjs" | devkey nearai neg \
+  || { echo "no configured nearai key in ~/.abalone (abalone key add nearai): cannot run"; exit 1; }
 tmp="$ABALONE_DIR/neg"; mkdir -p "$tmp"
 near=cloud-api.near.ai nras=nras.attestation.nvidia.com model=z-ai/glm-5.3-flash
 others=$(node -e 'console.log(require(process.argv[1]).admitted.flatMap(a=>a.hosts).filter(h=>!process.argv.slice(2).includes(h)).join(" "))' "$root/providers.json" $near $nras)
@@ -28,7 +27,7 @@ mkdir -p "$ABALONE_CONFIG/curated"; cp "$root/providers.json" "$root/policy.json
 node -e 'const f=process.argv[1],p=require(f);p.peers.admit.dev=true;require("fs").writeFileSync(f,JSON.stringify(p,null,1))' "$ABALONE_CONFIG/providers.json"
 node "$root/tools/rehash-manifest.mjs" > /dev/null   # the tree under test
 fail=0
-trap 'kill $(jobs -p) $(cat "$tmp"/*.pid 2>/dev/null) 2>/dev/null' EXIT
+trap 'kill $(jobs -p) $(cat "$tmp"/*.pid 2>/dev/null) 2>/dev/null; rm -rf "$ABALONE_DIR/credit"' EXIT
 canary="CANARY-$(openssl rand -hex 8)"
 verifier=$(node -e 'console.log(require(process.argv[1]).verifierHosts.join(" "))' "$root/providers.json")
 locals=$(node -e 'console.log(require(process.argv[1]).local.map(l=>new URL(l.baseUrl).port).join(" "))' "$root/providers.json")
@@ -56,12 +55,12 @@ mkdir -p "$tmp/pe" "$tmp/pes" "$tmp/i" "$tmp/ledger" "$tmp/r"
 ABALONE_DIR="$tmp/pes" ABALONE_EGRESS_REDIRECT="$near=127.0.0.1:$nearport,$nras=127.0.0.1:$nrasport" \
   serve "$tmp/pe.log" node --input-type=module -e 'const { startEgress } = await import(process.argv[1]); await startEgress(process.argv[2], process.argv.slice(3), [], [], "peer"); console.log("up")' "$root/lib/egress.mjs" "$tmp/pe" $near $nras > /dev/null || exit 1
 waitfor() { for _ in $(seq 120); do grep -q "$2" "$1" && return 0; grep -q "rror\|refused" "$1" && return 1; sleep 1; done; return 1; }
-"$root/bin/abalone" node relay --listen /ip4/127.0.0.1/tcp/0 > "$tmp/relay.log" 2>&1 &
+"$root/bin/abalone" peer relay --listen /ip4/127.0.0.1/tcp/0 > "$tmp/relay.log" 2>&1 &
 waitfor "$tmp/relay.log" /tcp/ || { echo "relay did not start:"; cat "$tmp/relay.log"; exit 1; }
 relay=$(grep -o '/ip4/127.0.0.1/tcp/[0-9]*/p2p/[A-Za-z0-9]*' "$tmp/relay.log" | head -1)
 iss=$(ABALONE_DIR="$tmp/i" "$root/bin/abalone" gift --issuer-pub)
 NODE_OPTIONS="--import $root/curated/egress-preload.mjs" ABALONE_EGRESS="$tmp/pe" \
-  "$root/bin/abalone" node serve --listen /ip4/127.0.0.1/tcp/0 --relay "$relay" --evidence dev --reserve 1usd --ledger "$tmp/ledger" --issuer "$iss" > "$tmp/peer.log" 2>&1 &
+  "$root/bin/abalone" peer serve --listen /ip4/127.0.0.1/tcp/0 --relay "$relay" --evidence dev --reserve 1usd --ledger "$tmp/ledger" --issuer "$iss" > "$tmp/peer.log" 2>&1 &
 waitfor "$tmp/peer.log" p2p-circuit || { echo "gift peer did not start:"; cat "$tmp/peer.log"; exit 1; }
 peer=$(grep -o '/ip4/127.0.0.1/tcp/[0-9]*/p2p/[A-Za-z0-9]*/p2p-circuit/p2p/[A-Za-z0-9]*' "$tmp/peer.log" | head -1)
 echo "peer: $(head -1 "$tmp/peer.log")"

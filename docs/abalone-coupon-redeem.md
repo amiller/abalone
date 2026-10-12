@@ -89,7 +89,8 @@ abalone credit status
 ```
 
 If a saved credit exists, open a session with it below; do not redeem another
-coupon. Importing an existing provider key is not implemented.
+coupon. A provider key saved with `abalone key add` is used only by
+`abalone sandbox`, not by this session.
 
 Otherwise put the gift link or code in a 0600 file in a private directory, or
 pass it on standard input with `--stdin`. Never put it in a command argument,

@@ -39,10 +39,11 @@ command.
 - **Coupon:** someone gives you a gift link, and an issuer on the
   [Dsmack](https://github.com/amiller/dsmack) network turns it into model access.
   [Redeem a coupon](docs/abalone-coupon-redeem.md) has the procedure.
-- **Your own provider key:** not supported in the release
-  ([#21](https://github.com/amiller/abalone/issues/21)). From a source checkout,
-  `abalone node keys add <provider>` stores a key for a provider in
-  [providers.json](providers.json) and `abalone sandbox` uses it.
+- **Your own provider key:** `abalone key add <provider>` saves a key for a
+  provider in [providers.json](providers.json), read from hidden standard input
+  or a 0600 file. `abalone sandbox` uses it; plain `abalone` does not yet
+  ([#21](https://github.com/amiller/abalone/issues/21)). There is no local
+  spending cap; the provider's limit applies.
 - **Zcash:** todo. See [acquiring private inference](guides/acquiring-private-inference/README.md).
 
 ## What incognito means here

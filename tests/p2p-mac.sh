@@ -12,13 +12,13 @@ W="$(mktemp -d /tmp/abm.XXXX)"
 fail=0
 check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fail=1; fi; }
 remote() { timeout 300 ssh "$MINI" "cd $REMOTE && $*"; }
-"$root/bin/abalone" node relay --listen "/ip4/$LAPTOP/tcp/0" > "$W/relay.log" 2>&1 & relay=$!
+"$root/bin/abalone" peer relay --listen "/ip4/$LAPTOP/tcp/0" > "$W/relay.log" 2>&1 & relay=$!
 trap 'kill $relay 2>/dev/null; remote "kill \$(cat stub-peer.pid) 2>/dev/null" > /dev/null; rm -rf "$W"' EXIT
 for _ in $(seq 30); do grep -q "/tcp/" "$W/relay.log" && break; sleep 1; done
 R=$(grep -o "/ip4/$LAPTOP/tcp/[0-9]*/p2p/[A-Za-z0-9]*" "$W/relay.log" | head -1)
 [[ -n $R ]] || { cat "$W/relay.log"; echo "FAIL relay did not start"; exit 1; }
 timeout 300 rsync -a --delete -R bin lib node_modules package.json aci/package.json aci/node_modules aci/verifier-ts/dist aci/verifier-ts/package.json anchors providers.json policy.json curated skills tools "$MINI:projects/abalone-edge/" || { echo "FAIL cannot reach $MINI"; exit 1; }
-check "the Mac holds no abalone node keystore" '! remote "test -e ~/.abalone/node/keys.json"'
+check "the Mac holds no abalone key store" '! remote "test -e ~/.abalone/credit"'
 peer() { # $1 = honest|modified; prints the peer's relayed address
   remote "kill \$(cat stub-peer.pid 2>/dev/null) 2>/dev/null; (nohup /opt/homebrew/bin/node -e '
     import(\"./lib/p2p.mjs\").then(async (m) => {

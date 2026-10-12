@@ -93,7 +93,7 @@ ${doc.limitations.map((l) => `- ${clean(l)}`).join("\n")}
 
 \`abalone setup --separate-user <folder> --model <id>\` prints one-time root commands; abalone never runs them. After them:
 
-- A system user \`abalone\` owns the folder (\`chmod go-rwx\`), its state (\`/var/lib/abalone/.abalone\`: approvals, private-out, sessions, canary records, node keys) and the running abalone-mcp (a systemd unit, \`User=abalone\`). The code is a root-owned copy in \`/opt/abalone\`.
+- A system user \`abalone\` owns the folder (\`chmod go-rwx\`), its state (\`/var/lib/abalone/.abalone\`: approvals, private-out, sessions, canary records, configured provider keys) and the running abalone-mcp (a systemd unit, \`User=abalone\`). The code is a root-owned copy in \`/opt/abalone\`.
 - The caller reaches abalone only through \`/run/abalone/mcp.sock\`, with \`bin/abalone-connect\` as its MCP command. Modes are set explicitly: the unit has \`UMask=0077\`, \`/run/abalone\` is 0750 abalone:abalone-callers (callers can traverse it and see the names of the run dirs inside), the socket is chmod 0660 after listen (owner abalone, group abalone-callers, the service's group), each session's run dir with its egress and control sockets is 0700 (mkdtemp), and \`ExecStartPre\` creates the state and approvals directories 0700 abalone:abalone. Approvals are files in that 0700 directory; there is no approvals socket. The printed commands end with \`stat\` lines that show the expected modes.
 - The human approves with \`sudo -u abalone … abalone approvals\`. sudo asks for the password and keeps its ticket per terminal, so the caller's shell, which has no terminal, cannot reuse it. Never add a NOPASSWD rule for this.
 

@@ -43,8 +43,10 @@ this runtime.
 - **Saved Abalone access:** reuse it as in [Open a session](abalone-coupon-redeem.md#open-a-session);
   do not redeem another coupon.
 - **Coupon:** inspect, redeem and save it as in [Redeem a coupon](abalone-coupon-redeem.md).
-- **Existing provider key:** importing a separate provider key is not supported
-  in this release. Only NEAR access obtained through Abalone is supported.
+- **Existing provider key:** `abalone key add <provider>` saves one, but only the
+  developer session `abalone sandbox` uses it. The `abalone` session uses NEAR
+  access obtained through Abalone
+  ([#21](https://github.com/amiller/abalone/issues/21)).
 
 ## Open, work and close
 

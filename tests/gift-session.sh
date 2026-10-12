@@ -37,11 +37,11 @@ if [[ -n $REMOTE ]]; then
   trap 'rm -rf "$W"' EXIT
   AMOUNT=0.1usd hop="Mac peer"
 else
-  "$root/bin/abalone" node relay --listen /ip4/127.0.0.1/tcp/0 > "$W/relay.log" 2>&1 & relay=$!
+  "$root/bin/abalone" peer relay --listen /ip4/127.0.0.1/tcp/0 > "$W/relay.log" 2>&1 & relay=$!
   trap 'kill $relay ${peer:-} 2>/dev/null; rm -rf "$W"' EXIT   # the work dir holds coupons and device keys
   waitfor "$W/relay.log" "/tcp/" || { cat "$W/relay.log"; exit 1; }
   R=$(grep -o "/ip4/127.0.0.1/tcp/[0-9]*/p2p/[A-Za-z0-9]*" "$W/relay.log" | head -1)
-  ABALONE_PEER_WIRE_LOG="$W/wire.jsonl" "$root/bin/abalone" node serve --listen /ip4/127.0.0.1/tcp/0 --relay "$R" --evidence dev --reserve 1usd --ledger "$W/l" --issuer "$(iss gift --issuer-pub)" > "$W/peer.log" 2>&1 & peer=$!
+  ABALONE_PEER_WIRE_LOG="$W/wire.jsonl" "$root/bin/abalone" peer serve --listen /ip4/127.0.0.1/tcp/0 --relay "$R" --evidence dev --reserve 1usd --ledger "$W/l" --issuer "$(iss gift --issuer-pub)" > "$W/peer.log" 2>&1 & peer=$!
   waitfor "$W/peer.log" "p2p-circuit" || { cat "$W/peer.log"; exit 1; }
   export ABALONE_PEER=$(grep -o "/ip4/127.0.0.1/tcp/[0-9]*/p2p/[A-Za-z0-9]*/p2p-circuit/p2p/[A-Za-z0-9]*" "$W/peer.log" | head -1)
   AMOUNT=0.25usd hop="unattested dev peer"

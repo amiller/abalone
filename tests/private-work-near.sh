@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # G4 + G5 live on NEAR: one abalone ask over the synthetic PDF on an attested NEAR model, then notebook
-# search and delete. Uses the real ABALONE_DIR (its node key). Spend: one short turn on a small model.
+# search and delete. Uses the real ABALONE_DIR (its configured key). Spend: one short turn on a small model.
 # --relaxed runs on a config copy with providers.json nearai.policy.gatewayTcb = "reported", for use while
 # the repo config still gates on UpToDate. Without it the repo config is used as shipped.
 set -uo pipefail

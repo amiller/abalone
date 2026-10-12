@@ -22,7 +22,7 @@ export default async function (pi: ExtensionAPI) {
   let ui: any = null;
   pi.on("session_start", async (_e: any, ctx: any) => { ui = ctx.ui; });
   const cfg = providers().admitted.find((a: any) => a.id === "chutes");
-  const key = () => { const k = process.env[cfg.keyEnv]; if (!k) throw new Error(`no ${cfg.keyEnv}: add one with  abalone node keys add chutes <label>`); return k; };
+  const key = () => { const k = process.env[cfg.keyEnv]; if (!k) throw new Error(`no ${cfg.keyEnv}: add one with  abalone key add chutes`); return k; };
   const get = async (p: string) => {
     const r = await fetch(API + p, { headers: { authorization: `Bearer ${key()}` } });
     if (!r.ok) throw new Error(`✗ refused: Chutes ${p.split("?")[0]} answered HTTP ${r.status}: ${untrusted(await r.text())}; nothing was sent`);

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Chutes, live, direct, per instance. Needs CHUTES_API_KEY (written only into this run's temporary node keystore).
+# Chutes, live, direct, per instance. Needs CHUTES_API_KEY (written only into this run's temporary credit store).
 # Spend: two short turns on a small TEE model. A logging MITM (tests/mitm/chutes.mjs, own CA) stands in for api.chutes.ai
 # through the egress redirect, so the log holds each request exactly as Chutes' API receives it after TLS.
 #   1. with a tampered evidence nonce, the instance is refused and no /e2e/invoke request is made;
@@ -8,13 +8,13 @@
 set -uo pipefail
 . "$(dirname "$0")/lib/env.sh"
 [[ -n ${CHUTES_API_KEY:-} ]] || { echo "no CHUTES_API_KEY: cannot run"; exit 1; }
-devkey chutes live "$CHUTES_API_KEY"; unset CHUTES_API_KEY
+printf %s "$CHUTES_API_KEY" | devkey chutes live; unset CHUTES_API_KEY
 model=${CHUTES_MODEL:-deepseek-ai/DeepSeek-V3.2-TEE} tmp="$ABALONE_DIR/mitm"; mkdir -p "$tmp"
 openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 1 -subj "/CN=mitm-test-ca" -keyout "$tmp/ca.key" -out "$tmp/ca.pem" 2>/dev/null
 openssl req -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -subj "/CN=api.chutes.ai" -keyout "$tmp/leaf.key" -out "$tmp/leaf.csr" 2>/dev/null
 openssl x509 -req -in "$tmp/leaf.csr" -CA "$tmp/ca.pem" -CAkey "$tmp/ca.key" -CAcreateserial -days 1 -extfile <(echo "subjectAltName=DNS:api.chutes.ai") -out "$tmp/leaf.pem" 2>/dev/null
 echo nonce > "$tmp/mode"; : > "$tmp/log"
-node "$root/tests/mitm/chutes.mjs" "$tmp/leaf.pem" "$tmp/leaf.key" "$tmp/log" "$tmp/mode" > "$tmp/port" & trap 'kill $(jobs -p) 2>/dev/null' EXIT
+node "$root/tests/mitm/chutes.mjs" "$tmp/leaf.pem" "$tmp/leaf.key" "$tmp/log" "$tmp/mode" > "$tmp/port" & trap 'kill $(jobs -p) 2>/dev/null; rm -rf "$ABALONE_DIR/credit"' EXIT
 until [[ -s $tmp/port ]]; do sleep 0.1; done
 export NODE_EXTRA_CA_CERTS="$tmp/ca.pem" ABALONE_EGRESS_REDIRECT="api.chutes.ai=127.0.0.1:$(cat "$tmp/port")"
 fail=0

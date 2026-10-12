@@ -12,7 +12,7 @@
 #   GIFT_MAC=1 tests/gift.sh
 #                          the peer runs on the Mac mini (ssh mini-mesh) with App Attest evidence, listening on its own
 #                          loopback only, reachable solely through a relay this script runs on the laptop's mesh address;
-#                          the client admits only the approved CDHash. Needs a nearai key in the mini's keystore.
+#                          the client admits only the approved CDHash. Needs a nearai key configured on the mini (abalone key add nearai).
 # The issuer, ledger and recipients are fresh temporary dirs; recipients have an empty HOME and no provider key.
 # Exits non-zero if anything fails or cannot run.
 set -uo pipefail
@@ -47,7 +47,7 @@ if [[ -n $REMOTE ]]; then
 else
 rhost=$([[ -n $MAC ]] && echo "$LAPTOP" || echo 127.0.0.1)
 RPORT=$((20000 + RANDOM % 20000))
-startrelay() { "$root/bin/abalone" node relay --listen "/ip4/$rhost/tcp/$RPORT" --seed-file "$W/relay.seed" > "$1" 2>&1 & relay=$!; }
+startrelay() { "$root/bin/abalone" peer relay --listen "/ip4/$rhost/tcp/$RPORT" --seed-file "$W/relay.seed" > "$1" 2>&1 & relay=$!; }
 startrelay "$W/relay.log"
 trap 'kill $relay ${peer:-} ${stub:-} 2>/dev/null; [[ -n $MAC ]] && remote "kill \$(cat peer.pid) 2>/dev/null; rm -rf ledger-test" > /dev/null; rm -rf "$W"' EXIT   # the work dir holds coupons, device keys and sessions
 waitfor "$W/relay.log" "/tcp/" || { cat "$W/relay.log"; echo "FAIL relay did not start"; exit 1; }
@@ -55,7 +55,7 @@ R=$(grep -o "/ip4/$rhost/tcp/[0-9]*/p2p/[A-Za-z0-9]*" "$W/relay.log" | head -1)
 echo "  relay: $R"
 if [[ -n $MAC ]]; then
   timeout 300 rsync -a --delete -R bin lib node_modules package.json aci/package.json aci/node_modules aci/verifier-ts/dist aci/verifier-ts/package.json anchors providers.json policy.json curated skills tools "$MINI:projects/abalone-edge/" || { echo "FAIL cannot reach $MINI"; exit 1; }
-  remote "rm -rf ledger-test; (nohup /opt/homebrew/bin/node bin/abalone.mjs node serve --listen /ip4/127.0.0.1/tcp/0 --relay $R --evidence appattest --probe $PROBE --reserve 6usd --ledger ledger-test --issuer $ISS > peer.log 2>&1 & echo \$! > peer.pid); for i in \$(seq 120); do grep -q 'p2p-circuit\|rror\|refused' peer.log && break; sleep 1; done; cat peer.log" > "$W/peer.log"
+  remote "rm -rf ledger-test; (nohup /opt/homebrew/bin/node bin/abalone.mjs peer serve --listen /ip4/127.0.0.1/tcp/0 --relay $R --evidence appattest --probe $PROBE --reserve 6usd --ledger ledger-test --issuer $ISS > peer.log 2>&1 & echo \$! > peer.pid); for i in \$(seq 120); do grep -q 'p2p-circuit\|rror\|refused' peer.log && break; sleep 1; done; cat peer.log" > "$W/peer.log"
   ledger() { remote "cat ledger-test/ledger.jsonl"; }
 elif [[ -n $RUN ]]; then
   mkdir -p "$W/runner" "$W/peerhome"
@@ -64,7 +64,7 @@ elif [[ -n $RUN ]]; then
   waitfor "$W/runner/log" "stub runner on" || { cat "$W/runner/log"; exit 1; }
   # The peer runs in its own network namespace with only loopback up (unshare -rn), like the runner's NIC-less guest:
   # anything it does not send through the runner socket fails.
-  startpeer() { ABALONE_DIR="$W/peerhome" ABALONE_RUNNER_SOCK="$W/runner/egress.sock" unshare -rn sh -c 'ip link set lo up && exec "$0" "$@"' "$root/bin/abalone" node serve --relay "$R" --evidence macrunner --reserve 6usd --ledger "$W/l" --issuer "$ISS" "${@:2}" > "$1" 2>&1 & peer=$!; }
+  startpeer() { ABALONE_DIR="$W/peerhome" ABALONE_RUNNER_SOCK="$W/runner/egress.sock" unshare -rn sh -c 'ip link set lo up && exec "$0" "$@"' "$root/bin/abalone" peer serve --relay "$R" --evidence macrunner --reserve 6usd --ledger "$W/l" --issuer "$ISS" "${@:2}" > "$1" 2>&1 & peer=$!; }
   startpeer "$W/peer0.log"; wait $peer
   check "runner mode: the first 2 runner connections, closed with zero bytes, were sent again and logged; the next went through" '[[ $(grep -c "closed with no response byte (attempt" "$W/peer0.log") == 2 ]] && grep -q "dropped" "$W/runner/proxy.jsonl"'
   check "runner mode: a ledger without the runner's volume marker is refused: $(tail -1 "$W/peer0.log" | cut -c1-90)" 'grep -q "is not the runner.s persistent volume" "$W/peer0.log"'
@@ -77,7 +77,7 @@ elif [[ -n $RUN ]]; then
   waitfor "$W/peer.log" "p2p-circuit"
   ledger() { cat "$W/l/ledger.jsonl"; }
 else
-  "$root/bin/abalone" node serve --listen /ip4/127.0.0.1/tcp/0 --relay "$R" --evidence dev --reserve 6usd --ledger "$W/l" --issuer "$ISS" > "$W/peer.log" 2>&1 &
+  "$root/bin/abalone" peer serve --listen /ip4/127.0.0.1/tcp/0 --relay "$R" --evidence dev --reserve 6usd --ledger "$W/l" --issuer "$ISS" > "$W/peer.log" 2>&1 &
   peer=$!
   waitfor "$W/peer.log" "p2p-circuit"
   ledger() { cat "$W/l/ledger.jsonl"; }
@@ -87,15 +87,15 @@ export ABALONE_PEER=$(grep -o "/ip4/$rhost/tcp/[0-9]*/p2p/[A-Za-z0-9]*/p2p-circu
 [[ -n $ABALONE_PEER ]] || { echo "FAIL the peer did not come up behind the relay"; exit 1; }
 if [[ -n $RUN ]]; then
   check "runner mode: the peer verified NEAR itself and the runner's report names the same TEE instance" 'grep -q "TLS pin runner (CDHash-measured), runner report .* matches" "$W/peer.log"'
-  check "runner mode: the peer has no keystore and sent no Authorization; all its HTTP went through the runner" '[[ ! -e $W/peerhome/node/keys.json ]] && ! grep -q "\"auth_from_guest\":true" "$W/runner/proxy.jsonl" && grep -q cloud-api.near.ai "$W/runner/proxy.jsonl"'
+  check "runner mode: the peer has no key store and sent no Authorization; all its HTTP went through the runner" '[[ ! -e $W/peerhome/credit ]] && ! grep -q "\"auth_from_guest\":true" "$W/runner/proxy.jsonl" && grep -q cloud-api.near.ai "$W/runner/proxy.jsonl"'
   check "runner mode: the relay was reached through a CONNECT tunnel" 'grep -q "\"connect\"" "$W/runner/proxy.jsonl"'
   check "runner mode, no NIC: NRAS and Intel PCS were reached through the runner socket ($(node -e 'const h=new Set(require("fs").readFileSync(process.argv[1],"utf8").trim().split("\n").map(l=>JSON.parse(l).host).filter(Boolean));console.log([...h].join(", "))' "$W/runner/proxy.jsonl"))" 'grep -q nras.attestation.nvidia.com "$W/runner/proxy.jsonl" && grep -q api.trustedservices.intel.com "$W/runner/proxy.jsonl"'
   check "runner mode: the peer fetched NVIDIA's JWKS through the runner too (to check the NRAS verdict's signature)" 'grep -q "/.well-known/jwks.json" "$W/runner/proxy.jsonl"'
 fi
 if [[ -z $MAC ]]; then
-  "$root/bin/abalone" node serve --listen /ip4/127.0.0.1/tcp/0 --evidence dev --reserve 6usd --ledger "$W/l" --issuer "$ISS" > "$W/peer2.log" 2>&1
+  "$root/bin/abalone" peer serve --listen /ip4/127.0.0.1/tcp/0 --evidence dev --reserve 6usd --ledger "$W/l" --issuer "$ISS" > "$W/peer2.log" 2>&1
   check "a second peer on the same ledger refuses to start: $(tail -1 "$W/peer2.log")" 'grep -q "another peer holds" "$W/peer2.log"'
-  "$root/bin/abalone" node serve --listen /ip4/127.0.0.1/tcp/0 --evidence dev --reserve 6usd --ledger "/dev/shm/abalone-ledger-$$" --issuer "$ISS" > "$W/peer4.log" 2>&1; rm -rf "/dev/shm/abalone-ledger-$$"
+  "$root/bin/abalone" peer serve --listen /ip4/127.0.0.1/tcp/0 --evidence dev --reserve 6usd --ledger "/dev/shm/abalone-ledger-$$" --issuer "$ISS" > "$W/peer4.log" 2>&1; rm -rf "/dev/shm/abalone-ledger-$$"
   check "a ledger on a RAM filesystem is refused: $(tail -1 "$W/peer4.log" | cut -c1-80)" 'grep -q "RAM filesystem" "$W/peer4.log"'
 fi
 echo "PASS the peer is reachable through the relay: $ABALONE_PEER"
@@ -134,7 +134,7 @@ check "redemption shows the terms, model and the peer's attestation" '[[ $out ==
 t0=$(date +%s.%N); out=$(rcp a abalone sandbox -p 'Reply with exactly: abalone ok'); t1=$(date +%s.%N)
 echo "$out" | sed 's/^/  /'
 check "first turn answered via the gift ($(printf %.1f "$(echo "$t1 - $t0" | bc)") s)" '[[ $out == *"abalone ok"* ]]'
-check "recipient holds no provider key" '[[ ! -e $W/a/home/.abalone/node/keys.json ]]'
+check "recipient holds no provider key" '[[ ! -e $W/a/home/.abalone/credit ]]'
 check "coupon.json is mode 0600" '[[ $(stat -c %a "$W/a/home/.abalone/coupon.json") == 600 ]]'
 sess=$(ls -t "$W"/a/home/.abalone/agent/sessions/*/*.jsonl | head -1)
 check "NEAR attestation verified by the recipient and recorded" 'grep -q near-attestation "$sess"'
@@ -198,7 +198,7 @@ fi
 if [[ -z $REMOTE && -z $MAC && -z $RUN ]]; then
   # A crash (kill -9) leaves the lock behind; the next start takes over because the holder is gone.
   kill -9 $peer; wait $peer 2>/dev/null
-  "$root/bin/abalone" node serve --listen /ip4/127.0.0.1/tcp/0 --relay "$R" --evidence dev --reserve 6usd --ledger "$W/l" --issuer "$ISS" > "$W/peer5.log" 2>&1 & peer=$!
+  "$root/bin/abalone" peer serve --listen /ip4/127.0.0.1/tcp/0 --relay "$R" --evidence dev --reserve 6usd --ledger "$W/l" --issuer "$ISS" > "$W/peer5.log" 2>&1 & peer=$!
   waitfor "$W/peer5.log" "p2p-circuit"; out=$(client a one); [[ $out == *'"status":200'* ]] || echo "  after crash: $(cut -c1-300 <<<"$out")"
   check "after a crash the restarted peer takes over its lock and serves: $(grep -o 'taking over.*' "$W/peer5.log" | cut -c1-90)" 'grep -q "taking over .*no longer running" "$W/peer5.log" && [[ $out == *"\"status\":200"* ]]'
 fi

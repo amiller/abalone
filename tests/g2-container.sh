@@ -25,11 +25,11 @@ if [[ -n ${G2_PEER:-} ]]; then
   export ABALONE_ISSUER_KEY=${ABALONE_ISSUER_KEY:-$HOME/.abalone/issuer.key}
   P=$G2_PEER AMOUNT=0.25usd
 else
-"$root/bin/abalone" node relay --listen /ip4/127.0.0.1/tcp/0 > "$W/relay.log" 2>&1 & relay=$!
+"$root/bin/abalone" peer relay --listen /ip4/127.0.0.1/tcp/0 > "$W/relay.log" 2>&1 & relay=$!
 trap 'kill $http $relay ${peer:-} 2>/dev/null; rm -rf "$W"' EXIT
 waitfor "$W/relay.log" "/tcp/"; R=$(grep -o "/ip4/127.0.0.1/tcp/[0-9]*/p2p/[A-Za-z0-9]*" "$W/relay.log" | head -1)
 ISS=$(ABALONE_DIR="$W/i" "$root/bin/abalone" gift --issuer-pub)
-"$root/bin/abalone" node serve --listen /ip4/127.0.0.1/tcp/0 --relay "$R" --evidence dev --reserve 6usd --ledger "$W/l" --issuer "$ISS" > "$W/peer.log" 2>&1 & peer=$!
+"$root/bin/abalone" peer serve --listen /ip4/127.0.0.1/tcp/0 --relay "$R" --evidence dev --reserve 6usd --ledger "$W/l" --issuer "$ISS" > "$W/peer.log" 2>&1 & peer=$!
 waitfor "$W/peer.log" "p2p-circuit" || { cat "$W/peer.log"; exit 1; }
 P=$(grep -o "/ip4/127.0.0.1/tcp/[0-9]*/p2p/[A-Za-z0-9]*/p2p-circuit/p2p/[A-Za-z0-9]*" "$W/peer.log" | head -1) AMOUNT=5usd
 fi

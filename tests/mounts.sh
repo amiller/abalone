@@ -11,7 +11,7 @@ echo "runner token" > "$root/runner-home/test/marker"
 hidden="/etc/hostname /etc/shadow /etc/ssh /srv /var/log /opt $HOME/.ssh $root/runner-home/test/marker"
 cd "$folder"
 out=$(PROBE_PATHS="$hidden $folder/memo.txt $root/runner-home/test /etc/ssl/certs/ca-certificates.crt" PROBE_WRITES="$ABALONE_DIR/approvals/standing.json $root/runner-home/test/w $folder/w" \
-  PROBE_READS="memo.txt /etc/passwd ~/.abalone/node/keys.json $ABALONE_DIR/approvals/standing.json" \
+  PROBE_READS="memo.txt /etc/passwd ~/.abalone/credit/key.json $ABALONE_DIR/approvals/standing.json" \
   STUB_SCRIPT="$root/tests/fixtures/scripts/mounts.mjs" "$root/bin/abalone" sandbox --model stub/script -p go < /dev/null 2>&1); echo "$out" | sed 's/^/  /'
 rm -f "$root/runner-home/test/marker"
 host_w=$([[ -e $root/runner-home/test/w ]] && echo present || echo absent)
@@ -22,5 +22,5 @@ check "harness: the folder, CA certificates and the (empty) runner login dir are
 check "harness: approvals/ is read-only; a write to the runner login dir lands in a throwaway tmpfs, not the real login; the folder is writable" \
   '[[ $out == *"unwritable $ABALONE_DIR/approvals/standing.json EROFS"* && $host_w == absent && $out == *"wrote $folder/w"* ]]'
 check "read tool: the folder is readable" '[[ $out == *"the private memo"* ]]'
-check "read tool: /etc/passwd, the node keystore and approvals/ are refused by capability" '[[ $out == *"missing capability read(/etc/passwd)"* && $out == *"missing capability read($HOME/.abalone/node/keys.json)"* && $out == *"missing capability read($ABALONE_DIR/approvals/standing.json)"* ]]'
+check "read tool: /etc/passwd, the credit store and approvals/ are refused by capability" '[[ $out == *"missing capability read(/etc/passwd)"* && $out == *"missing capability read($HOME/.abalone/credit/key.json)"* && $out == *"missing capability read($ABALONE_DIR/approvals/standing.json)"* ]]'
 echo "mounts: $([[ $fail == 0 ]] && echo PASS || echo FAIL)"; exit $fail
