@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usability gate, offline part (amiller/abalone-private#2 "Proposed usability gate"): a recipient's cold run from the
+# Usability gate, offline part (docs/release.md): a recipient's cold run from the
 # redeem link to an open credit session (valid and expired offer) with every message recorded, the slash commands a
 # credit session shows, and its first screen at 80x24 and 120x40 on light and dark terminals. Evidence goes to
 # local-data/usability/<run>/. Checks that today's code fails by design are listed in XFAIL until their fix integrates;
@@ -8,11 +8,11 @@ set -uo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$root"
 run=${1:-$(date -u +%Y%m%dT%H%M%SZ)}; out="$root/local-data/usability/$run"; mkdir -p "$out"
 declare -A XFAIL=(
-  [commands]="#2 problem 4: credit sessions show legacy and information-only commands"
-  [cold-expired-inspect]="#2 problem 6: inspect reports offered for a closed claim window"
-  [cold-expired-no-claim]="#2 problem 6: redeem claims without checking the deadline"
-  [screen-120x40-light-dark-block]="#2 problem 3: nacre arrival art bakes in a near-black background"
-  [screen-120x40-dark-dark-block]="#2 problem 3: nacre arrival art bakes in a near-black background"
+  [commands]="credit sessions show legacy and information-only commands"
+  [cold-expired-inspect]="inspect reports offered for a closed claim window"
+  [cold-expired-no-claim]="redeem claims without checking the deadline"
+  [screen-120x40-light-dark-block]="nacre arrival art bakes in a near-black background"
+  [screen-120x40-dark-dark-block]="nacre arrival art bakes in a near-black background"
 )
 node tests/usability/cold-run.mjs "$out" > "$out/checks.txt"
 . "$out/session.env"
@@ -35,7 +35,7 @@ while read -r result id rest; do
   id=${id%:}; why=${XFAIL[$id]:-}
   if [[ -n $why ]]; then
     [[ $result == FAIL ]] && result=XFAIL || { result=XPASS; fail=1; rest+=" -- now passes: remove it from XFAIL"; }
-    rest+=" [expected until integration: amiller/abalone-private$why]"
+    rest+=" [known defect, expected until its fix integrates: $why]"
   elif [[ $result == FAIL ]]; then fail=1; fi
   echo "$result $id $rest"
 done < "$out/checks.txt" | tee "$out/results.txt"

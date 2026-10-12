@@ -1,4 +1,4 @@
-// Usability gate part 1 (amiller/abalone-private#2): realistic tasks in RPC mode on a real saved credit, through the
+// Usability gate part 1 (docs/release.md): realistic tasks in RPC mode on a real saved credit, through the
 // real `abalone credit session --mode rpc` with the caller's own ABALONE_DIR. Spends from that credit. Run via live.sh.
 // Per task: stop reasons, output and reasoning tokens, time to first token, stderr lines. Pass: no `length` stop and
 // at most one warning line per task.

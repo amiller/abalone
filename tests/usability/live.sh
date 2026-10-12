@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usability gate, live part (amiller/abalone-private#2): four realistic tasks in RPC mode on a real saved credit,
+# Usability gate, live part (docs/release.md): four realistic tasks in RPC mode on a real saved credit,
 # using the caller's ABALONE_DIR. It spends from that credit, so it needs --live and the credit id. Writes
 # local-data/usability/<run>/live.json. Run before promoting a release; the offline part is tests/usability/offline.sh.
 set -euo pipefail

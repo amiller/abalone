@@ -43,7 +43,7 @@ suites=(
   "offline|browser (CDP bridge: headless Chromium, loopback fixture site)|node tests/browser.mjs" "offline|browser-session (/browser and the in-content ops in a real session, stub model)|tests/browser-session.sh" "offline|incognito agent memory (disk-backed runtime, crash nonpersistence)|node --test tests/incognito-agent-memory.test.mjs"
   "offline|incognito (strict incognito, encrypted trace)|tests/incognito.sh"
   "offline|session-commands (slash commands and prompt per session kind)|node --test tests/session-commands.test.mjs"
-  "offline|usability (cold run, credit-session commands, first screens; XFAIL until amiller/abalone-private#2 fixes integrate)|tests/usability/offline.sh"
+  "offline|usability (cold run, credit-session commands, first screens; known-defect XFAILs)|tests/usability/offline.sh"
   "network-\$0|pour (real claude binary, no login, reaches api.anthropic.com)|tests/pour.sh" "network-\$0|tor-live (sealed /fetch says IsTor: true)|tests/tor-live.sh"
   "network-\$0|caps (real provider handshakes with dummy keys)|tests/caps.sh" "network-\$0|negative (G8, live upstreams, dummy keys)|tests/negative.sh"
   "network-\$0|keys (live 401 with dummy keys)|tests/keys.sh" "network-\$0|list-models|tests/list-models.sh" "network-\$0|connect-trace|tests/connect-trace.sh"
