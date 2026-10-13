@@ -81,8 +81,9 @@ What each mode keeps on this computer:
   progress unless `--force` is given: run `abalone credit recover` first, since
   those keys are the only way to recover the claim. Forgetting does not revoke
   the credential.
-- The model provider receives each request. Abalone does not verify what the
-  provider retains.
+- The model provider receives each request. What it retains is a property of the
+  attested program; Abalone pins the provider's published measurements and has not yet
+  audited that program's source, so retention is not verified today.
 
 A fresh session is not deletion. The administrator and same-user processes can
 read all of the above while it exists. tmpfs may swap; workspace files, terminal
