@@ -1,15 +1,16 @@
 # Abalone entry artwork
 
-The contour shell inlined in `redeem/index.html` and `friend.html` is generated
-from the paper-wallet contour design by a generator not yet published. The
-inline element is identical in both pages; check it with
+The contour shell inlined in `redeem/index.html`, `friend.html` and
+`index.html` is generated from the paper-wallet contour design by a generator
+not yet published. The inline element is identical in all three pages; check it with
 
     grep -o '<svg class="shell".*</svg>' redeem/index.html | sha256sum
 
 which should print `5ac314baf93a343d92ff16699263e5c7eecefb0b61170dbb073a92771384c9fd`.
 
-`nacre-960.webp` (used by `index.html` only) is a derivative of the original
-AI-generated Nacre shell illustration, generated with OpenAI's image tool on
+`nacre-960.webp` (used by `index.html` only, in dark mode; light mode shows
+the contour shell) is a derivative of the original AI-generated Nacre shell
+illustration, generated with OpenAI's image tool on
 8 October 2026. It is original illustrative artwork, not a specimen photograph
 or evidence of a security property. Made with ImageMagick 6.9.11-60:
 
