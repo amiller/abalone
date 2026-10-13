@@ -86,7 +86,7 @@ for (const method of ["stream", "streamSimple"]) test(`stock SDK ${method}: encr
     tools: [{ name: "read", description: "read private files", parameters: { type: "object", properties: {} } }] }, { apiKey: key, maxRetries: 5 }).result();
   assert.equal(result.stopReason, "stop");
   assert.equal(bodies.length, 1);
-  assert.ok(bodies[0].tools.length);
+  assert.ok(bodies[0].messages.some((m) => String(m.content).includes("private specimen")));
 });
 
 async function piSession(name) {

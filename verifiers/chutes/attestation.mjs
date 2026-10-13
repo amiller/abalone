@@ -65,4 +65,3 @@ export async function gpu(ma, nonce, http, requireSignature = false) {
   must(claims["x-nvidia-overall-att-result"] === true, "NVIDIA NRAS verdict is not true");
   return `GPU: NVIDIA verdict (${checked})`;
 }
-
