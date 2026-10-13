@@ -7,6 +7,8 @@
 set -uo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"; cd "$root"
 suites=(
+  "offline|portable-state (sibling state, overrides, relocation and workspace)|node --test tests/portable-state.test.mjs"
+  "offline|portable-package (pinned archives and safe unpacked launch)|python3 tests/portable-package.py"
   "offline|coupon-acquisition (separate consent and recovery entry)|node --test tests/coupon-acquire.test.mjs"
   "offline|session-policy (configured boundaries and retention)|node --test tests/session-policy.test.mjs"
   "offline|lockdown|tests/lockdown.sh" "offline|egress|tests/egress.sh" "offline|local|tests/local.sh" "offline|mcp|tests/mcp.sh"

@@ -1,49 +1,70 @@
 #!/bin/sh
-# abalone @REV@: installs exactly abalone-@REV@.tar.gz (sha256 @SHA256@).
-#   sh install.sh --credit    install the durable-credit runtime and public inputs only (recipients: docs/abalone-coupon-redeem.md)
-#   sh install.sh             install only
-# Download this file, check it against FRIEND-SHA256SUMS and read it before running it; never pipe it into a shell.
-# Needs: Node24, curl, tar, bash, sha256sum (--credit also flock; plain install on Linux also bubblewrap).
-# Installs into ~/.abalone-app/@REV@ and links ~/.local/bin/abalone.
-# --credit claims nothing and starts nothing: it verifies the runtime, saves the four pinned public files under
-# ~/.abalone-app/@REV@/public-credit/<bundle>/ and prints their path. Its profile is linux-node24-owned-host (no OS isolation).
-# On macOS there is no bubblewrap, so the private local session does not run; redeem, offers, commission, tasks and
-# verify do (node 24 or later).
+# Optional Dsmack launcher installation. Download and inspect this file first.
+# --plan prints the exact actions without network access or filesystem changes.
+# Running is also available from the separate portable archive; see docs/portable-client.md.
 set -eu
 credit=no
-os=$(uname -s)
-case "${1:-}" in ''|--credit|--peer) ;; *) echo "Usage: install.sh [--credit | --peer <peer address> <code>.<grant>]. Nothing was installed." >&2; exit 1 ;; esac
-if [ "${1:-}" = --credit ]; then
-  credit=yes
-  shift
-  [ "$#" = 0 ] || { echo "Usage: install.sh --credit (no other arguments; gift codes never belong in arguments). Nothing was installed." >&2; exit 1; }
+plan_only=no
+for argument in "$@"; do
+  case "$argument" in
+    --credit) [ "$credit" = no ] || { echo 'Use install.sh [--credit] [--plan]. Nothing was installed.' >&2; exit 1; }; credit=yes ;;
+    --plan) [ "$plan_only" = no ] || { echo 'Use install.sh [--credit] [--plan]. Nothing was installed.' >&2; exit 1; }; plan_only=yes ;;
+    *) echo 'Use install.sh [--credit] [--plan]. Gift codes never belong in installer arguments. Nothing was installed.' >&2; exit 1 ;;
+  esac
+done
+case "$HOME" in /*) ;; *) echo 'HOME must be an absolute path. Nothing was installed.' >&2; exit 1 ;; esac
+if [ "$credit" = yes ]; then
   for pinned in '@TRIAL_SHA256@' '@PIN_SHA256@' '@APPROVAL_SHA256@' '@READINESS_SHA256@'; do
     case "$pinned" in *[!0-9a-f]*) pinned= ;; esac
-    [ "${#pinned}" = 64 ] || { echo "This installer has no fully pinned public credit bundle. Nothing was installed." >&2; exit 1; }
+    [ "${#pinned}" = 64 ] || { echo 'This installer has no fully pinned public credit bundle. Nothing was installed.' >&2; exit 1; }
   done
-  case "$HOME" in /*) ;; *) echo "HOME must be an absolute path. Nothing was installed." >&2; exit 1 ;; esac
-  [ "$os:$(uname -m)" = Linux:x86_64 ] || { echo "The credit install currently supports Linux x86_64 only. Nothing was installed." >&2; exit 1; }
-  [ "$(id -u)" != 0 ] || { echo "Install credit as your ordinary user, not root. Nothing was installed." >&2; exit 1; }
 fi
-for c in node curl tar sha256sum bash $([ "$credit" = no ] || echo flock); do command -v "$c" >/dev/null 2>&1 || { echo "abalone needs $c, which is not installed on this computer." >&2; exit 1; }; done
-if [ "$os" != Darwin ] && [ "$credit" = no ]; then command -v bwrap >/dev/null 2>&1 || { echo "This isolated profile requires bubblewrap. No weaker profile was selected." >&2; exit 1; }; fi
-case "$os:$(node -v)" in *:v24.*|Darwin:v2[5-9].*) ;; *) echo "abalone needs node 24 (this computer has $(node -v))." >&2; exit 1 ;; esac
 app="$HOME/.abalone-app/@REV@"
-if [ "$credit" = yes ]; then
+bundle_id='@BUNDLE_ID@'
+plan() {
+  printf '%s\n' 'Dsmack @REV@ — optional launcher installation' \
+    'Archive: @ARTIFACT_BASE@/abalone-@REV@.tar.gz' '  SHA256: @SHA256@' \
+    "Runtime: $app/abalone" "Launcher: $HOME/.local/bin/abalone" \
+    "Staging and lock: $HOME/.abalone-app/.credit-stage.* and .credit-install.lock"
+  if [ "$credit" = yes ]; then
+    printf '%s\n' "Public inputs: $app/public-credit/$bundle_id/" \
+      '  @BASE@/trial.json SHA256 @TRIAL_SHA256@' \
+      '  @BASE@/issuer-pin.json SHA256 @PIN_SHA256@' \
+      '  @BASE@/staging-approval.json SHA256 @APPROVAL_SHA256@' \
+      '  @BASE@/readiness.json SHA256 @READINESS_SHA256@' \
+      'Receipt: saved beside public inputs; records install-time digests only.'
+  fi
+  printf '%s\n' 'Actions: download, check pinned digests, extract in private staging, compare existing files, then place files and link launcher.' \
+    'Refuses symlink destinations, a differing existing runtime/bundle, or a non-symlink launcher.' \
+    'No sudo, shell startup edits, gift redemption, canary planting or execution of downloaded programs.' \
+    'This packaged client requires Linux x86_64, an ordinary user, Node 24, curl, tar, bash, sha256sum, flock and coreutils/findutils.' \
+    'Installation creates no conversation or credential state. Later client use normally keeps saved access in ~/.abalone or $ABALONE_DIR.' \
+    'Review this script and compare the pins with the release notes before installing.'
+}
+plan
+[ "$plan_only" = no ] || exit 0
+os=$(uname -s)
+[ "$os:$(uname -m)" = Linux:x86_64 ] || { echo 'This packaged client supports Linux x86_64 only. Nothing was installed.' >&2; exit 1; }
+[ "$(id -u)" != 0 ] || { echo 'Install as your ordinary user, not root. Nothing was installed.' >&2; exit 1; }
+for c in node curl tar sha256sum bash flock; do command -v "$c" >/dev/null 2>&1 || { echo "Dsmack needs $c, which is not installed on this computer." >&2; exit 1; }; done
+case "$(node -v)" in v24.*) ;; *) echo "This packaged client needs Node 24 (this computer has $(node -v)). Nothing was installed." >&2; exit 1 ;; esac
   # Verify everything in a private stage first; publish only into empty slots or onto byte-identical copies.
   umask 077
   refuse() { printf '%s\n' "$1" >&2; exit 1; }
   same() { [ "$(sha256sum < "$1")" = "$(sha256sum < "$2")" ]; }
   listing() { (cd "$1" && { find abalone -printf '%y %m %p -> %l\n'; find abalone -type f -exec sha256sum {} +; } | LC_ALL=C sort); }
-  bundle_id=$(printf '%s\n' '@TRIAL_SHA256@' '@PIN_SHA256@' '@APPROVAL_SHA256@' '@READINESS_SHA256@' | sha256sum | cut -c1-16)
+  # The renderer pins the bundle id shown in --plan.
+  expected_bundle_id=$(printf '%s\n' '@TRIAL_SHA256@' '@PIN_SHA256@' '@APPROVAL_SHA256@' '@READINESS_SHA256@' | sha256sum | cut -c1-16)
+  if [ "$credit" = yes ]; then [ "$bundle_id" = "$expected_bundle_id" ] || refuse "Public bundle identity does not match its pins. Nothing was installed."; fi
   pub="$app/public-credit"
   bundle="$pub/$bundle_id"
   launcher="$HOME/.local/bin/abalone"
   lock="$HOME/.abalone-app/.credit-install.lock"
-  for p in "$HOME/.abalone-app" "$app" "$app/abalone" "$pub" "$bundle" "$lock"; do
+  for p in "$HOME/.local" "$HOME/.local/bin" "$HOME/.abalone-app" "$app" "$app/abalone" "$pub" "$bundle" "$lock"; do
     [ ! -L "$p" ] || refuse "$p is a symlink; refusing to install through it. Nothing was installed."
   done
-  mkdir -p "$pub" "$HOME/.local/bin"
+  mkdir -p "$app" "$HOME/.local/bin"
+  if [ "$credit" = yes ]; then mkdir -p "$pub"; fi
   exec 9>>"$lock"
   flock -n 9 || refuse "Another abalone credit install is running. Nothing was installed."
   stage=$(mktemp -d "$HOME/.abalone-app/.credit-stage.XXXXXX")
@@ -55,6 +76,7 @@ if [ "$credit" = yes ]; then
   tar -xzf "$stage/a.tgz" -C "$stage/tree" || refuse "The verified archive could not be extracted. Nothing was installed."
   [ -x "$stage/tree/abalone/bin/abalone" ] && [ -f "$stage/tree/abalone/lib/credit.mjs" ] && [ -f "$stage/tree/abalone/lib/credit-store.mjs" ] \
     || refuse "The pinned release @REV@ has no durable-credit runtime (abalone credit). Nothing was installed."
+  if [ "$credit" = yes ]; then
   for name in trial.json issuer-pin.json staging-approval.json readiness.json; do
     case "$name" in
       trial.json) expected='@TRIAL_SHA256@' ;;
@@ -65,14 +87,17 @@ if [ "$credit" = yes ]; then
     curl -fsSL --max-filesize 2097152 "@BASE@/$name" -o "$stage/bundle/$name" || refuse "The public credit input $name could not be downloaded. Nothing was installed."
     printf '%s\n' "$expected  $stage/bundle/$name" | sha256sum -c --quiet - || refuse "The public credit input $name does not match this installer. Nothing was installed."
   done
+  fi
   listing "$stage/tree" > "$stage/tree.list"
+  if [ "$credit" = yes ]; then
   printf '{"kind":"abalone-credit-install-receipt","rev":"@REV@","artifactUrl":"@ARTIFACT_BASE@/abalone-@REV@.tar.gz","artifactSha256":"@SHA256@","publicBase":"@BASE@","platform":"linux-node24-owned-host","files":{"trial.json":"@TRIAL_SHA256@","issuer-pin.json":"@PIN_SHA256@","staging-approval.json":"@APPROVAL_SHA256@","readiness.json":"@READINESS_SHA256@"},"runtimeTreeSha256":"%s","scope":"Digests checked when this installer ran. This receipt alone does not show the installed files are unmodified; rerun install.sh --credit to recheck them."}\n' \
     "$(sha256sum < "$stage/tree.list" | cut -c1-64)" > "$stage/bundle/receipt.json"
+  fi
   if [ -e "$app/abalone" ]; then
     listing "$app" > "$stage/existing.list" && same "$stage/tree.list" "$stage/existing.list" \
       || refuse "The existing $app/abalone does not match the verified @REV@ release (modified, partial, extra or re-permissioned files). It was left untouched; move it aside and rerun. Nothing was installed."
   fi
-  if [ -e "$bundle" ]; then
+  if [ "$credit" = yes ] && [ -e "$bundle" ]; then
     for name in trial.json issuer-pin.json staging-approval.json readiness.json receipt.json; do
       [ -f "$bundle/$name" ] && [ ! -L "$bundle/$name" ] && same "$stage/bundle/$name" "$bundle/$name" \
         || refuse "The existing public credit bundle $bundle differs from this installer's pins. It was left untouched; move it aside and rerun. Nothing was installed."
@@ -82,12 +107,13 @@ if [ "$credit" = yes ]; then
     [ -L "$launcher" ] || refuse "$launcher exists and is not a symlink. It was left untouched. Nothing was installed."
   fi
   [ -e "$app/abalone" ] || mv -T "$stage/tree/abalone" "$app/abalone"
-  [ -e "$bundle" ] || mv -T "$stage/bundle" "$bundle"
+  if [ "$credit" = yes ]; then [ -e "$bundle" ] || mv -T "$stage/bundle" "$bundle"; fi
   ln -sfn "$app/abalone/bin/abalone" "$launcher"
   q() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
-  echo "Installed abalone @REV@ for durable credit. Nothing was redeemed, claimed or started."
+  echo "Installed Dsmack @REV@. Nothing was redeemed, claimed or started."
   printf '%s\n' "Runtime: $app/abalone"
   printf '%s\n' "Launcher: $launcher"
+  if [ "$credit" = yes ]; then
   printf '%s\n' "Public credit trial: $bundle/trial.json"
   printf '%s\n' "Install receipt: $bundle/receipt.json (install-time digests only)"
   echo "Trusted owned host profile: no OS isolation. Credit sessions run with your ordinary account's filesystem and network access."
@@ -96,28 +122,8 @@ if [ "$credit" = yes ]; then
   echo "Or, step by step, put it in a 0600 file in a private directory (never in an argument) and review its offer without claiming it:"
   printf '%s\n' "  $(q "$launcher") credit inspect --trial $(q "$bundle/trial.json") --input-file /private/gift.txt"
   printf '%s\n' "Check saved credit at any time: $(q "$launcher") credit status"
+  else
+    echo "Use private inference with your usual coding agent, or run the optional client with: abalone help"
+    echo "Sandboxed client sessions require bubblewrap; no session was started."
+  fi
   exit 0
-fi
-if [ ! -x "$app/abalone/bin/abalone" ]; then
-  tmp=$(mktemp -d)
-  curl -fsSL "@ARTIFACT_BASE@/abalone-@REV@.tar.gz" -o "$tmp/a.tgz"
-  echo "@SHA256@  $tmp/a.tgz" | sha256sum -c --quiet - || { echo "The download does not match the expected release (@REV@). Nothing was installed." >&2; exit 1; }
-  mkdir -p "$app"
-  tar -xzf "$tmp/a.tgz" -C "$app" || { echo "The verified archive could not be extracted. Nothing was installed." >&2; exit 1; }
-  rm -rf "$tmp"
-fi
-mkdir -p "$HOME/.local/bin" && ln -sf "$app/abalone/bin/abalone" "$HOME/.local/bin/abalone"
-echo "Installed abalone @REV@."
-if [ $# -gt 0 ]; then "$app/abalone/bin/abalone" redeem "$@"
-else echo "No gift redeemed. If someone sends you one later: abalone redeem --peer <peer address> <code>.<grant> (the link you get shows the exact command)."; fi
-if [ "$os" = Darwin ]; then echo "On macOS the private local session needs Linux (bubblewrap) and does not run. These work: abalone offers, abalone commission, abalone tasks, abalone verify."; exit 0; fi
-# Canaries for the folder the friend is in: a small decoy file whose values, if they ever show up in something about to
-# leave this computer, stop it. Asked on a terminal; ABALONE_PLANT_CANARIES=yes|no answers without one.
-answer=${ABALONE_PLANT_CANARIES:-}
-if [ -z "$answer" ] && [ -r /dev/tty ] && [ -w /dev/tty ]; then
-  printf 'Plant a canary file in %s so abalone can catch this folder'\''s contents leaving? [Y/n] ' "$PWD" > /dev/tty
-  read -r answer < /dev/tty || answer=n
-  case "$answer" in ""|[Yy]*) answer=yes ;; *) answer=no ;; esac
-fi
-if [ "$answer" = yes ]; then "$app/abalone/bin/abalone" canary init "$PWD"; fi
-echo "Start with: abalone sandbox$([ "$answer" = yes ] || echo ' --no-canaries   (or plant them first: abalone canary init .)')"

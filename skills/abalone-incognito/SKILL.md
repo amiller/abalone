@@ -24,6 +24,13 @@ its administrator are trusted. Local tools have ordinary account filesystem and
 network access. Stepping aside is cooperation, not OS isolation or IP anonymity.
 See [security details](../../docs/security.md).
 
+Prefer the [portable client](../../docs/portable-client.md) when a qualified
+release supplies that archive; installation is a convenience for a launcher on
+PATH. The current preview.8.1 distribution predates that layout and `--plan`.
+For a new installer that supports it, run `sh install.sh --credit --plan`, compare
+its pins with trusted release notes, and show the concrete plan before installation.
+The source preview is not a promise that a new release is already available.
+
 Before you run `install.sh --credit`, you must:
 
 1. Download it to a file; never pipe a download into a shell.

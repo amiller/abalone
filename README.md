@@ -60,8 +60,9 @@ alone does not supply them. See [getting started](docs/getting-started.md) and
 [The released client setup](docs/abalone-coupon-redeem.md#what-installsh-does)
 explains its installer and the manual alternative. Installation places files in
 your home directory and adds a launcher; it is separate from using the guides or
-loading the focused Pi integration. A simpler one-download client distribution
-is [being developed](https://github.com/amiller/abalone/issues/44).
+loading the focused Pi integration. The [portable client source preview](docs/portable-client.md) runs from a folder,
+with installation as a separate convenience. Its new archive and `--plan` installer
+need release qualification before replacing the current distribution.
 
 ## What incognito means here
 
