@@ -81,29 +81,20 @@
 
 <section class="section" id="start" aria-labelledby="start-title">
 <h2 id="start-title">Start</h2>
-<p class="quiet">Three routes into a session. The commands are CLI examples; this page runs nothing and checks nothing.</p>
+<p class="quiet">An Abalone session needs a model to talk to. Pick where yours comes from. Commands are CLI examples; this page runs nothing and checks nothing.</p>
 <ol class="steps-v">
-<li><span class="step-no">01 / Install · v0.1.0-preview.7.1</span><h3>Check the installer, then run it.</h3>
-<p>Today this runs on Linux x86_64 with Node 24. Download <code>install.sh</code> from the newest release whose tag starts with <code>v0.1.0-preview</code> on the <a href="https://github.com/amiller/abalone/releases">releases page</a>. Compare its hash with the <code>install.sh SHA256</code> line in the release notes, read it, then run it. It claims nothing and starts nothing.</p>
-<pre><span class="p">$ </span>sha256sum install.sh
-<span class="p">$ </span>less install.sh
-<span class="p">$ </span>sh install.sh --credit</pre>
-<p class="cli-note">CLI example — not checked by this page.</p></li>
-<li><span class="step-no">02 / With a gift link · today</span><h3>Inspect the offer, redeem it, open the session.</h3>
-<p>Put the gift link in a private 0600 file, never in a command argument. Use the <code>trial.json</code> path the installer printed. Inspecting claims nothing. Have a gift link? The <a href="redeem/">redeem page</a> walks through the same steps.</p>
-<pre><span class="p">$ </span>abalone credit inspect --trial /ABS/trial.json --input-file /private/gift.txt
-<span class="p">$ </span>abalone credit redeem --trial /ABS/trial.json --input-file /private/gift.txt --accept-offer OFFER_HASH
-<span class="p">$ </span>abalone</pre>
-<p class="cli-note">CLI example — not checked by this page. In the next release, plain <code>abalone</code> takes a pasted gift link and does all three.</p></li>
-<li><span class="step-no">03 / With your own provider key · next release</span><h3>Save the key, open the developer session.</h3>
-<p>This is on main and not yet in a release. The key is read from hidden input, never an argument, and checked with the provider before it is saved. Only <code>abalone sandbox</code>, the bubblewrap developer session, uses it; plain <code>abalone</code> does not yet. Add <code>--incognito</code>: without it the sandbox keeps a resumable plaintext session under <code>~/.abalone/agent</code>. The sandbox refuses a folder without canaries; plant them first, or start with <code>--no-canaries</code>. <a href="https://github.com/amiller/abalone/blob/main/guides/acquiring-private-inference/README.md">Acquiring private inference</a> says what buying a key links to you.</p>
+<li><span class="step-no">01 / Your own provider key, or a local model</span><h3>Build from source, open the developer session.</h3>
+<p>Clone the repository and follow <a href="https://github.com/amiller/abalone/blob/main/CONTRIBUTING.md">CONTRIBUTING</a> to build it (Linux x86_64, Node 24). The session is <code>abalone sandbox --incognito</code>: a bubblewrap sandbox, egress only to admitted hosts, canaries in your folder. <code>abalone key add</code> saves a provider key from hidden input; it is on main and ships in the next release.</p>
 <pre><span class="p">$ </span>abalone key add &lt;provider&gt;
 <span class="p">$ </span>abalone canary init &lt;folder&gt;
 <span class="p">$ </span>abalone sandbox --incognito --model &lt;provider&gt;/&lt;model&gt;</pre>
-<p class="cli-note">CLI example — not checked by this page.</p></li>
+<p class="note">CLI example — not checked by this page.</p></li>
+<li><span class="step-no">02 / A gift from someone running Dsmack</span><h3>Open the link they sent you.</h3>
+<p>A gift link opens the <a href="redeem/">redeem page</a>, which installs the released client and turns the gift into a saved credit for an incognito session. Everything about that route lives there.</p></li>
+<li><span class="step-no">03 / Zcash · planned</span><h3>Pay for private inference without an account.</h3>
+<p>Swap Zcash for a slice of model access and open the session. Not built yet; the <a href="https://github.com/amiller/abalone/blob/main/guides/acquiring-private-inference/README.md">acquiring guide</a> tracks it.</p></li>
 </ol>
 </section>
-
 <section class="section" id="limits" aria-labelledby="limits-title">
 <h2 id="limits-title">What it does not do</h2>
 <ul class="nots">
