@@ -24,12 +24,30 @@ its administrator are trusted. Local tools have ordinary account filesystem and
 network access. Stepping aside is cooperation, not OS isolation or IP anonymity.
 See [security details](../../docs/security.md).
 
-Before any install, inspect the proposed installer and explain its version,
-download sources, dependencies, installation and state locations, and what will
-be run. Download to a file, inspect it, compare its digest with the published
-manifest, then execute the reviewed local file. A matching checksum establishes
-matching bytes, not safety. Never pipe a download into a shell. Do not install
-merely because the user asked what Abalone does.
+Before you run `install.sh --credit`, you must:
+
+1. Download it to a file; never pipe a download into a shell.
+2. Compare `sha256sum install.sh` with the `install.sh SHA256:` line in the
+   GitHub release notes, not with a value from a web page or the gift link.
+3. Read the whole script and confirm each item of
+   [What install.sh does](../../docs/abalone-coupon-redeem.md#what-installsh-does)
+   against it, using the checks in
+   [How to confirm it](../../docs/abalone-coupon-redeem.md#how-to-confirm-it):
+   the four public-file hashes on its pin line equal those in
+   `FRIEND-SHA256SUMS`, the archive hash matches the release notes, and its only
+   URLs are the archive and the release's public-file base. If anything else is
+   there, stop and tell the user.
+4. Tell the user, before running it, what it will download, the paths it will
+   write (`~/.abalone-app/REV/`, `~/.local/bin/abalone`), that it runs nothing
+   from the download, uses no sudo and claims nothing.
+
+A matching checksum establishes matching bytes, not safety. If the user does
+not want a script run, offer
+[Without the script](../../docs/abalone-coupon-redeem.md#without-the-script):
+download and check the archive and three public files, extract them into a
+directory the user chooses and run `abalone --trial` with that `trial.json`.
+After an install, show the user the receipt it wrote. Do not install merely
+because the user asked what Abalone does.
 
 ## Choose the access path
 

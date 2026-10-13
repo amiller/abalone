@@ -8,7 +8,7 @@ is protected and what is not. The coupon is one way to get access; see
 [acquiring private inference](../guides/acquiring-private-inference/README.md)
 for the others and what each links to you.
 
-<!-- Release step: point the links, the install.sh SHA256 and the claim deadline below at the new release. -->
+<!-- Release step: point the links, the install.sh SHA256, the claim deadline, and the URLs, line numbers and archive SHA256 in "How to confirm it" and "Without the script" below at the new release. -->
 **Current release:** [v0.1.0-preview.8.1](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.8.1)
 provides `install.sh --credit` and the `abalone credit` commands. Download
 [install.sh](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8.1/install.sh) and
@@ -58,28 +58,117 @@ less install.sh
 sh install.sh --credit
 ```
 
-Read the installer before running it: its revision, archive URL, pinned digests
-and the locations below. A matching checksum shows the bytes are the published
-ones; it does not make them safe.
+A matching checksum shows the bytes are the published ones; it does not make
+them safe. The next two sections say what the script does and how to confirm
+that without trusting this page. If you would rather not run a script, follow
+[Without the script](#without-the-script).
 
-`sh install.sh --credit` takes no other arguments. It:
+## What install.sh does
 
-1. refuses before downloading unless the host is Linux x86_64, the user is not
-   root, Node is version 24, the tools above (including `flock`) exist and the
-   installer pins all four files for the `linux-node24-owned-host` profile;
-2. downloads the archive and the four public files into a private staging
-   directory and checks each against its pinned SHA256;
-3. refuses an archive without the `abalone credit` runtime;
-4. compares any existing install of the same revision byte for byte (including
-   file modes and symlinks) and refuses, leaving it untouched, if anything differs;
-5. writes the runtime to `~/.abalone-app/REV/abalone`, the four files plus an
-   install receipt to `~/.abalone-app/REV/public-credit/BUNDLE_ID/`, and links
-   `~/.local/bin/abalone`;
-6. prints the absolute runtime, launcher, `trial.json` and receipt paths and the
-   next command, with the paths quoted.
+`sh install.sh --credit`, in order:
 
-It redeems nothing, starts no session and creates no saved credit. Rerunning it
-rechecks an existing install against the same pins.
+1. Refuses, before downloading anything, if any argument follows `--credit`,
+   if the script does not pin all four public files, if `HOME` is not an
+   absolute path, if the host is not Linux x86_64, if you are root, if any of
+   `node`, `curl`, `tar`, `sha256sum`, `bash` or `flock` is missing, or if
+   `node -v` is not 24.x.
+2. Refuses if `~/.abalone-app`, `~/.abalone-app/REV`, its `abalone` or
+   `public-credit` directory, the bundle directory or the lock file
+   `~/.abalone-app/.credit-install.lock` is a symlink. Creates
+   `~/.abalone-app/REV/public-credit/` and `~/.local/bin/` if missing, then
+   refuses if another `install.sh --credit` holds the lock.
+3. Downloads one archive, `abalone-REV.tar.gz`, into a staging directory
+   `~/.abalone-app/.credit-stage.XXXXXX`, which is deleted when the script
+   exits, and refuses unless its SHA256 equals the one pinned in the script.
+4. Extracts it in staging with `tar -xzf` and refuses unless it contains
+   `abalone/bin/abalone`, `abalone/lib/credit.mjs` and
+   `abalone/lib/credit-store.mjs`. Nothing from the archive is run.
+5. Downloads `trial.json`, `issuer-pin.json`, `staging-approval.json` and
+   `readiness.json` (each at most 2 MiB) and refuses unless each SHA256 equals
+   the one pinned in the script.
+6. Writes `receipt.json` beside them: the two URLs, the five pinned digests and
+   a digest of the extracted tree's file listing.
+7. Refuses, leaving everything untouched, if `~/.abalone-app/REV/abalone`
+   exists and differs from the extracted tree in any file, mode or symlink, if
+   the bundle directory exists and any of its five files differs, or if
+   `~/.local/bin/abalone` exists and is not a symlink.
+8. Moves the tree to `~/.abalone-app/REV/abalone` and the five files to
+   `~/.abalone-app/REV/public-credit/BUNDLE_ID/`, each only if not already
+   there. `BUNDLE_ID` is the first 16 hex characters of the SHA256 of the four
+   pinned file hashes.
+9. Points `~/.local/bin/abalone` at `~/.abalone-app/REV/abalone/bin/abalone`,
+   replacing a symlink already there.
+10. Prints the runtime, launcher, `trial.json` and receipt paths and the next
+    command, and exits.
+
+It contacts no host other than the two release URLs in the script. It does not
+use sudo, edit shell startup files or `PATH`, or write under `~/.abalone`;
+`abalone credit` creates `~/.abalone/credit` later. It redeems nothing, claims
+nothing and starts no session. Rerunning it rechecks an existing install
+against the same pins. The lines after the first `exit 0` are the plain
+install (`sh install.sh` with no argument), which `--credit` never reaches.
+
+## How to confirm it
+
+None of these checks relies on this page.
+
+1. **The hash.** `sha256sum install.sh` must print the `install.sh SHA256:`
+   line in the [release notes](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.8.1).
+2. **The script.** It is 123 lines of `sh`; the `--credit` path runs from the
+   top to the first `exit 0` (line 99). Line 20 must hold exactly the four
+   hashes that `FRIEND-SHA256SUMS` lists for `trial.json`, `issuer-pin.json`,
+   `staging-approval.json` and `readiness.json`. Line 2 names the archive's
+   SHA256, which must match the release notes. `grep -n https install.sh`
+   must show only two URL bases: the archive at
+   `https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8/abalone-ca6a250.tar.gz`
+   and the four files under
+   `https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8.1`.
+   `grep -nE 'sudo|bashrc|zshrc|\.profile|PATH|eval' install.sh` prints
+   nothing.
+3. **The receipt.** Afterwards,
+   `cat ~/.abalone-app/REV/public-credit/*/receipt.json` shows the archive URL
+   and SHA256, the public base URL and the four file digests the script
+   checked; they must match the two checks above.
+   `sha256sum ~/.abalone-app/REV/public-credit/*/*.json` rechecks the files.
+   The receipt records install time only; rerun `sh install.sh --credit` to
+   recheck the runtime tree.
+
+An agent setting this up for you runs the same three checks and tells you what
+the script will do before running it.
+
+## Without the script
+
+Do by hand what the script does. In a directory you choose:
+
+```sh
+mkdir -m 700 ~/abalone-manual && cd ~/abalone-manual
+curl -fLO https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8/abalone-ca6a250.tar.gz
+for f in FRIEND-SHA256SUMS trial.json issuer-pin.json staging-approval.json; do
+  curl -fLO "https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8.1/$f"
+done
+echo "f4ff14b6ebba56f891ca7547fc5e6c51676438850661cfa4fcabb36bedf85043  abalone-ca6a250.tar.gz" | sha256sum -c
+sha256sum -c --ignore-missing FRIEND-SHA256SUMS
+tar -xzf abalone-ca6a250.tar.gz
+```
+
+`FRIEND-SHA256SUMS` does not list the archive; its SHA256 is in the
+[release notes](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.8.1).
+
+The gift route needs three of the four public files: `trial.json` names
+`issuer-pin.json` and `staging-approval.json`, and they must sit in the same
+directory as it. `readiness.json` is an unsigned availability observation that
+`abalone` does not read. Then run:
+
+```sh
+~/abalone-manual/abalone/bin/abalone --trial ~/abalone-manual/trial.json
+```
+
+`--trial` takes an absolute path. To run plain `abalone` instead, move the
+three files into one directory under `public-credit/` beside the runtime, for
+example `~/abalone-manual/public-credit/manual/`; `abalone` uses the
+`trial.json` there when there is exactly one. Nothing is put on your `PATH`;
+link `~/abalone-manual/abalone/bin/abalone` into it yourself if you want.
+In the commands below, use this path wherever they say `abalone`.
 
 ## Inspect, redeem and save access
 

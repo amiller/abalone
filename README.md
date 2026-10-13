@@ -48,8 +48,11 @@ abalone key add <provider>
 **A gift from someone running [Dsmack](https://github.com/amiller/dsmack).**
 The [redeem page](https://amiller.github.io/abalone/redeem) takes you through
 the released installer and saves the delivered credential as a credit.
-Then run `abalone`. See [Redeem a coupon](docs/abalone-coupon-redeem.md)
-for the procedure and what the installer changes.
+Then run `abalone`. The installer downloads the client archive and four public
+files from the release, each checked against a hash pinned in the script, writes
+only under `~/.abalone-app` and `~/.local/bin`, and claims nothing
+([what install.sh does](docs/abalone-coupon-redeem.md#what-installsh-does);
+[without the script](docs/abalone-coupon-redeem.md#without-the-script)).
 
 **Zcash, planned.** Pay for a slice of model access and open a session.
 Invoice and payment detection have a testnet prototype; the swap is dry-run
