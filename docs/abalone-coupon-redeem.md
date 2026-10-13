@@ -9,13 +9,13 @@ is protected and what is not. The coupon is one way to get access; see
 for the others and what each links to you.
 
 <!-- Release step: point the links, the install.sh SHA256 and the claim deadline below at the new release. -->
-**Current release:** [v0.1.0-preview.7.1](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.7.1)
+**Current release:** [v0.1.0-preview.8](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.8)
 provides `install.sh --credit` and the `abalone credit` commands. Download
-[install.sh](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.7.1/install.sh) and
-[FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.7.1/FRIEND-SHA256SUMS) from that release.
+[install.sh](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8/install.sh) and
+[FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8/FRIEND-SHA256SUMS) from that release.
 Its `install.sh` SHA256 is
-`a30db777b59f34e5701028cf7404e3db3b3a453e538fa8e4f6c2024499b1172c`. The claim
-deadline is 2026-10-18T18:00:00Z, when its signed issuer approval expires.
+`@INSTALL_SHA@` <!-- HOLD: fill at tag time from finalize.py installSha256 -->. The claim
+deadline is @CLAIM_DEADLINE@ <!-- HOLD: the new signed approval's expiry -->, when its signed issuer approval expires.
 
 ## Conditions before you start
 
