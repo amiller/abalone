@@ -35,7 +35,7 @@
 <div>
 <p>Abalone is a terminal shell around a coding agent. Each session starts fresh: the conversation is held in memory, not saved, and tmpfs run files go at exit. Saved access, workspace files and scrollback stay.</p>
 <p>Before the first prompt byte leaves your computer, Abalone checks the provider’s TEE attestation and encrypts each request to a key inside that TEE.</p>
-<p>The gift session and <code>abalone sandbox --incognito</code> refuse a provider that fails attestation; NEAR passes today with an out-of-date firmware warning. Planned: <span class="level">◈ private inference</span> and <span class="level">○ local safeguards only · provider not verified</span>.</p>
+<p>The gift session and <code>abalone sandbox --incognito</code> refuse a provider that fails attestation; As of 2026-10-13, NEAR verifies with an out-of-date firmware warning: its TDX platforms are one Intel TCB recovery behind (SVN 3 of 4), and this trial accepts that with a visible warning. Planned: <span class="level">◈ private inference</span> and <span class="level">○ local safeguards only · provider not verified</span>.</p>
 <div class="actions"><a class="primary" href="https://github.com/amiller/abalone/blob/main/guides/private-inference/README.md">Read the private inference guide</a><a href="#start">Start</a></div>
 </div>
 <figure class="plate"><img class="painting" src="assets/nacre-960.webp" width="960" height="640" alt="An open abalone shell, with a rough edge and luminous teal and ivory interior."></figure>
