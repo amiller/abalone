@@ -9,13 +9,13 @@ is protected and what is not. The coupon is one way to get access; see
 for the others and what each links to you.
 
 <!-- Release step: point the links, the install.sh SHA256 and the claim deadline below at the new release. -->
-**Current release:** [v0.1.0-preview.8](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.8)
+**Current release:** [v0.1.0-preview.8.1](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.8.1)
 provides `install.sh --credit` and the `abalone credit` commands. Download
-[install.sh](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8/install.sh) and
-[FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8/FRIEND-SHA256SUMS) from that release.
+[install.sh](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8.1/install.sh) and
+[FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8.1/FRIEND-SHA256SUMS) from that release.
 Its `install.sh` SHA256 is
-`a80cf10e48bfb0215827ab96cd746277396f8c19fa222ae9985b0da55b10c37b`.
-The signed issuer approval expires 2026-10-18T18:00:00Z;
+`f8597b32efe27e7e8a123a14aae5e6c5e032e97a1e6f4eb19d655b0a580e9e03`.
+The signed issuer approval expires 2026-11-12T03:00:00Z;
 each gift's own claim-by time is earlier, and `abalone credit inspect` shows it.
 
 ## Conditions before you start
