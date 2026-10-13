@@ -25,6 +25,7 @@ const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "abalone-stock-pi-"));
 const instance = ml_kem768.keygen();
 const listed = { instance_id: "synthetic-instance", e2e_pubkey: Buffer.from(instance.publicKey).toString("base64"), nonces: ["synthetic-once"] };
 const modelId = "synthetic/private-TEE";
+const providerId = "abalone-chutes";
 const key = "synthetic-private-key-never-print";
 process.env.CHUTES_API_KEY = key;
 let calls = [], bodies = [], behavior = "answer", checkFails = false;
@@ -67,8 +68,14 @@ await registerChutes({ on() {}, appendEntry() {}, registerProvider: (p) => { pro
   { http, verify: async () => { if (checkFails) throw new Error("wrong quote/key " + key); return { model_tcb: ["UpToDate"] }; } });
 const model = provider.getModels()[0];
 let retryCalls = 0;
+let plaintextRequests = 0;
 const server = createServer(async (request, response) => {
   try {
+    if (request.url.startsWith("/plaintext-trap")) {
+      for await (const _ of request) {}
+      plaintextRequests++;
+      response.writeHead(400, { "content-type": "application/json" }); response.end(JSON.stringify({ error: { message: "plaintext trap" } })); return;
+    }
     if (request.url === "/retry-control") {
       for await (const _ of request) {}
       retryCalls++;
@@ -104,28 +111,39 @@ async function piSession(name) {
   const cwd = path.join(scratch, name), agentDir = path.join(cwd, "agent"); fs.mkdirSync(agentDir, { recursive: true });
   fs.writeFileSync(path.join(cwd, "sample.md"), "private specimen draft\n");
   fs.writeFileSync(path.join(agentDir, "settings.json"), JSON.stringify({ retry: { enabled: true, maxRetries: 3, baseDelayMs: 1, provider: { maxRetries: 3 } }, compaction: { enabled: false }, cacheWarming: "off" }));
-  if (["endpoint-override", "api-override"].includes(name)) fs.writeFileSync(path.join(agentDir, "models.json"), JSON.stringify({ providers: {
-    chutes: { baseUrl: replayUrl + "/plaintext-trap", ...(name === "api-override" ? { models: [{ id: modelId, api: "anthropic-messages", contextWindow: 65536, maxTokens: 4096 }] } : {}) },
+  if (["endpoint-override", "api-override", "compact-override", "compact-catalogue-failure", "compact-auth-boundary"].includes(name)) fs.writeFileSync(path.join(agentDir, "models.json"), JSON.stringify({ providers: {
+    [providerId]: { apiKey: key, baseUrl: replayUrl + "/plaintext-trap", ...(name !== "endpoint-override" ? { models: [{ id: modelId, api: "anthropic-messages", contextWindow: 65536, maxTokens: 4096 }] } : {}) },
   } }));
+  const historyFile = path.join(cwd, "history.jsonl");
+  if (name.startsWith("compact-")) {
+    const entries = [{ type: "session", version: 3, id: crypto.randomUUID(), timestamp: new Date().toISOString(), cwd },
+      { type: "model_change", id: "model", parentId: null, timestamp: new Date().toISOString(), provider: providerId, modelId }];
+    for (let i = 0; i < 40; i++) entries.push({ type: "message", id: `msg${i}`, parentId: i ? `msg${i - 1}` : "model", timestamp: new Date().toISOString(),
+      message: i % 2 ? { role: "assistant", api: "openai-completions", provider: providerId, model: modelId, stopReason: "stop", timestamp: Date.now(),
+        usage: { input: 10000, output: 100, cacheRead: 0, cacheWrite: 0, totalTokens: 10100, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } }, content: [{ type: "text", text: "Synthetic answer." }] }
+        : { role: "user", content: [{ type: "text", text: "private specimen ".repeat(1000) }], timestamp: Date.now() } });
+    fs.writeFileSync(historyFile, entries.map((e) => JSON.stringify(e)).join("\n") + "\n");
+  }
   const driver = path.join(cwd, "synthetic-extension.ts");
   fs.writeFileSync(driver, behavior === "retry-control" ? `import { createProvider, envApiKeyAuth } from "@earendil-works/pi-ai";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/compat";
 export default function(pi) {
   const api = openAICompletionsApi();
-  pi.registerProvider(createProvider({ id: "chutes", baseUrl: ${JSON.stringify(replayUrl)},
+  pi.registerProvider(createProvider({ id: ${JSON.stringify(providerId)}, baseUrl: ${JSON.stringify(replayUrl)},
     auth: { apiKey: envApiKeyAuth("synthetic", ["CHUTES_API_KEY"]) }, models: [${JSON.stringify({ ...model, baseUrl: replayUrl })}],
     api: { stream: (m,c,o) => api.stream(m,c,{...o,maxRetries:0,fetch:(_u,i)=>fetch(${JSON.stringify(replayUrl + "/retry-control")},i)}),
       streamSimple: (m,c,o) => api.streamSimple(m,c,{...o,maxRetries:0,fetch:(_u,i)=>fetch(${JSON.stringify(replayUrl + "/retry-control")},i)}) }
   }));
 }` : `import { registerChutes } from ${JSON.stringify(path.join(pkg, "pi-extension.ts"))};
 export default async function(pi) {
-  await registerChutes(pi, {
-    http: async (url, init = {}) => fetch(${JSON.stringify(replayUrl)}, { method: "POST", body: JSON.stringify({url: String(url), init: {...init, signal: undefined, body: init.body ? Buffer.from(init.body).toString("base64") : undefined}}) }),
+  const target = ${name === "compact-auth-boundary" ? '{...pi, on:(event,handler)=>event === "session_before_compact" ? undefined : pi.on(event,handler)}' : "pi"};
+  await registerChutes(target, {
+    http: async (url, init = {}) => ${name === "compact-catalogue-failure" ? 'String(url).endsWith("/v1/models") ? new Response("unavailable", {status:503}) :' : ""} fetch(${JSON.stringify(replayUrl)}, { method: "POST", body: JSON.stringify({url: String(url), init: {...init, signal: undefined, body: init.body ? Buffer.from(init.body).toString("base64") : undefined}}) }),
     verify: async () => { if (${checkFails}) throw new Error("wrong quote/key ${key}"); return { model_tcb: ["UpToDate"] }; }
   });
 }`);
   const child = spawn(process.execPath, [path.join(stock, "node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js"),
-    "-e", driver, "--mode", "rpc", "--no-session", "--provider", "chutes", "--model", modelId, "--tools", "read,edit"],
+    "-e", driver, "--mode", "rpc", ...(name.startsWith("compact-") ? ["--session", historyFile] : ["--no-session"]), "--provider", providerId, "--model", modelId, "--tools", "read,edit"],
     { cwd, env: { ...process.env, PI_CODING_AGENT_DIR: agentDir } });
   let errors = "", buffer = "";
   child.stderr.on("data", (b) => { errors += b; });
@@ -140,11 +158,11 @@ export default async function(pi) {
     buffer += b;
     let nl; while ((nl = buffer.indexOf("\n")) >= 0) {
       const line = buffer.slice(0, nl); buffer = buffer.slice(nl + 1);
-      try { const event = JSON.parse(line); events.push(event); if (event.type === "agent_end" && event.willRetry === false || name === "api-override" && event.type === "response" && event.command === "prompt" && event.success) completed(); } catch {}
+      try { const event = JSON.parse(line); events.push(event); if (event.type === "agent_end" && event.willRetry === false || name === "api-override" && event.type === "response" && event.command === "prompt" && event.success || name.startsWith("compact-") && event.type === "response" && event.command === "compact") completed(); } catch {}
     }
   });
   return { cwd, events, prompt: async (message) => {
-    child.stdin.write(JSON.stringify({ id: "task", type: "prompt", message }) + "\n");
+    child.stdin.write(JSON.stringify(name.startsWith("compact-") ? { id: "task", type: "compact" } : { id: "task", type: "prompt", message }) + "\n");
     await Promise.race([done, new Promise((_, reject) => { const timer = setTimeout(() => reject(new Error("Pi test deadline: " + errors)), 20000); timer.unref(); })]);
   }, close: () => child.kill() };
 }
@@ -174,6 +192,48 @@ test("custom API override cannot silently replace Chutes private inference with 
     assert.ok(!session.events.some((e) => e.type === "agent_start"));
     assert.ok(session.events.some((e) => e.type === "extension_ui_request" && /custom API override/.test(e.message ?? "")));
   } finally { session.close(); }
+});
+
+for (const name of ["compact-override", "compact-catalogue-failure", "compact-auth-boundary"]) test(`populated history ${name}: configured keys cannot bypass private transport`, async () => {
+  calls = []; bodies = []; plaintextRequests = 0; behavior = "answer";
+  const session = await piSession(name);
+  try {
+    await session.prompt();
+    assert.equal(plaintextRequests, 0);
+    assert.equal(bodies.length, 0);
+    const reply = session.events.find((e) => e.type === "response" && e.command === "compact");
+    assert.equal(reply.success, false);
+    if (name === "compact-auth-boundary") assert.match(reply.error, /repair model configuration|Private inference refused/);
+  } finally { session.close(); }
+});
+
+test("positive history control: ordinary Pi actually summarizes through the sealed transport", async () => {
+  calls = []; bodies = []; plaintextRequests = 0; behavior = "answer";
+  const session = await piSession("compact-positive");
+  try {
+    await session.prompt();
+    assert.equal(session.events.find((e) => e.type === "response" && e.command === "compact").success, true);
+    assert.ok(bodies.length >= 1);
+    assert.equal(plaintextRequests, 0);
+  } finally { session.close(); }
+});
+
+test("auth boundary checks live registry on every resolve, including an explicit credential", async () => {
+  const events = {}, normal = process.env.PI_CODING_AGENT_DIR;
+  const agentDir = path.join(scratch, "auth-boundary"); fs.mkdirSync(agentDir);
+  process.env.PI_CODING_AGENT_DIR = agentDir;
+  let liveModels = [{ id: modelId, provider: providerId, api: "openai-completions" }], guarded;
+  try {
+    await registerChutes({ on: (event, handler) => { events[event] = handler; }, appendEntry() {}, registerProvider: (p) => { guarded = p; } }, { http, verify: async () => ({ model_tcb: ["UpToDate"] }) });
+    events.session_start({}, { model: liveModels[0], modelRegistry: { getAll: () => liveModels }, ui: { setStatus() {} } });
+    const input = { ctx: { env: async () => key, fileExists: async () => false }, credential: { type: "api_key", key }, signal: new AbortController().signal };
+    assert.ok(await guarded.auth.apiKey.resolve(input));
+    liveModels = [{ ...liveModels[0], api: "anthropic-messages" }];
+    await assert.rejects(guarded.auth.apiKey.resolve(input), /incompatible|repair model configuration/);
+    liveModels = [{ ...liveModels[0], api: "openai-completions" }];
+    fs.writeFileSync(path.join(agentDir, "models.json"), "malformed");
+    await assert.rejects(guarded.auth.apiKey.resolve(input), /repair model configuration/);
+  } finally { if (normal === undefined) delete process.env.PI_CODING_AGENT_DIR; else process.env.PI_CODING_AGENT_DIR = normal; }
 });
 
 test("retry control: harness waits through agent_end.willRetry and observes the second invocation", async () => {

@@ -5,5 +5,5 @@ import { registerChutes } from "../../verifiers/chutes/pi-extension.ts";
 
 export default async function (pi: ExtensionAPI) {
   const cfg = providers().admitted.find((p: any) => p.id === "chutes");
-  await registerChutes(pi, { policy: cfg.policy, code: cfg.axes.code });
+  await registerChutes(pi, { providerId: "chutes", policy: cfg.policy, code: cfg.axes.code });
 }

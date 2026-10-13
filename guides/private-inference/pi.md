@@ -19,13 +19,15 @@ not for reading the guides or using a different private inference provider.
 From a checkout of this repository:
 
 ```sh
-cd verifiers/chutes
-npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund
-cd ../../examples/private-inference
+npm pack ./verifiers/chutes
+private_inference_package="$PWD/abalone-pi-private-inference-chutes-0.1.0.tgz"
+cd examples/private-inference
 ```
 
-Only the provider's dependencies are installed. There is no root install or
-vendored Pi build. The package is not yet published to npm. Inspect
+Pi manages the provider's dependencies outside this checkout when it loads the
+archive. There is no root install or vendored Pi build, and no dependencies are
+added inside the optional client's verified source tree. The package is not yet
+published to npm. Inspect
 [its source](../../verifiers/chutes/pi-extension.ts) before adding it to your Pi.
 
 Read your Chutes private-inference API key privately, then launch your Pi:
@@ -34,7 +36,7 @@ Read your Chutes private-inference API key privately, then launch your Pi:
 read -rsp 'Chutes private-inference API key: ' CHUTES_API_KEY
 echo
 export CHUTES_API_KEY
-pi -e ../../verifiers/chutes --provider chutes --no-session
+pi -e "npm:$private_inference_package" --provider abalone-chutes --no-session
 unset CHUTES_API_KEY
 ```
 
@@ -43,8 +45,11 @@ does not save it to a credential store. Other processes running as you or your
 administrator can inspect it. Use a scoped credential where available. Never
 paste it in a prompt or put its value in a shell command.
 
-`-e` loads the package for this invocation. Select a Chutes private-inference
-model with Pi's usual `/model` picker. The status starts at **not checked yet**.
+`-e` loads the package for this invocation without adding it to Pi's saved package
+settings. Pi still caches the package and its dependencies in its own directory.
+To keep it in Pi's configuration, use `pi install "npm:$private_inference_package"`.
+Select a model under **Chutes private inference (Abalone)**
+with Pi's usual `/model` picker. The status starts at **not checked yet**.
 Before a prompt is sent, the integration verifies the chosen instance, then
 seals the entire request to its verified key. Provider model lists are contacted
 at startup; Intel and NVIDIA verification services are contacted when checking
@@ -69,6 +74,9 @@ The integration adds private inference, not local isolation. Tools retain Pi's
 ordinary filesystem and network access. Other installed providers and extensions
 remain available; choosing another model changes the inference destination.
 The private-inference status disappears when another provider is selected.
+Pi's ordinary Chutes provider is separate from `abalone-chutes` and does not
+provide this integration's protected path. Incompatible model/API overrides are
+refused during credential resolution, including for history summaries.
 
 `--no-session` disables Pi's conversation-file persistence. It does not move all
 Pi state into memory, erase tool output, remove terminal scrollback or undo file

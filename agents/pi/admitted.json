@@ -79,12 +79,12 @@
   {
    "kind": "provider",
    "path": "agents/pi/chutes-provider.ts",
-   "sha256": "591c4ba9cd902d738f166e20acd0feeaf7d826a289745c739075e3d080109071"
+   "sha256": "1e7e9be51d581fad07a0ba58adf517d66952a4b57f61d9536bdfff23d64589a8"
   },
   {
    "kind": "tree",
    "path": "verifiers",
-   "sha256": "f3f38a4a9a933cc5afcaa8f1073f5908f9485ba48a9a047e3226920c7eb069a7"
+   "sha256": "64ffb844738b53b1d710c423ed48d3cf82ff87a36f91cdbea22addb60295ace9"
   }
  ]
 }
