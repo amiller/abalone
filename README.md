@@ -79,11 +79,18 @@ the released client and turning the gift into a saved credit; after that, plain
 
 Use synthetic, non-sensitive material for now. The current trial is a preview.
 
-## What it does not do
+## What is not done yet
 
-- It does not hide your IP address; use it over Tor or from Tails for that.
-- It does not verify what the provider retains after answering.
-- The gift trial has no tool sandbox and accepts outdated platform firmware under an
+- **Provider retention.** What a provider keeps is a property of the program the
+  attestation names, so verifying it means auditing that program's source and deriving
+  the reference values Abalone pins. That audit is the project; it is not done. Today the
+  pins are the providers' published measurements, so "attested" means the program the
+  provider says it runs, not yet a program reviewed not to retain your prompts.
+- **Network identity.** The shell alone does not hide your IP address; the
+  [network guides](guides/README.md) and the Tails route are how that is addressed.
+  Current state: NEAR's attestation service refuses Tor exits, so the NEAR route fails
+  over Tor; RedPill and Phala answer over Tor.
+- **The gift trial** has no tool sandbox and accepts outdated platform firmware under an
   explicit warning; strong privacy guarantees remain unqualified while that holds.
 
 ## What incognito means here
