@@ -44,7 +44,7 @@ test("symlinked or public portable state refuses without changing existing files
   fs.mkdirSync(elsewhere); fs.symlinkSync(elsewhere, path.join(container, "state"));
   assert.throws(() => statePath(root, {}), /unsafe/);
   assert.deepEqual(fs.readdirSync(elsewhere), []);
-  fs.unlinkSync(path.join(container, "state")); fs.mkdirSync(path.join(container, "state"), { mode: 0o755 });
+  fs.unlinkSync(path.join(container, "state")); fs.mkdirSync(path.join(container, "state"), { mode: 0o755 }); fs.chmodSync(path.join(container, "state"), 0o755);
   assert.throws(() => statePath(root, {}), /unsafe/);
   assert.equal(fs.statSync(path.join(container, "state")).mode & 0o777, 0o755);
 });
