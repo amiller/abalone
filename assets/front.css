@@ -1,0 +1,26 @@
+.intro{padding:44px 0 40px;border-bottom:1px solid var(--line)}
+.intro h1{max-width:18ch;margin:0 0 12px}
+.subhead{font:21px/1.45 var(--serif);color:var(--muted);margin:0 0 28px;max-width:36rem}
+.intro-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:36px;align-items:start}
+.intro-grid>div>p{margin:0}
+.level{font-family:var(--mono);font-size:.9em;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:18px}
+.card{display:block;padding:16px 18px;border:1px solid var(--line-strong);border-radius:4px;background:var(--paper);color:var(--ink);text-decoration:none}
+.card:hover h3,.card:focus-visible h3{text-decoration:underline;text-underline-offset:4px}
+.card:focus-visible{outline:3px solid var(--focus);outline-offset:4px}
+.card h3{font:400 23px/1.2 var(--serif);color:var(--accent);margin:8px 0}
+.card p{margin:0;font-size:15px;color:var(--muted)}
+.status{font:14px var(--mono);letter-spacing:.03em;color:var(--ink);border:1px solid var(--line-strong);border-radius:3px;padding:2px 8px}
+.observers{width:100%;border-collapse:collapse;font-size:15px;margin:18px 0}
+.observers th,.observers td{text-align:left;vertical-align:top;padding:10px 12px;border:1px solid var(--line-strong)}
+.observers thead th{font:14px var(--mono);letter-spacing:.03em;color:var(--muted);background:var(--paper)}
+.observers tbody th{font-weight:600;width:20%}
+.observers small{display:block;font-weight:400;font-size:14px;color:var(--muted)}
+.steps-v{list-style:none;padding:0;margin:18px 0 0}
+.steps-v li{margin:0 0 28px;max-width:46rem}
+.steps-v h3{font:400 23px/1.2 var(--serif);margin:0 0 8px}
+.nots{margin:0;padding-left:1.2em;max-width:46rem}.nots li{margin:0 0 6px}
+@media(max-width:720px){.intro{padding:28px 0}.intro-grid,.cards{grid-template-columns:minmax(0,1fr)}.level{white-space:normal}.painting{grid-row:1;max-width:320px;margin:0 auto}
+ .observers thead{position:absolute;left:-9999px}.observers,.observers tbody,.observers tr,.observers th,.observers td{display:block;width:auto}
+ .observers tr{border:1px solid var(--line-strong);border-radius:4px;margin:0 0 12px}.observers th,.observers td{border:0;padding:6px 12px}.observers tbody th{background:var(--paper);width:auto}
+ .observers td::before{content:attr(data-label);display:block;font:14px var(--mono);color:var(--muted)}}

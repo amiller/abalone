@@ -1,1 +1,124 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'"><title>Abalone</title><link rel="icon" href="assets/abalone.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/redeem.css"></head><body><div class="wrap"><main class="hero"><div><h1>Abalone</h1><p class="lead">A deliberate session with AI.</p><div class="actions"><a class="primary" href="redeem/">Get started</a><a href="https://github.com/amiller/abalone">Read the source and setup guide</a></div></div><div class="hero-art"><img class="painting" src="assets/nacre-960.webp" width="960" height="640" alt="An open abalone shell, with a rough edge and luminous teal and ivory interior."></div></main></div></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="description" content="Abalone, a cypherpunk AI privacy shell: a terminal shell around a coding agent that checks a TEE model's attestation before sending it requests. Redeem a gift link, or bring your own provider key.">
+<meta property="og:title" content="Abalone">
+<meta property="og:description" content="A cypherpunk AI privacy shell: a terminal shell around a coding agent that checks a TEE model's attestation before sending it requests.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://amiller.github.io/abalone/assets/og-1200x630.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Line drawing of an abalone shell beside the words: Abalone, a cypherpunk AI privacy shell.">
+<meta name="twitter:card" content="summary_large_image">
+<title>Abalone</title>
+<link rel="icon" href="assets/abalone.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="assets/icon-512.png" sizes="512x512" type="image/png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="stylesheet" href="assets/redeem.css">
+<link rel="stylesheet" href="assets/front.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="wrap">
+<header><a class="brand" href="./"><img src="assets/abalone.svg" alt="" width="36" height="36">Abalone</a><nav aria-label="Main"><a href="#guides">Guides</a><a href="#who-sees-what">Who sees what</a><a href="#start">Start</a><a class="desktop" href="https://github.com/amiller/abalone">Source ↗</a></nav></header>
+<main id="main">
+
+<section class="intro" aria-labelledby="hero-title">
+<h1 id="hero-title">Abalone, a cypherpunk AI privacy shell.</h1>
+<p class="subhead">Give your user an incognito session using TEE-based private inference.</p>
+<div class="intro-grid">
+<div>
+<p>Abalone is a terminal shell around a coding agent. The agent starts with nothing saved from last time: the conversation lives in process memory, and its run files sit on tmpfs and are removed when the session exits. Before the first prompt byte leaves your computer, Abalone checks the model provider’s TEE attestation and encrypts each request to a key held inside that TEE, so the provider’s operators handle ciphertext. A session reports one of two assurance levels: <span class="level">◈ private inference</span> when that attestation checks out, and <span class="level">○ local safeguards only · provider not verified</span> for a provider Abalone cannot verify. The second level is planned; today an unverified provider is refused.</p>
+<div class="limits">
+<p><strong>Linux x86_64 with Node 24</strong>, on a computer you trust. There is no OS isolation: tools have your account’s files and network.</p>
+<p><strong>Synthetic material only.</strong> The current NEAR route accepts a verified out-of-date firmware warning.</p>
+<p><strong>Provider retention is unverified.</strong> Abalone does not hide your IP address.</p>
+</div>
+<div class="actions"><a class="primary" href="https://github.com/amiller/abalone/blob/main/guides/private-inference/README.md">Read the private inference guide</a><a href="#start">Start</a></div>
+</div>
+<img class="painting" src="assets/nacre-960.webp" width="960" height="640" alt="An open abalone shell, with a rough edge and luminous teal and ivory interior.">
+</div>
+</section>
+
+<section class="section" id="guides" aria-labelledby="guides-title">
+<h2 id="guides-title">Guides</h2>
+<p class="quiet">Prose guides in the repository. A draft has not been reviewed.</p>
+<div class="cards">
+<a class="card" href="https://github.com/amiller/abalone/blob/main/guides/private-inference/README.md"><span class="status">Draft</span><h3>Private inference</h3><p>Follow a request from your terminal to the model’s attested key, and see which metadata still reaches the provider.</p></a>
+<a class="card" href="https://github.com/amiller/abalone/blob/main/guides/acquiring-private-inference/README.md"><span class="status">Draft</span><h3>Acquiring private inference</h3><p>What a sponsor, an issuer and a payment route can connect to you. A coupon works today; a bought provider key works only in the developer session.</p></a>
+<a class="card" href="https://github.com/amiller/abalone/blob/main/portable/README.md"><span class="status">Research · unsupported</span><h3>Portable / Tails</h3><p>Nothing here is supported yet. The current NEAR route fails on Tails because NVIDIA’s attestation service refuses Tor exits.</p></a>
+</div>
+</section>
+
+<section class="section" id="who-sees-what" aria-labelledby="who-title">
+<h2 id="who-title">Who sees what</h2>
+<p class="quiet">One gift session today, seen from each observer’s seat.</p>
+<table class="observers">
+<thead><tr><th scope="col">Observer</th><th scope="col">Prompt contents</th><th scope="col">Credential</th><th scope="col">Metadata</th></tr></thead>
+<tbody>
+<tr><th scope="row">Your computer<small>you, the administrator, processes running as you</small></th>
+<td data-label="Prompt contents">Yes. They can inspect live memory, tools, workspace files and terminal captures.</td>
+<td data-label="Credential">Yes. Saved access is in <code>~/.abalone/credit/</code>, 0600 files that survive closing.</td>
+<td data-label="Metadata">Yes. Host names go to <code>~/.abalone/egress.jsonl</code>; scrollback, swap and backups keep their own lifetimes.</td></tr>
+<tr><th scope="row">The coupon issuer<small>a Dsmack node and its operator</small></th>
+<td data-label="Prompt contents">No. The conversation never passes through Dsmack.</td>
+<td data-label="Credential">Yes. The operator can read and revoke the credential it delivers.</td>
+<td data-label="Metadata">The coupon at redemption, and your IP address. The sponsor knows who they gave the gift to.</td></tr>
+<tr><th scope="row">The model provider’s TEE<small>NEAR today</small></th>
+<td data-label="Prompt contents">Decrypted only inside the attested TEE. Abalone does not verify what the provider retains, and strong private guarantees are unqualified under the firmware exception.</td>
+<td data-label="Credential">Yes. Each request carries it.</td>
+<td data-label="Metadata">When you connect, from which IP address, how much you use, and which credit paid.</td></tr>
+<tr><th scope="row">The network<small>your ISP, Wi-Fi, anyone on the path</small></th>
+<td data-label="Prompt contents">No. Requests are encrypted to the admitted model key.</td>
+<td data-label="Credential">No. It travels inside encrypted connections.</td>
+<td data-label="Metadata">Your IP address, the hosts you contact, when, and how much. Neither incognito nor provider encryption gives IP anonymity.</td></tr>
+</tbody>
+</table>
+<p class="quiet">From <a href="https://github.com/amiller/abalone/blob/main/docs/security.md">security profiles</a> and the guides above.</p>
+</section>
+
+<section class="section" id="start" aria-labelledby="start-title">
+<h2 id="start-title">Start</h2>
+<p class="quiet">Three routes into a session. The commands are CLI examples; this page runs nothing and checks nothing.</p>
+<ol class="steps-v">
+<li><span class="step-no">01 / Install · v0.1.0-preview.7.1</span><h3>Check the installer, then run it.</h3>
+<p>Download <code>install.sh</code> from the newest release whose tag starts with <code>v0.1.0-preview</code> on the <a href="https://github.com/amiller/abalone/releases">releases page</a>. Compare its hash with the <code>install.sh SHA256</code> line in the release notes, read it, then run it. It claims nothing and starts nothing.</p>
+<pre><span class="p">$ </span>sha256sum install.sh
+<span class="p">$ </span>less install.sh
+<span class="p">$ </span>sh install.sh --credit</pre>
+<p class="cli-note">CLI example — not checked by this page.</p></li>
+<li><span class="step-no">02 / With a gift link · today</span><h3>Inspect the offer, redeem it, open the session.</h3>
+<p>Put the gift link in a private 0600 file, never in a command argument. Use the <code>trial.json</code> path the installer printed. Inspecting claims nothing.</p>
+<pre><span class="p">$ </span>abalone credit inspect --trial /ABS/trial.json --input-file /private/gift.txt
+<span class="p">$ </span>abalone credit redeem --trial /ABS/trial.json --input-file /private/gift.txt --accept-offer OFFER_HASH
+<span class="p">$ </span>abalone</pre>
+<p class="cli-note">CLI example — not checked by this page. In the next release, plain <code>abalone</code> takes a pasted gift link and does all three.</p></li>
+<li><span class="step-no">03 / With your own provider key · next release</span><h3>Save the key, open the developer session.</h3>
+<p>This is on main and not yet in a release. The key is read from hidden input, never an argument. Only <code>abalone sandbox</code>, the bubblewrap developer session, uses it; plain <code>abalone</code> does not yet. <a href="https://github.com/amiller/abalone/blob/main/guides/acquiring-private-inference/README.md">Acquiring private inference</a> says what buying a key links to you.</p>
+<pre><span class="p">$ </span>abalone key add &lt;provider&gt;
+<span class="p">$ </span>abalone sandbox</pre>
+<p class="cli-note">CLI example — not checked by this page.</p></li>
+</ol>
+</section>
+
+<section class="section" id="limits" aria-labelledby="limits-title">
+<h2 id="limits-title">What it does not do</h2>
+<ul class="nots">
+<li>Attestation does not establish anonymity, deletion or local isolation.</li>
+<li>Abalone does not hide your IP address.</li>
+<li>Provider retention is unverified.</li>
+<li>The gift session runs as your account with no sandbox; its tools can read and write your files.</li>
+<li>A fresh session is not deletion. Workspace files, scrollback, swap and backups keep their own lifetimes.</li>
+<li>The current gift trial permits synthetic material only and accepts an out-of-date firmware warning. The coupon operator can read and revoke the credential.</li>
+</ul>
+</section>
+</main>
+<footer><span>Abalone · a cypherpunk AI privacy shell</span><span><a href="https://github.com/amiller/abalone">Source</a> · <a href="https://github.com/amiller/abalone/blob/main/docs/security.md">Security profiles</a> · <a href="https://github.com/amiller/abalone/blob/main/SECURITY.md">Report a security issue</a></span></footer>
+</div>
+</body>
+</html>
