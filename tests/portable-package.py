@@ -108,6 +108,23 @@ console.log(JSON.stringify({state:STATE, workspace:portableWorkspace(ROOT,proces
                 self.assertNotEqual(self.run_pack().returncode, 0)
                 self.assertFalse((self.base / 'packed').exists())
 
+    def test_composed_and_cyclic_link_graphs_refuse(self):
+        pristine = self.archive.read_bytes()
+        for pairs in [('link', '.', 'escape', 'link/../outside'), ('one', 'two', 'two', 'one')]:
+            with self.subTest(pairs=pairs):
+                self.archive.write_bytes(pristine)
+                with tarfile.open(self.archive, 'r:gz') as source:
+                    entries = [(m, source.extractfile(m).read() if m.isfile() else None) for m in source]
+                with tarfile.open(self.archive, 'w:gz') as target:
+                    for m, raw in entries:
+                        target.addfile(m, io.BytesIO(raw) if raw is not None else None)
+                    for name, destination in zip(pairs[::2], pairs[1::2]):
+                        link = tarfile.TarInfo('abalone/' + name)
+                        link.type = tarfile.SYMTYPE; link.linkname = destination
+                        target.addfile(link)
+                self.assertNotEqual(self.run_pack().returncode, 0)
+                self.assertFalse((self.base / 'packed').exists())
+
     def test_existing_output_and_symlink_public_input_refuse(self):
         self.assertEqual(self.run_pack().returncode, 0)
         archive = self.base / 'packed' / 'abalone-abcdef0-portable.tar.gz'

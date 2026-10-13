@@ -45,7 +45,7 @@ def public_bundle(directory):
 def checked_members(archive):
     members = archive.getmembers()
     names = set()
-    links = set()
+    links = {}
     for m in members:
         p = PurePosixPath(m.name)
         canonical = m.name.rstrip('/')
@@ -63,7 +63,38 @@ def checked_members(archive):
             target = posixpath.normpath(posixpath.join(str(p.parent), m.linkname) if m.issym() else m.linkname)
             if target != 'abalone' and not target.startswith('abalone/'):
                 raise ValueError('Runtime archive link escapes its runtime.')
-            links.add(m.name.rstrip('/'))
+            links[canonical] = m
+    # Resolve each component through the archive graph BEFORE interpreting '..'.
+    # Lexically normalizing link/../x is unsafe when link changes the parent.
+    def resolved(link):
+        current = [] if link.islnk() else list(PurePosixPath(link.name).parent.parts)
+        pending = link.linkname.split('/')
+        expansions = 0
+        while pending:
+            part = pending.pop(0)
+            if part in ('', '.'):
+                continue
+            if part == '..':
+                if len(current) <= 1:
+                    raise ValueError('Runtime archive link escapes its runtime.')
+                current.pop()
+                continue
+            current.append(part)
+            if current[0] != 'abalone':
+                raise ValueError('Runtime archive link escapes its runtime.')
+            nested = links.get('/'.join(current))
+            if nested:
+                expansions += 1
+                if expansions > 40:
+                    raise ValueError('Runtime archive contains a cyclic or excessive link chain.')
+                current = [] if nested.islnk() else current[:-1]
+                pending = nested.linkname.split('/') + pending
+        return '/'.join(current)
+    regular_names = {m.name for m in members if m.isfile()}
+    for link in links.values():
+        target = resolved(link)
+        if link.islnk() and target not in regular_names:
+            raise ValueError('Runtime hard link does not resolve to a regular runtime file.')
     for m in members:
         if any(str(parent) in links for parent in PurePosixPath(m.name).parents):
             raise ValueError('Runtime archive writes through a link.')
