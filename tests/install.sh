@@ -5,24 +5,23 @@ set -uo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 fail=0
 check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fail=1; fi; }
-R=$(mktemp -d); mkdir -p "$R/build/abalone/bin"
+R=$(mktemp -d); mkdir -p "$R/build/abalone/bin" "$R/build/abalone/lib"
 printf '#!/bin/sh\necho "stub abalone $*"\n' > "$R/build/abalone/bin/abalone"; chmod +x "$R/build/abalone/bin/abalone"
+echo 'export {};' > "$R/build/abalone/lib/credit.mjs"; echo 'export {};' > "$R/build/abalone/lib/credit-store.mjs"
 tar -C "$R/build" -czf "$R/abalone-test.tar.gz" abalone
 sed -e "s|@REV@|test|g" -e "s|@SHA256@|$(sha256sum "$R/abalone-test.tar.gz" | cut -d' ' -f1)|g" -e "s|@BASE@|file://$R|g" -e "s|@ARTIFACT_BASE@|file://$R|g" "$root/tools/install.sh.in" > "$R/install.sh"
 mkdir -p "$R/h1" "$R/h2"
-out1=$(cd "$R/h1" && HOME="$R/h1" ABALONE_PLANT_CANARIES=no sh "$R/install.sh" 2>&1); code1=$?
+out1=$(cd "$R/h1" && HOME="$R/h1" ABALONE_PLANT_CANARIES=yes sh "$R/install.sh" 2>&1); code1=$?
 echo "$out1" | sed 's/^/  /'
-check "no gift code: exit 0, installed, with how to start and how to redeem later" '[[ $code1 == 0 && $out1 == *"Installed abalone test."* && $out1 == *"No gift redeemed. If someone sends you one later: abalone redeem"* && $out1 == *"Start with: abalone"* && -L $R/h1/.local/bin/abalone ]]'
-out2=$(cd "$R/h2" && HOME="$R/h2" ABALONE_PLANT_CANARIES=no sh "$R/install.sh" --peer /ip4/1.2.3.4/tcp/1/p2p/x g1CODE.grant 2>&1); code2=$?
-check "with a gift code it redeems it" '[[ $code2 == 0 && $out2 == *"stub abalone redeem --peer /ip4/1.2.3.4/tcp/1/p2p/x g1CODE.grant"* ]]'
+check "plain install only places and links runtime, without canaries or downloaded program execution" '[[ $code1 == 0 && $out1 == *"Installed Dsmack test."* && $out1 == *"Nothing was redeemed, claimed or started"* && $out1 != *"stub abalone"* && -L $R/h1/.local/bin/abalone ]]'
+out2=$(cd "$R/h2" && HOME="$R/h2" sh "$R/install.sh" --peer /ip4/1.2.3.4/tcp/1/p2p/x g1CODE.grant 2>&1); code2=$?
+check "legacy gift arguments refuse without echoing the secret or installing anything" '[[ $code2 != 0 && $out2 != *g1CODE* && -z $(ls -A "$R/h2") ]]'
 mkdir "$R/h3"; out3=$(HOME="$R/h3" sh "$R/install.sh" --friend 2>&1); code3=$?
-check "an unknown option is refused before anything is downloaded or installed" '[[ $code3 != 0 && $out3 == *"Usage: install.sh [--credit | --peer"* && -z $(ls -A "$R/h3") ]]'
-mkdir "$R/h4" "$R/h5" "$R/nobwrap" "$R/tar-fail"; for cmd in node curl tar sha256sum bash sh uname; do ln -s "$(command -v "$cmd")" "$R/nobwrap/$cmd"; done
+check "unknown options refuse before installation" '[[ $code3 != 0 && $out3 == *"Use install.sh"* && -z $(ls -A "$R/h3") ]]'
+mkdir "$R/h5" "$R/tar-fail"
 printf '#!/bin/sh\nexit 1\n' > "$R/tar-fail/tar"; chmod +x "$R/tar-fail/tar"
-out4=$(cd "$R/h4" && HOME="$R/h4" PATH="$R/nobwrap" sh "$R/install.sh" 2>&1); code4=$?
-check "plain install on Linux without bubblewrap refuses and writes nothing" '[[ $code4 != 0 && $out4 == *"requires bubblewrap"* && -z $(ls -A "$R/h4") ]]'
-out5=$(cd "$R/h5" && HOME="$R/h5" PATH="$R/tar-fail:$PATH" ABALONE_PLANT_CANARIES=no sh "$R/install.sh" 2>&1); code5=$?
-check "plain install with failed extraction refuses and installs nothing" '[[ $code5 != 0 && $out5 == *"could not be extracted. Nothing was installed."* && $out5 != *"Installed abalone"* && ! -e "$R/h5/.abalone-app/test/abalone" && ! -e "$R/h5/.local/bin/abalone" ]]'
+out5=$(cd "$R/h5" && HOME="$R/h5" PATH="$R/tar-fail:$PATH" sh "$R/install.sh" 2>&1); code5=$?
+check "plain install with failed extraction refuses and installs nothing" '[[ $code5 != 0 && $out5 == *"could not be extracted. Nothing was installed."* && $out5 != *"Installed Dsmack"* && ! -e "$R/h5/.abalone-app/test/abalone" && ! -e "$R/h5/.local/bin/abalone" ]]'
 # --credit: install-only owned-host entry. A credit-capable stub archive records any launch in $R/launched; uname and
 # id are the real host's (Linux x86_64, non-root) except where a mock directory is put first on PATH.
 mkdir -p "$R/cbuild/abalone/bin" "$R/cbuild/abalone/lib" "$R/cpub" "$R/cpath" "$R/cwork"
@@ -30,18 +29,24 @@ printf '#!/bin/sh\necho "$*" >> "%s"\n' "$R/launched" > "$R/cbuild/abalone/bin/a
 echo 'export {};' > "$R/cbuild/abalone/lib/credit.mjs"; echo 'export {};' > "$R/cbuild/abalone/lib/credit-store.mjs"
 ln -s credit.mjs "$R/cbuild/abalone/lib/credit-link.mjs"
 tar -C "$R/cbuild" -czf "$R/cpub/abalone-ddddddd.tar.gz" abalone
-cp "$R/abalone-test.tar.gz" "$R/cpub/abalone-eeeeeee.tar.gz"
+mkdir -p "$R/oldbuild/abalone/bin"; cp "$R/build/abalone/bin/abalone" "$R/oldbuild/abalone/bin/"
+tar -C "$R/oldbuild" -czf "$R/cpub/abalone-eeeeeee.tar.gz" abalone
 printf '{"platform":"linux-node24-owned-host","issuer":{"pin":"issuer-pin.json","approval":"staging-approval.json"}}' > "$R/cpub/trial.json"
 for name in issuer-pin.json staging-approval.json readiness.json; do printf '{"%s":1}' "$name" > "$R/cpub/$name"; done
 csha=$(sha256sum "$R/cpub/abalone-ddddddd.tar.gz" | cut -d' ' -f1)
 python3 "$root/tools/render-installer.py" --rev ddddddd --artifact-sha256 "$csha" --base https://example.org/credit --trial-dir "$R/cpub" --out "$R/credit-install.sh"
-python3 "$root/tools/render-installer.py" --rev eeeeeee --artifact-sha256 "$(sha256sum "$R/abalone-test.tar.gz" | cut -d' ' -f1)" --base https://example.org/credit --artifact-base https://example.org/old --trial-dir "$R/cpub" --out "$R/old-credit-install.sh"
+python3 "$root/tools/render-installer.py" --rev eeeeeee --artifact-sha256 "$(sha256sum "$R/cpub/abalone-eeeeeee.tar.gz" | cut -d' ' -f1)" --base https://example.org/credit --artifact-base https://example.org/old --trial-dir "$R/cpub" --out "$R/old-credit-install.sh"
 bid=$(for n in trial.json issuer-pin.json staging-approval.json readiness.json; do sha256sum "$R/cpub/$n" | cut -d' ' -f1; done | sha256sum | cut -c1-16)
 printf '#!/bin/sh\nurl= out=\nwhile [ $# -gt 0 ]; do case "$1" in https://*) url=$1 ;; -o) out=$2; shift ;; esac; shift; done\nprintf "%%s\\n" "$url" >> "%s"\nexec "%s" -fsSL "file://%s/${url##*/}" -o "$out"\n' "$R/curls" "$(command -v curl)" "$R/cpub" > "$R/cpath/curl"; chmod +x "$R/cpath/curl"
 for cmd in node tar gzip sha256sum bash sh uname id mkdir mktemp ln env rm flock find sort sed cut mv cat; do ln -s "$(command -v "$cmd")" "$R/cpath/$cmd"; done
 credit() { local home=$1; shift; mkdir -p "$home"; (cd "$R/cwork" && HOME="$home" PATH="$PATH_C" NEAR_API_KEY=SECRET_FIXTURE "$@" 2>&1); }
 PATH_C="$R/cpath"
 H="$R/credit home"; A="$H/.abalone-app/ddddddd"; B="$A/public-credit/$bid"
+mkdir "$R/plan-home" "$R/plan-path"
+ln -s "$(command -v sh)" "$R/plan-path/sh"
+plan=$(HOME="$R/plan-home" PATH="$R/plan-path" sh "$R/credit-install.sh" --plan --credit 2>&1); plan_code=$?
+plain_plan=$(HOME="$R/plan-home" PATH="$R/plan-path" sh "$R/install.sh" --plan 2>&1); plain_plan_code=$?
+check "plan modes work with only sh: no network, platform probes, state, files or launcher" '[[ $plan_code == 0 && $plain_plan_code == 0 && -z $(ls -A "$R/plan-home") && ! -e $R/curls && ! -e $R/launched && $plan == *"Public inputs: $R/plan-home/.abalone-app/ddddddd/public-credit/$bid/"* && $plan == *"SHA256: $csha"* && $plan == *"SHA256 $(sha256sum "$R/cpub/trial.json" | cut -d" " -f1)"* && $plain_plan != *"Public inputs:"* ]]'
 : > "$R/curls"
 c1=$(credit "$H" sh "$R/credit-install.sh" --credit); cc1=$?
 echo "$c1" | sed 's/^/  /'
@@ -90,7 +95,7 @@ check "an existing non-symlink launcher is refused and kept" '[[ $cc9 != 0 && $c
 c11=$(credit "$R/credit h7" sh "$R/install.sh" --credit); cc11=$?
 check "installer without public credit pins refuses" '[[ $cc11 != 0 && $c11 == *"no fully pinned public credit bundle"* && ! -e "$R/credit h7/.abalone-app" ]]'
 c12=$(credit "$R/credit h7" sh "$R/credit-install.sh" --credit --peer x g1CODE.grant); cc12=$?
-check "--credit with extra arguments refuses" '[[ $cc12 != 0 && $c12 == *"Usage: install.sh --credit"* && $c12 != *g1CODE* && ! -s $R/curls ]]'
+check "--credit with extra arguments refuses" '[[ $cc12 != 0 && $c12 == *"Use install.sh"* && $c12 != *g1CODE* && ! -s $R/curls ]]'
 mkdir "$R/noflock"; for f in "$R"/cpath/*; do [[ ${f##*/} == flock ]] || ln -s "$(readlink -f "$f")" "$R/noflock/${f##*/}"; done; rm "$R/noflock/curl"; cp "$R/cpath/curl" "$R/noflock/"
 c12b=$(credit "$R/credit h7" env HOME=relative sh "$R/credit-install.sh" --credit); cc12b=$?
 check "relative HOME refuses before download so printed paths stay absolute" '[[ $cc12b != 0 && $c12b == *"HOME must be an absolute path"* && ! -s $R/curls && ! -e "$R/cwork/relative" ]]'
@@ -116,7 +121,7 @@ for platform in linux-node24-bubblewrap unknown; do
   check "renderer refuses the $platform profile before creating an installer" '[[ $rc != 0 && ! -e $R/refused-$platform.sh ]]'
 done
 c18=$(PATH_C="$R/tar-fail:$R/cpath" credit "$R/credit h10" sh "$R/credit-install.sh" --credit); cc18=$?
-check "failed extraction refuses before any install or launcher" '[[ $cc18 != 0 && $c18 == *"could not be extracted"* && $c18 != *"Installed abalone"* && ! -e "$R/credit h10/.abalone-app/ddddddd/abalone" && ! -e "$R/credit h10/.local/bin/abalone" ]]'
+check "failed extraction refuses before any install or launcher" '[[ $cc18 != 0 && $c18 == *"could not be extracted"* && $c18 != *"Installed Dsmack"* && ! -e "$R/credit h10/.abalone-app/ddddddd/abalone" && ! -e "$R/credit h10/.local/bin/abalone" ]]'
 # tools/release.sh in a throwaway clone (this checkout's release.sh copied in), with npm stubbed: install.sh only with a base.
 git clone -q --shared "$root" "$R/repo" && cp "$root/tools/release.sh" "$R/repo/tools/"
 mkdir -p "$R/stub" && printf '#!/bin/sh\nexit 0\n' > "$R/stub/npm" && chmod +x "$R/stub/npm"

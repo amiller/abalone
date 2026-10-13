@@ -9,6 +9,7 @@ import net from "node:net";
 import path from "node:path";
 import readline from "node:readline";
 import { place, ROOT, STATE, AGENT_DIR, LOOPBACK, admittedHosts, localPorts, providers, CFG, RUNNER_HOME, runtimeDir, log } from "../lib/config.mjs";
+import { portableWorkspace } from "../lib/state-path.mjs";
 import * as upstream from "../lib/upstream.mjs";
 import { verified, admit } from "../lib/manifest.mjs";
 import { download } from "../lib/fetch.mjs";
@@ -549,6 +550,7 @@ function installedTrial() {
 
 // Plain `abalone`: the one saved credit's session; several are listed; with none, explain the ways in and take a pasted gift.
 async function frontDoor() {
+  process.chdir(portableWorkspace(ROOT, process.cwd()));
   const trialFile = args[1], wrong = trialFile && CREDIT_VALUES["--trial"](trialFile);
   if (wrong) throw new Error(wrong);
   const dir = path.join(STATE, "credit"), all = fs.existsSync(dir) ? await createCreditManager({ directory: dir }).status() : [];
@@ -599,6 +601,7 @@ async function session() {
   if (ownedHost && (!incognito || !couponSlot)) throw new Error("Owned-host mode requires an explicit incognito coupon session; no ambient provider is substituted.");
   await prepareRetention();
   if (incognito && args[args.indexOf("--incognito") + 1] && !args[args.indexOf("--incognito") + 1].startsWith("-")) process.chdir(args.splice(args.indexOf("--incognito") + 1, 1)[0]);
+  process.chdir(portableWorkspace(ROOT, process.cwd()));
   if (withTrace && !incognito) throw new Error("✗ refused: --with-trace adds a decrypted trace to a session's context, so it works only with --incognito");
   if (incognito && ["--resume", "-r", "--continue", "-c", "--session"].some((f) => args.includes(f))) throw new Error("✗ refused: strict incognito keeps no Pi session to resume; reopen a trace with --with-trace <id>");
   const key = keepTrace && trace.keyInfo();

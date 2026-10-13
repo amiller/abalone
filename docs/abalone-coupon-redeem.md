@@ -18,6 +18,10 @@ Its `install.sh` SHA256 is
 The signed issuer approval expires 2026-11-12T03:00:00Z;
 each gift's own claim-by time is earlier, and `abalone credit inspect` shows it.
 
+The [portable client source preview](portable-client.md) provides a one-archive
+layout and an optional installer with `--plan`. Those changes require a new
+qualified release; the published procedure below remains for preview.8.1.
+
 ## Conditions before you start
 
 - Linux x86_64, run as an ordinary (non-root) user on a computer you trust.
