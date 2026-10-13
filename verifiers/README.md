@@ -1,6 +1,6 @@
 # Private inference provider integrations
 
-Abalone welcomes integrations for any private inference provider. Each provider
+Dsmack welcomes integrations for any private inference provider. Each provider
 needs a clear account of what its evidence verifies and which request fields are
 protected. The guides can be followed independently; client integrations bind
 actual requests to the checked provider rather than merely checking once.
@@ -8,7 +8,7 @@ actual requests to the checked provider rather than merely checking once.
 | Provider | Integration | Coverage |
 | --- | --- | --- |
 | Chutes | [Ordinary Pi source preview](../guides/private-inference/pi.md), also used by the optional client | Instance TDX/GPU evidence, pinned VM measurements and complete encrypted requests; serving code and model identity unqualified |
-| NEAR | Existing optional Abalone client | Gateway/model evidence, pinned TLS, encrypted text and custom protected tool protocol; current gift trial permits outdated firmware |
+| NEAR | Existing optional Dsmack client | Gateway/model evidence, pinned TLS, encrypted text and custom protected tool protocol; current gift trial permits outdated firmware |
 
 ## Add an integration
 

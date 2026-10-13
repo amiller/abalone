@@ -55,7 +55,7 @@ export async function registerChutes(pi: ExtensionAPI, options: any = {}) {
       code: options.code ?? "VM measurements pinned; serving code and model identity not measured" }),
   });
   const api = openAICompletionsApi();
-  const register = () => pi.registerProvider(createProvider({ id: providerId, name: "Chutes private inference (Abalone)", baseUrl: "https://api.chutes.ai/v1",
+  const register = () => pi.registerProvider(createProvider({ id: providerId, name: "Chutes private inference (Dsmack)", baseUrl: "https://api.chutes.ai/v1",
     auth: { apiKey: guardedAuth } as any, models,
     api: {
       stream: (m: any, c: any, o: any) => api.stream(m, c, { ...o, fetch: send, maxRetries: 0 }),

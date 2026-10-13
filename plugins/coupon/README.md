@@ -23,7 +23,7 @@ The tool calls the existing reviewed credit manager directly. It retains the sam
 original claim keys, locking, expiry checks and recovery records under
 `~/.abalone/credit/` or `$ABALONE_DIR/credit/`. It currently needs Linux and flock.
 It does not export credentials. Existing NEAR coupon access opens in the included
-Abalone client; a Chutes private-inference integration cannot use that credential.
+Dsmack client; a Chutes private-inference integration cannot use that credential.
 
 The launcher remains available during migration. This entry establishes a
 separate acquisition workflow; moving all coupon dependencies into an independently

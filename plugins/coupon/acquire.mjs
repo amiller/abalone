@@ -57,7 +57,7 @@ export async function acquire({ options, manager, admission, input, confirm, out
   const id = options["--recover"];
   if (id) {
     await manager.redeem(id, { recover: true });
-    output(`Recovered private inference access. Saved credit: ${id}\nOpen it with the existing Abalone client: abalone credit session --credit ${id}`);
+    output(`Recovered private inference access. Saved credit: ${id}\nOpen it with the existing Dsmack client: abalone credit session --credit ${id}`);
     return;
   }
   const coupon = giftPaste(await input());
@@ -80,7 +80,7 @@ export async function acquire({ options, manager, admission, input, confirm, out
     output(`Redemption did not complete. Keep the saved recovery records. Recover with:\nnode plugins/coupon/acquire.mjs --recover ${creditId(coupon)}`);
     return false;
   }
-  output(`Private inference access saved. No agent was opened.\nOpen it with the existing Abalone client: abalone credit session --credit ${offer.creditId}\nThis NEAR coupon is not a Chutes credential.`);
+  output(`Private inference access saved. No agent was opened.\nOpen it with the existing Dsmack client: abalone credit session --credit ${offer.creditId}\nThis NEAR coupon is not a Chutes credential.`);
 }
 
 export async function main(args = process.argv.slice(2)) {

@@ -5,7 +5,7 @@ Status: draft
 Use Chutes private inference from your usual Pi, with instance verification and
 encrypted requests. This source preview adds a provider, not another agent
 interface. Native read, edit and other tool requests are sealed with the complete
-request. No coupon software, Abalone launcher, Linux sandbox or custom session
+request. No coupon software, Dsmack launcher, Linux sandbox or custom session
 directory is loaded.
 
 ## Add the provider integration
@@ -50,7 +50,7 @@ settings. Pi still caches the package and its dependencies in its own directory.
 To keep it in Pi's configuration, use `pi install "npm:@abalone/pi-private-inference-chutes@file:$private_inference_package"`.
 The command selects a Chutes private-inference model matching `Qwen`. If that
 model is unavailable, choose another name from `pi --list-models` with the same
-`-e` option. Change models under **Chutes private inference (Abalone)** with Pi's
+`-e` option. Change models under **Chutes private inference (Dsmack)** with Pi's
 usual `/model` picker. The status starts at **not checked yet**.
 Before a prompt is sent, the integration verifies the chosen instance, then
 seals the entire request to its verified key. Provider model lists are contacted
@@ -83,7 +83,7 @@ refused during credential resolution, including for history summaries.
 `--no-session` disables Pi's conversation-file persistence. It does not move all
 Pi state into memory, erase tool output, remove terminal scrollback or undo file
 edits. Without it, Pi retains conversations according to its usual settings.
-The included Abalone client's Linux sandbox and temporary-state preparation are
+The included Dsmack client's Linux sandbox and temporary-state preparation are
 separate options with separate platform requirements.
 
 Verification refuses invalid evidence before sending prompt bytes. Encrypted

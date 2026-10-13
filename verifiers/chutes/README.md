@@ -1,7 +1,7 @@
 # Chutes private inference integration
 
 This directory is a self-contained Pi package. Load it in ordinary Pi or use its
-JavaScript transport from another client. It does not import Abalone's launcher,
+JavaScript transport from another client. It does not import Dsmack's launcher,
 coupon dependencies, session store or vendored Pi.
 
 Follow [private inference in Pi](../../guides/private-inference/pi.md) for setup

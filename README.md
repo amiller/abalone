@@ -1,12 +1,12 @@
-<p align="center"><img src="docs/assets/abalone-banner-light.png#gh-light-mode-only" width="556" alt="Abalone, a cypherpunk AI privacy shell. A cartoon abalone peeks out from under its mottled shell, eye stalks up and smiling, beside the wordmark."><img src="docs/assets/abalone-banner-dark.png#gh-dark-mode-only" width="556" alt="Abalone, a cypherpunk AI privacy shell. A cartoon abalone peeks out from under its mottled shell, eye stalks up and smiling, beside the wordmark."></p>
+<p align="center"><img src="docs/assets/abalone-banner-light.png#gh-light-mode-only" width="556" alt="Dsmack, a cypherpunk AI privacy shell. A cartoon abalone peeks out from under its mottled shell, eye stalks up and smiling, beside the wordmark."><img src="docs/assets/abalone-banner-dark.png#gh-dark-mode-only" width="556" alt="Dsmack, a cypherpunk AI privacy shell. A cartoon abalone peeks out from under its mottled shell, eye stalks up and smiling, beside the wordmark."></p>
 
-# Abalone
+# Dsmack
 
 **Use private inference with your usual coding agent.**
 
-Abalone provides guides and focused provider integrations for private inference:
+Dsmack provides guides and focused provider integrations for private inference:
 choose how to get access, check the provider, and protect the requests your agent
-sends. Start with your usual agent; the included Abalone client is an optional
+sends. Start with your usual agent; the included Dsmack client is an optional
 way to see its connections, local protections and retention together.
 
 [Guides](guides/README.md) · [Website](https://amiller.github.io/abalone/) · [Security](docs/security.md)
@@ -16,7 +16,7 @@ way to see its connections, local protections and retention together.
 **Already have private inference access?** Try the
 [Chutes integration for ordinary Pi](guides/private-inference/pi.md). It checks
 instance evidence and encrypts complete requests, including tool calls. Pi keeps
-its usual tools and interface; no coupon software or Abalone launcher is needed.
+its usual tools and interface; no coupon software or Dsmack launcher is needed.
 This source preview uses published Pi 1.1.0 and its own small dependency package.
 It has not been published to npm or qualified as an installed release.
 
@@ -43,7 +43,7 @@ a meeting, answer a question and edit the file. You can instead work in a folder
 you choose, or start with a question. There is no need to populate a workspace
 before talking to the model.
 
-## The optional Abalone client
+## The optional Dsmack client
 
 The included client launches Pi with an explicit local policy. Its compact view
 shows the inference destination, whether evidence has been checked, shell
