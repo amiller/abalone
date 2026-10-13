@@ -33,7 +33,9 @@
 <p class="subhead">Give your user an incognito session using TEE-based private inference.</p>
 <div class="intro-grid">
 <div>
-<p>Abalone is a terminal shell around a coding agent. The agent starts with nothing saved from last time: the conversation lives in process memory, and its run files sit on tmpfs and are removed when the session exits. Before the first prompt byte leaves your computer, Abalone checks the model provider’s TEE attestation and encrypts each request to a key held inside that TEE, so the provider’s operators handle ciphertext. A session reports one of two assurance levels: <span class="level">◈ private inference</span> when that attestation checks out, and <span class="level">○ local safeguards only · provider not verified</span> for a provider Abalone cannot verify. The second level is planned; today an unverified provider is refused.</p>
+<p>Abalone is a terminal shell around a coding agent. A session starts with nothing saved from the last one: the conversation stays in process memory, and run files on tmpfs are removed at exit.</p>
+<p>Before the first prompt byte leaves your computer, Abalone checks the provider’s TEE attestation and encrypts each request to a key inside that TEE.</p>
+<p>Two assurance levels: <span class="level">◈ private inference</span> when the attestation checks out; <span class="level">○ local safeguards only · provider not verified</span> is planned. Today an unverified provider is refused.</p>
 <div class="limits">
 <p><strong>Linux x86_64 with Node 24</strong>, on a computer you trust. There is no OS isolation: tools have your account’s files and network.</p>
 <p><strong>Synthetic material only.</strong> The current NEAR route accepts a verified out-of-date firmware warning.</p>
@@ -41,7 +43,7 @@
 </div>
 <div class="actions"><a class="primary" href="https://github.com/amiller/abalone/blob/main/guides/private-inference/README.md">Read the private inference guide</a><a href="#start">Start</a></div>
 </div>
-<img class="painting" src="assets/nacre-960.webp" width="960" height="640" alt="An open abalone shell, with a rough edge and luminous teal and ivory interior.">
+<figure class="plate"><img class="painting" src="assets/nacre-960.webp" width="960" height="640" alt="An open abalone shell, with a rough edge and luminous teal and ivory interior."></figure>
 </div>
 </section>
 
@@ -71,11 +73,11 @@
 <td data-label="Metadata">The coupon at redemption, and your IP address. The sponsor knows who they gave the gift to.</td></tr>
 <tr><th scope="row">The model provider’s TEE<small>NEAR today</small></th>
 <td data-label="Prompt contents">Decrypted only inside the attested TEE. Abalone does not verify what the provider retains, and strong private guarantees are unqualified under the firmware exception.</td>
-<td data-label="Credential">Yes. Each request carries it.</td>
+<td data-label="Credential">Yes. It is a capped credential for the provider’s own API.</td>
 <td data-label="Metadata">When you connect, from which IP address, how much you use, and which credit paid.</td></tr>
 <tr><th scope="row">The network<small>your ISP, Wi-Fi, anyone on the path</small></th>
 <td data-label="Prompt contents">No. Requests are encrypted to the admitted model key.</td>
-<td data-label="Credential">No. It travels inside encrypted connections.</td>
+<td data-label="Credential">Not in the clear. The issuer delivers it encrypted to a key on your computer over an authenticated Noise connection (<a href="https://github.com/amiller/abalone/blob/main/docs/protocols/coupon.md">coupon protocol</a>); model requests use TLS pinned to the key in the verified quote (<a href="https://github.com/amiller/abalone/blob/main/docs/protocols/near-adapter.md">NEAR adapter</a>).</td>
 <td data-label="Metadata">Your IP address, the hosts you contact, when, and how much. Neither incognito nor provider encryption gives IP anonymity.</td></tr>
 </tbody>
 </table>
