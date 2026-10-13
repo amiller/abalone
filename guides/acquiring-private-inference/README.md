@@ -71,10 +71,12 @@ abalone key forget chutes --label work
 
 The key is never a command argument. Abalone checks it with one authenticated
 call that carries no prompt, then saves it as a 0600 file in its credit store.
-`abalone sandbox --model <provider>/<model>` gives the session that provider's
-most recently added key and verifies the provider's attestation before any
-prompt is sent, as for any admitted provider. The plain `abalone` session does not use
-configured keys yet.
+`abalone sandbox --incognito --model <provider>/<model>` gives the session that
+provider's most recently added key and verifies the provider's attestation before
+any prompt is sent, as for any admitted provider. Without `--incognito` the sandbox
+keeps a resumable plaintext session under `~/.abalone/agent`. The folder needs
+canaries (`abalone canary init <folder>`), or start the sandbox with
+`--no-canaries`. The plain `abalone` session does not use configured keys yet.
 
 **What is linked:** the provider account and how you paid for it; the provider
 sees every request's size and timing and your IP address unless you use Tor.

@@ -93,8 +93,8 @@ coupon. A provider key saved with `abalone key add` is used only by
 `abalone sandbox`, not by this session.
 
 The short way is plain `abalone` at your own terminal. With nothing saved it
-asks for the gift: paste the link, the code or the full path of a 0600 file
-holding it (the input is not echoed). It prints the same offer as
+asks for the gift: paste the link, the code, or the path of a 0600 file holding
+it, starting with `/`, `~/`, `./` or `../` (the input is not echoed). It prints the same offer as
 `credit inspect` below and asks you to type the first 8 characters of its
 `offerHash`. Typing them redeems that offer and opens the session; anything else
 stops without claiming and saves nothing. Any further lines of a multi-line paste
