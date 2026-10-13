@@ -7,6 +7,8 @@
 set -uo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"; cd "$root"
 suites=(
+  "offline|coupon acquisition (separate consent and recovery entry)|node --test tests/coupon-acquire.test.mjs"
+  "offline|session policy (configured boundaries and retention)|node --test tests/session-policy.test.mjs"
   "offline|lockdown|tests/lockdown.sh" "offline|egress|tests/egress.sh" "offline|local|tests/local.sh" "offline|mcp|tests/mcp.sh"
   "offline|mounts|tests/mounts.sh" "offline|canary|tests/canary.sh" "offline|private-work|tests/private-work.sh"
   "offline|state-modes|tests/state-modes.sh" "offline|session|tests/session.sh" "offline|notebook|tests/notebook.sh" "offline|tui|tests/tui.sh"

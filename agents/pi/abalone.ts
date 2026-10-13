@@ -132,6 +132,7 @@ export default async function (pi: ExtensionAPI) {
   const auth = (name: string) => ({ apiKey: { name, resolve: async () => ({ auth: { apiKey: "pour-only" } }) } }) as any;
   const INCOGNITO = incognito(); // strict incognito: no outside provider is registered, and none is reachable
   const COUPON_SESSION = !!process.env.ABALONE_COUPON_SOCKET;
+  let bannerArt = false;
   if (!INCOGNITO && !COUPON_SESSION) pi.registerProvider(createProvider({ id: "runner", name: "runner ○ outside", baseUrl: "http://127.0.0.1:0", auth: auth("runner"), api,
     models: Object.keys(providers().runners).map((r) => model("runner", r, `${r} (your own subscription, sandboxed runner)`, "http://127.0.0.1:0")) as any }));
   const near = providers().admitted.find((a: any) => a.id === "nearai");
@@ -207,7 +208,23 @@ export default async function (pi: ExtensionAPI) {
     log("agents.jsonl", { event: "spawn", id: sessionId, run: path.basename(process.env.ABALONE_EGRESS!), parent: process.env.ABALONE_PARENT ?? "user", domain: "private", place: ctx.model ? place(ctx.model.provider) : null, model: ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : null });
     refresh(ctx);
     if (ctx.mode === "tui") ctx.ui.setHeader((_tui: any, th: any) => ({ invalidate() {},
-      render: (w: number) => ["", ...header({ cwd: ctx.cwd, model: segs?.[COUPON_SESSION && INCOGNITO ? 1 : 0][0] ?? "no model selected", width: w - 2 }).map((l, i) => ` ${i === 2 ? th.fg("dim", l) : l}`)] }));
+      render: (w: number) => {
+        const active = live ?? ctx;
+        const model = active.model ? `${active.model.provider}/${active.model.id}` : "no model selected";
+        const entries = active.sessionManager.getEntries();
+        const ev = verifications(entries);
+        const recorded = ev[model] ?? ev[`${active.model?.provider}/*`];
+        const brokerResult = COUPON_SESSION ? entries.filter((e: any) => e.type === "custom" && e.customType === "coupon-provider-result" && e.data?.model === active.model?.id).at(-1) : null;
+        let descriptor = { local_boundary: "unknown" };
+        try { if (process.env.ABALONE_SESSION_DESCRIPTOR) descriptor = JSON.parse(fs.readFileSync(process.env.ABALONE_SESSION_DESCRIPTOR, "utf8")); } catch {}
+        return ["", ...header({ cwd: ctx.cwd, model, width: w - 2,
+          policy: { descriptor, incognito: INCOGNITO, ownedHost: process.env.ABALONE_OWNED_HOST === "1", art: bannerArt,
+            checkText: brokerResult ? (brokerResult.data.accepted ? "broker accepted last protected request" : "last broker request refused")
+              : recorded ? `recorded check ${recorded.ts.slice(0, 16).replace("T", " ")} UTC` : undefined } }).map((line) => {
+          const label = /^(Inference|Connection|Tools|Retention|Files):/.exec(line)?.[0];
+          return ` ${label ? th.bold(label) + line.slice(label.length) : th.fg("dim", line)}`;
+        })];
+      } }));
     if (ctx.mode === "tui") ctx.ui.setFooter((tui: any) => {
       render = () => tui.requestRender();
       return { invalidate() {}, render: (w: number) => [line(w)] };
@@ -330,7 +347,14 @@ export default async function (pi: ExtensionAPI) {
   const fail = (ctx: any, e: any) => ctx.ui.notify(e.message, "error");
   // A credit session lists only what works in it: the launcher refuses /folder, /fetch and /report there, information topics fold into /status, and gift/notebook commands are legacy.
   const CREDIT_COMMANDS = ["status", "coupon"];
-  const command = (name: string, spec: any) => { if (!COUPON_SESSION || CREDIT_COMMANDS.includes(name)) pi.registerCommand(name, spec); };
+  const command = (name: string, spec: any) => { if (!COUPON_SESSION || CREDIT_COMMANDS.includes(name) || name === "banner") pi.registerCommand(name, spec); };
+  command("banner", { description: "Choose compact connection and retention status, with optional shell art",
+    handler: async (args: string, ctx: any) => {
+      if (!["compact", "art"].includes(args.trim())) return ctx.ui.notify("Use /banner compact or /banner art.", "info");
+      bannerArt = args.trim() === "art";
+      ctx.ui.setStatus("abalone-banner", bannerArt ? "shell art on" : undefined);
+      render();
+    } });
   command("evidence", { description: "Full verifier output and where each resource runs",
     handler: async (_a, ctx) => show(ctx, evidence({ model: ctx.model, entries: ctx.sessionManager.getEntries() })) });
   // Recent folders, newest first, for the /folder picker (<STATE>/folders.json).

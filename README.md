@@ -2,126 +2,93 @@
 
 # Abalone
 
-Abalone, a cypherpunk AI privacy shell. Give your user an incognito session using TEE-based private inference.
+**Use private inference with your usual coding agent.**
 
-[Website](https://amiller.github.io/abalone/) · [Guides](guides/README.md) · [Security](docs/security.md)
+Abalone provides guides and focused provider integrations for private inference:
+choose how to get access, check the provider, and protect the requests your agent
+sends. Start with your usual agent; the included Abalone client is an optional
+way to see its connections, local protections and retention together.
 
-Start with a coding agent and a model API. You can ask it to work on your files,
-but now the provider can read your prompts, the tools inherit your account's
-access, and the conversation stays on disk.
+[Guides](guides/README.md) · [Website](https://amiller.github.io/abalone/) · [Security](docs/security.md)
 
-Move inference into a trusted execution environment (TEE) and encrypt requests
-to it. That protects the remote computation. You still need to check which
-program receives those requests and control what happens on your own computer.
+## Start with private inference
 
-Abalone puts those checks around an agent session. It verifies supported
-providers, keeps credentials out of saved agent configuration, and starts
-incognito sessions without saved conversation history. Its skills and guides
-cover sandbox setup and network security.
+**Already have private inference access?** Try the
+[Chutes integration for ordinary Pi](guides/private-inference/pi.md). It checks
+instance evidence and encrypts complete requests, including tool calls. Pi keeps
+its usual tools and interface; no coupon software or Abalone launcher is needed.
+This source preview uses published Pi 1.1.0 and its own small dependency package.
+It has not been published to npm or qualified as an installed release.
 
-Already have private inference? Use Abalone to check your provider and keep the
-session clean. Need a model? Start with the
-[acquiring guide](guides/acquiring-private-inference/README.md) to choose a
-provider and find how to buy access.
+**Looking for private inference access?** Read the
+[acquiring private inference guide](guides/acquiring-private-inference/README.md).
+The guides describe choices independently of the client; reading them needs no
+installation. Individual procedures state their own requirements and status.
 
-## Run it
+**Have a gift link or paper wallet?** Use the
+[gift redemption procedure](docs/abalone-coupon-redeem.md). Existing released
+coupons deliver NEAR access and open in the included client. The new
+[optional acquisition tool](plugins/coupon/README.md) can redeem without opening
+an agent. A NEAR coupon is not a credential for the Chutes Pi integration.
 
-There are three ways to bring a model.
+Provider integrations are open to any private inference provider. Each needs its
+own tested verification and request protection; an ordinary API endpoint is not
+a substitute for those checks. Chutes is the first standalone Pi integration;
+[the provider integration guide](verifiers/README.md) describes adding others.
 
-**Your own key or a local model.** The sandbox is available from source on
-Linux x86_64 with Node 24; follow [CONTRIBUTING](CONTRIBUTING.md).
-See [providers.json](providers.json) for admitted routes and the
-[getting-started guide](docs/getting-started.md) for configuration.
-A local model needs no provider key.
+## Try useful work
 
-```sh
-abalone canary init <folder>
-abalone sandbox --incognito --model <provider>/<model>
-```
+The [Pi guide](guides/private-inference/pi.md) includes a small example: summarize
+a meeting, answer a question and edit the file. You can instead work in a folder
+you choose, or start with a question. There is no need to populate a workspace
+before talking to the model.
 
-The simpler key setup command is planned for a future release:
+## The optional Abalone client
 
-```sh
-abalone key add <provider>
-```
+The included client launches Pi with an explicit local policy. Its compact view
+shows the inference destination, whether evidence has been checked, shell
+network access, filesystem boundary and conversation or trace retention.
+`/banner art` adds a small shell; `/banner compact` returns to the status view.
+Those display changes are in source and require a new client release.
 
-**A gift from someone running [Dsmack](https://github.com/amiller/dsmack).**
-The [redeem page](https://amiller.github.io/abalone/redeem) takes you through
-the released installer and saves the delivered credential as a credit.
-Then run `abalone`. The installer downloads the client archive and four public
-files from the release, each checked against a hash pinned in the script, writes
-only under `~/.abalone-app` and `~/.local/bin`, and claims nothing
-([what install.sh does](docs/abalone-coupon-redeem.md#what-installsh-does);
-[without the script](docs/abalone-coupon-redeem.md#without-the-script)).
+The released gift route runs tools with your ordinary account's access. The
+separate Linux sandbox limits filesystem access and shell networking. Temporary
+state and encrypted traces are explicit client choices; a provider integration
+alone does not supply them. See [getting started](docs/getting-started.md) and
+[what the client keeps](docs/security.md#local-host-and-retention).
 
-**Zcash, planned.** Pay for a slice of model access and open a session.
-Invoice and payment detection have a testnet prototype; the swap is dry-run
-only, and buying provider credit with the proceeds remains unresolved.
-
-Today plain `abalone` opens a saved credit or asks for a gift.
-Bringing keys and coupons into the same launcher, with sandbox capabilities
-independent of how you acquired access, is planned.
-
-## What happens in a session
-
-Abalone launches [Pi](vendor/pi/). On a supported TEE route, it checks
-attestation before sending the first prompt: signed hardware evidence binds
-the running program to a key. Abalone compares the program's measurement with
-the expected value in [`verifiers/`](verifiers/) and protects requests using
-the attested key. The provider operator sees encrypted traffic, along with
-metadata such as timing, request sizes and the paying account.
-
-In `abalone sandbox`, bubblewrap limits filesystem access and network
-connections to permitted destinations. Canaries are planted test secrets;
-outgoing-text checks reject recognizable leaks. Ordinary connected sessions
-also have a disclosure gate for text sent to outside models.
-
-Abalone supplies the credential at launch. With a coupon, the issuer delivers
-it encrypted to keys generated on your computer. The issuer sees the coupon;
-prompts go directly to the model provider.
-
-Private inference providers supply the remote computation; Abalone checks
-their evidence and manages the agent's local session. Tor and Tails address
-network identity; the [guides](guides/README.md) cover combining them.
+[The released client setup](docs/abalone-coupon-redeem.md#what-installsh-does)
+explains its installer and the manual alternative. Installation places files in
+your home directory and adds a launcher; it is separate from using the guides or
+loading the focused Pi integration. A simpler one-download client distribution
+is [being developed](https://github.com/amiller/abalone/issues/44).
 
 ## What incognito means here
 
-The conversation stays in process memory, with no conversation file or trace
-written by default. Temporary managed state uses memory-backed storage.
-The next session starts fresh; saved access stays until you remove it with
-`abalone credit forget`.
+In the included client's incognito mode, conversation history is not saved by
+default. Managed temporary state uses memory-backed storage; an encrypted trace
+is retained only by explicit choice. Saved private inference credentials can
+survive the conversation. Workspace edits, terminal captures and memory swap
+have their own lifetimes. Ordinary Pi's `--no-session` controls conversation
+history but does not provide all of this client's temporary-state preparation.
 
-A fresh session is not deletion. Workspace files, terminal captures, backups
-and crash artifacts have their own lifetimes, and memory-backed storage may
-swap. Your computer remains trusted.
-[Local host and retention](docs/security.md#local-host-and-retention)
-records each mode's behavior. Without `--incognito`, the sandbox saves a
-resumable conversation.
+## What the checks establish
 
-## Work still to do
+Provider verification checks hardware evidence and binds protected requests to
+an attested key. It does not establish your computer's security, tool isolation,
+network anonymity or audited provider retention. Chutes' checked VM measurements
+do not bind its serving code or prove which model answered.
 
-Provider retention is part of the verification work. Today Abalone pins
-providers' published measurements. Establishing what their programs retain
-requires auditing the source and deriving reference measurements from it;
-that audit is unfinished.
+The current NEAR gift trial permits an explicit outdated-firmware exception and
+is for synthetic, non-sensitive material. Its operator can access and revoke the
+credential. The [security document](docs/security.md) gives route-specific limits.
 
-Network identity is also in scope. Tor/Tails integration needs working
-provider routes: NEAR's attestation service currently refuses Tor exits;
-RedPill and Phala answer over Tor. Verification failures currently stop the
-session. An explicitly labelled mode for unverified providers is planned.
+## Explore and contribute
 
-Use synthetic, non-sensitive material with the current preview. The released
-coupon route runs tools as your account without an OS sandbox and permits an
-explicit outdated-firmware warning. Its operator can access and revoke the
-credential, and spending can exceed the cap. Sandbox disclosure checks can
-miss paraphrases. The [security document](docs/security.md) gives the exact
-boundaries.
-
-## Explore
-
-- [Guides](guides/README.md): providers, payment and network setup
-- [Watch a synthetic PDF become meeting minutes](https://pod.dstack.soc1024.com/artifact-reports-2026c/abalone-coupon-pdf-meeting-minutes--lWMO2qY1hfbnqZdRWwg8cQ/) using a coupon
-- [Architecture and source layout](docs/architecture.md) and [documentation index](docs/README.md)
-- [Contributing](CONTRIBUTING.md), [issues](https://github.com/amiller/abalone/issues) and [security reporting](SECURITY.md)
+- [Private inference guides](guides/README.md): providers, acquisition and network choices
+- [Provider integrations](verifiers/README.md): coverage and extension points
+- [Development and build instructions](CONTRIBUTING.md)
+- [Roadmap](docs/roadmap.md), [issues](https://github.com/amiller/abalone/issues) and [security reporting](SECURITY.md)
+- [Architecture](docs/architecture.md) and [documentation index](docs/README.md)
 
 First-party code is [MIT licensed](LICENSE); preserve [component notices](THIRD_PARTY_NOTICES.md).

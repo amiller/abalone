@@ -14,7 +14,12 @@ export default async function (pi: ExtensionAPI) {
   // "nearai": the strict pinned NEAR profile of the attested v4 debug-staging session — no
   // providers.json inheritance, no ambient key; the launcher's adapter holds the credential.
   const p = providerId === "nearai" ? admitAttestedCouponNearProvider(selected, false, Number(process.env.ABALONE_COUPON_MAX_TOKENS)) : admitCouponSessionProvider(providers(), selected);
-  const send = couponSocketFetch(socketPath);
+  const socketFetch = couponSocketFetch(socketPath);
+  const send: typeof fetch = async (input, init) => {
+    const response = await socketFetch(input, init);
+    if (providerId === "nearai") pi.appendEntry?.("coupon-provider-result", { provider: providerId, model: selected, accepted: response.ok });
+    return response;
+  };
   const api = openAICompletionsApi();
   const near = providerId === "nearai";
   pi.registerProvider(createProvider({ id: p.provider, baseUrl: "http://127.0.0.1:0/v1",

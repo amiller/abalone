@@ -4,12 +4,12 @@
   {
    "kind": "provider",
    "path": "agents/pi/coupon-provider.ts",
-   "sha256": "45452e83a1c6f25a58b10e00d596afbb6cbe3a8bc6d82ada9c38f131c81303eb"
+   "sha256": "91d84da81ae509027a4c7a5cc0886c8273b0c003f3a4a6198c2262e0ad68e13e"
   },
   {
    "kind": "extension",
    "path": "agents/pi/abalone.ts",
-   "sha256": "0f20c9daccaa2d45de9443b6c61796facdfd161f9c58ddcb890d64fbb7984911"
+   "sha256": "3e095a9457d356499ffcc1638911710b265a9dcb069e9e69cc0eaaf599d8fae7"
   },
   {
    "kind": "extension",
@@ -29,7 +29,7 @@
   {
    "kind": "tree",
    "path": "lib",
-   "sha256": "fbe13e2031ba2dda14a42634ec1d1cb710bfe5a6f87c3d105e9f71fe2e041e64"
+   "sha256": "bf560a1c2302dbe577991ddaa75ef175d468e416a4efbe9315052e1bdc1c734c"
   },
   {
    "kind": "skill",
@@ -79,12 +79,12 @@
   {
    "kind": "provider",
    "path": "agents/pi/chutes-provider.ts",
-   "sha256": "0590e439ff066b56902c218d7683e9554cf11f0fb9ee1670179508e8fa95f5b3"
+   "sha256": "591c4ba9cd902d738f166e20acd0feeaf7d826a289745c739075e3d080109071"
   },
   {
    "kind": "tree",
    "path": "verifiers",
-   "sha256": "1400a863c3dab8d1e34b36cedd6887e42d04b14492d780a85a67cd8bd8f828f7"
+   "sha256": "cfb68cecdcfcb6ea1fbf21038555f86d25d4dab7828a99a74341031b6edd87cb"
   }
  ]
 }
