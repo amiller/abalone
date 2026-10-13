@@ -125,6 +125,20 @@ console.log(JSON.stringify({state:STATE, workspace:portableWorkspace(ROOT,proces
                 self.assertNotEqual(self.run_pack().returncode, 0)
                 self.assertFalse((self.base / 'packed').exists())
 
+    def test_hard_link_to_a_symlink_cannot_relocate_its_target(self):
+        with tarfile.open(self.archive, 'r:gz') as source:
+            entries = [(m, source.extractfile(m).read() if m.isfile() else None) for m in source]
+        with tarfile.open(self.archive, 'w:gz') as target:
+            for m, raw in entries:
+                target.addfile(m, io.BytesIO(raw) if raw is not None else None)
+            target.addfile(tarfile.TarInfo('abalone/file'), io.BytesIO(b''))
+            symbolic = tarfile.TarInfo('abalone/deep/dir/sym')
+            symbolic.type = tarfile.SYMTYPE; symbolic.linkname = '../../file'; target.addfile(symbolic)
+            hard = tarfile.TarInfo('abalone/hard')
+            hard.type = tarfile.LNKTYPE; hard.linkname = 'abalone/deep/dir/sym'; target.addfile(hard)
+        self.assertNotEqual(self.run_pack().returncode, 0)
+        self.assertFalse((self.base / 'packed').exists())
+
     def test_existing_output_and_symlink_public_input_refuse(self):
         self.assertEqual(self.run_pack().returncode, 0)
         archive = self.base / 'packed' / 'abalone-abcdef0-portable.tar.gz'

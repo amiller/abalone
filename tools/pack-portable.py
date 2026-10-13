@@ -84,6 +84,8 @@ def checked_members(archive):
                 raise ValueError('Runtime archive link escapes its runtime.')
             nested = links.get('/'.join(current))
             if nested:
+                if link.islnk() and nested.issym():
+                    raise ValueError('Runtime hard link traverses a symbolic link.')
                 expansions += 1
                 if expansions > 40:
                     raise ValueError('Runtime archive contains a cyclic or excessive link chain.')
