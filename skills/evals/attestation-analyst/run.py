@@ -7,11 +7,11 @@ Usage: run.py --analyst CMD --out DIR [--corpus DIR --targets DIR] [--cases a,b]
 """
 import argparse, json, re, subprocess, sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools/eval"))
 from llm import parse_json
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
+ROOT = HERE.parents[2]
 CORPUS = HERE / "fixtures/corpus"
 GOLD = HERE / "fixtures/gold"
 WITHHOLD = CORPUS
@@ -58,7 +58,7 @@ def main():
     p.add_argument("--cases")
     p.add_argument("--inline", type=int)
     p.add_argument("--corpus", type=Path, default=HERE / "fixtures/corpus", help="case directories containing reviewed evidence")
-    p.add_argument("--targets", type=Path, default=HERE / "fixtures/targets", help="target definitions; use attestation/targets for historical cases")
+    p.add_argument("--targets", type=Path, default=HERE / "fixtures/targets", help="target definitions; use skills/evals/attestation-analyst/targets for historical cases")
     p.add_argument("--gold", type=Path, default=HERE / "fixtures/gold", help="scoring directory to hide from the analyst")
     p.add_argument("--withhold-root", type=Path, help="hide the entire external guide/corpus tree, including sibling verdicts")
     a = p.parse_args()

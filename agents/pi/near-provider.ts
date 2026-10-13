@@ -1,18 +1,18 @@
 // NEAR AI Cloud as an admitted provider, admitted per model: lib/near.mjs verifies each model before its
 // first prompt byte; models NEAR proxies to outside vendors are refused. Chat bodies are E2EE to the
 // model's attested key and go only over the channel pinned to the attested gateway SPKI.
-// nearProvider(pi, "gift", gift) is the same provider reached through a gift's peer (curated/peer-provider.ts): no key
+// nearProvider(pi, "gift", gift) is the same provider reached through a gift's peer (agents/pi/peer-provider.ts): no key
 // here; the attestation report and the chat go through the peer, signed by this device. The report still carries our
 // nonce and is verified here; prompt contents are still encrypted to the attested model key. The peer pins NEAR's SPKI.
 import crypto from "node:crypto";
 import { createProvider, envApiKeyAuth } from "@earendil-works/pi-ai";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/compat";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { providers } from "../lib/config.mjs";
-import { ATTESTED_OWNERS, chatSignatureFails, peerStatus, untrusted, decrypt, encrypt, verifyNearModel, withKey } from "../lib/near.mjs";
-import { deviceHeaders } from "../lib/gift.mjs";
-import { saveLeft } from "../lib/peer.mjs";
-import { tcbFlag } from "../lib/status.mjs";
+import { providers } from "../../lib/config.mjs";
+import { ATTESTED_OWNERS, chatSignatureFails, peerStatus, untrusted, decrypt, encrypt, verifyNearModel, withKey } from "../../lib/near.mjs";
+import { deviceHeaders } from "../../lib/gift.mjs";
+import { saveLeft } from "../../lib/peer.mjs";
+import { tcbFlag } from "../../lib/status.mjs";
 
 const FIELDS = ["content", "reasoning_content", "reasoning"];
 

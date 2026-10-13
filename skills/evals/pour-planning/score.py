@@ -6,10 +6,10 @@ Leakage is a detector score, not a confidentiality guarantee: the scan only find
 import argparse, json, re, sys
 from datetime import date
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools/eval"))
 from llm import ask, parse_json
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 
 def forms(c):
     v = c["value"]

@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-HARNESS = ROOT / 'evals/attestation/run.py'
+HARNESS = ROOT / 'skills/evals/attestation-analyst/run.py'
 
 class EvaluationBoundary(unittest.TestCase):
     def setUp(self):
@@ -45,7 +45,7 @@ print(json.dumps({'stage':'0','gaps':[], 'visible':files, 'gold':[str(p) for g i
 
     def run_case(self, extra=(), withhold=True):
         (self.targets / 'test-service.json').write_text(json.dumps(self.target))
-        analyst = f'python3 {self.analyst} {self.gold} {ROOT}/evals/attestation/gold {ROOT}/evals/attestation/fixtures/gold'
+        analyst = f'python3 {self.analyst} {self.gold} {ROOT}/skills/evals/attestation-analyst/gold {ROOT}/skills/evals/attestation-analyst/fixtures/gold'
         cmd = ['python3', str(HARNESS), '--corpus', str(self.corpus), '--targets', str(self.targets),
                '--gold', str(self.gold), '--analyst', analyst, '--out', str(self.root / 'out')]
         if withhold:

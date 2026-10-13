@@ -14,8 +14,8 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 W="$(mktemp -d /tmp/abc.XXXX)"
 fail=0
 check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fail=1; fi; }
-mkdir -p "$W/config/curated" "$W/i" "$W/l" "$W/r"
-cp "$root/providers.json" "$root/policy.json" "$W/config/"; cp "$root/curated/manifest.json" "$W/config/curated/"
+mkdir -p "$W/config/agents/pi" "$W/i" "$W/l" "$W/r"
+cp "$root/providers.json" "$root/policy.json" "$W/config/"; cp "$root/agents/pi/admitted.json" "$W/config/agents/pi/"
 STUB_IMAGE="stub-task@sha256:$(printf '0%.0s' {1..64})"   # the stub runner's task "image", admitted only in this test's config
 [[ -z ${TASK_PEER:-} ]] && node -e 'const f=process.argv[1],p=require(f);p.peers.admit.dev=true;p.peers.admit.task.images.push(process.argv[2].split("@")[1]);require("fs").writeFileSync(f,JSON.stringify(p,null,1))' "$W/config/providers.json" "$STUB_IMAGE"
 [[ -z ${TASK_PEER:-} ]] && ABALONE_CONFIG="$W/config" node "$root/tools/rehash-manifest.mjs" > /dev/null   # only the local peer needs it

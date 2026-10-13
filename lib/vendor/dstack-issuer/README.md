@@ -23,7 +23,7 @@ and [runtime event hashing](https://github.com/Dstack-TEE/dstack/blob/282eeb27d2
 The original worker SHA256 is
 `91f616c13e7a5245306ee055b9c829d51954343df7370d840a9a61da818404fc`.
 The worker here adapts only dependency lookup: Abalone uses the existing
-`aci/verifier-ts` package tree and refuses a DCAP dependency version other than
+`vendor/phala-aci/verifier-ts` package tree and refuses a DCAP dependency version other than
 the reviewed `@phala/dcap-qvl` 0.6.6. Quote validation logic is unchanged.
 
 The production factory verifies genuine Intel DCAP, measurement/event-log

@@ -56,7 +56,7 @@ const socket=path.join(base,'runtime','coupon.sock');
 const broker=await couponNearCredentialBroker({socketPath:socket,adapter});
 const closeBrowser=browserBridge(path.join(base,'runtime'),{incognito:true});
 const env={PATH:oldPath,HOME:path.join(base,'agent'),USER:'fixture',LANG:'C.UTF-8',ABALONE_DIR:path.join(base,'state'),ABALONE_CONFIG:root,ABALONE_EGRESS:path.join(base,'runtime'),ABALONE_INCOGNITO:'1',ABALONE_OWNED_HOST:'1',ABALONE_COUPON_SOCKET:socket,ABALONE_COUPON_MODEL:'Qwen/Qwen3.8-27B',ABALONE_COUPON_PROVIDER:'nearai',ABALONE_COUPON_MAX_TOKENS:'512',PI_CODING_AGENT_DIR:path.join(base,'agent'),TMPDIR:path.join(base,'runtime')};
-const argv=[path.join(root,'pi/packages/coding-agent/dist/cli.js'),'--no-extensions','--no-skills','--no-prompt-templates','--no-themes','--no-context-files','--no-mcp','--no-approve','-e',path.join(root,'curated/abalone.ts'),'-e',path.join(root,'curated/coupon-provider.ts'),'--no-session','--mode','rpc','--model','nearai/Qwen/Qwen3.8-27B','--thinking','off'];
+const argv=[path.join(root,'vendor/pi/packages/coding-agent/dist/cli.js'),'--no-extensions','--no-skills','--no-prompt-templates','--no-themes','--no-context-files','--no-mcp','--no-approve','-e',path.join(root,'agents/pi/abalone.ts'),'-e',path.join(root,'agents/pi/coupon-provider.ts'),'--no-session','--mode','rpc','--model','nearai/Qwen/Qwen3.8-27B','--thinking','off'];
 const child=spawn(process.execPath,argv,{env,cwd:path.dirname(file),stdio:['pipe','pipe','pipe']});
 const events=[];let buffer='',stderr='';const timer=setTimeout(()=>child.kill('SIGTERM'),30000);
 child.stderr.on('data',b=>stderr+=b);

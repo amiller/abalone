@@ -161,12 +161,12 @@
             "lib/coupon-near.mjs",
             "lib/near.mjs",
             "lib/coupon-staging.mjs",
-            "curated/coupon-provider.ts",
-            "curated/manifest.json",
+            "agents/pi/coupon-provider.ts",
+            "agents/pi/admitted.json",
             "package-lock.json",
-            "pi/package-lock.json",
-            "aci/package-lock.json",
-            "pi/packages/coding-agent/dist/cli.js"
+            "vendor/pi/package-lock.json",
+            "vendor/phala-aci/package-lock.json",
+            "vendor/pi/packages/coding-agent/dist/cli.js"
           ]
         }
       },

@@ -4,7 +4,7 @@ and a judge verdict on whether the stated gap names the documented one.
 Usage: score.py [--judge CMD] OUT_DIR   (no --judge: names_gap is reported MISSING)"""
 import argparse, json, sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools/eval"))
 from llm import ask, parse_json
 
 CASES = Path(__file__).parent / "cases"

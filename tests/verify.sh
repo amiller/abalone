@@ -15,7 +15,7 @@ suites=(
   "offline|capability snapshot (ordinary-session diagnostic in ignored local-data)|node tools/threat-model.mjs"
   "offline|gate (metadata_only schema, encoded canaries)|node --test tests/gate.test.mjs" "offline|mcp-socket (hardened-mode transport)|tests/mcp-socket.sh"
   "offline|upstream (RedPill upstream admission, recorded sessions and receipts)|node --test tests/upstream.test.mjs"
-  "offline|peer-image-smoke (peer serve/relay from the peer image tree, no pi/)|tests/peer-image-smoke.sh"
+  "offline|peer-image-smoke (peer serve/relay from the peer image tree, no vendor/pi/)|tests/peer-image-smoke.sh"
   "offline|g8-offline|node --test tests/g8-offline.mjs" "offline|chutes (instance verifier and E2EE envelope, recorded instance)|node --test tests/chutes.test.mjs" "offline|no-promotion|node --test tests/no-promotion.test.mjs"
   "offline|disclose|node --test tests/disclose.test.mjs" "offline|receipt|node --test tests/receipt.test.mjs" "offline|bundle (task result bundle verifier, fixture + recorded runner)|node --test tests/bundle.test.mjs"
   "offline|runner-retry (zero-byte delivery retry)|node --test tests/macrunner-retry.test.mjs"

@@ -12,8 +12,8 @@ fail=0
 check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fail=1; fi; }
 if [[ ${1:-} == --relaxed ]]; then
   echo "CONFIG: RELAXED copy (nearai.policy.gatewayTcb = reported), not the repo config"
-  export ABALONE_CONFIG="$work/config"; mkdir -p "$ABALONE_CONFIG/curated"
-  cp "$root/curated/manifest.json" "$ABALONE_CONFIG/curated/"; cp "$root/policy.json" "$ABALONE_CONFIG/"
+  export ABALONE_CONFIG="$work/config"; mkdir -p "$ABALONE_CONFIG/agents/pi"
+  cp "$root/agents/pi/admitted.json" "$ABALONE_CONFIG/agents/pi/"; cp "$root/policy.json" "$ABALONE_CONFIG/"
   node -e 'const p=require(process.argv[1]);p.admitted.find(a=>a.id=="nearai").policy.gatewayTcb="reported";require("fs").writeFileSync(process.argv[2],JSON.stringify(p,null,1))' "$root/providers.json" "$ABALONE_CONFIG/providers.json"
 else echo "CONFIG: repo (nearai.policy = $(node -p 'JSON.stringify(require(process.argv[1]).admitted.find(a=>a.id=="nearai").policy)' "$root/providers.json"))"; fi
 since=$(date -u +%FT%T)

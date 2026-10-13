@@ -74,10 +74,10 @@ screen > "$ABALONE_DIR/screen-folder-picker.txt"
 check "bare /folder opens a picker: recent folders and a path prompt" 'grep -q "Type a path…" "$ABALONE_DIR/screen-folder-picker.txt"'
 tmux send-keys -t $t Escape; sleep 1
 # Code changed mid-session (here: the config copy's recorded hash): /folder says so and the session stays open.
-cp "$ABALONE_CONFIG/curated/manifest.json" "$ABALONE_DIR/manifest.bak"
-node -e 'const f=process.argv[1],m=JSON.parse(require("fs").readFileSync(f));m.entries[0].sha256="0".repeat(64);require("fs").writeFileSync(f,JSON.stringify(m))' "$ABALONE_CONFIG/curated/manifest.json"
+cp "$ABALONE_CONFIG/agents/pi/admitted.json" "$ABALONE_DIR/manifest.bak"
+node -e 'const f=process.argv[1],m=JSON.parse(require("fs").readFileSync(f));m.entries[0].sha256="0".repeat(64);require("fs").writeFileSync(f,JSON.stringify(m))' "$ABALONE_CONFIG/agents/pi/admitted.json"
 tmux send-keys -t $t "/folder $other" Enter; wait_for "Switch to $other"; sleep 1; tmux send-keys -t $t Enter; wait_for "You are still in"
-screen > "$ABALONE_DIR/screen-folder-refused.txt"; cp "$ABALONE_DIR/manifest.bak" "$ABALONE_CONFIG/curated/manifest.json"
+screen > "$ABALONE_DIR/screen-folder-refused.txt"; cp "$ABALONE_DIR/manifest.bak" "$ABALONE_CONFIG/agents/pi/admitted.json"
 check "changed code: /folder explains what it means and what to do, and the session stays open" 'tr -s "\n " " " < "$ABALONE_DIR/screen-folder-refused.txt" | grep -q "abalone.s own code changed since it was verified" && grep -q "rehash-manifest.mjs\|reinstall" "$ABALONE_DIR/screen-folder-refused.txt" && screen | grep -q "nothing shared"'
 
 tmux send-keys -t $t "/folder $other" Enter; wait_for "Switch to $other"

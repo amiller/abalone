@@ -23,8 +23,8 @@ W="$(mktemp -d /tmp/abg.XXXX)"   # short path: the sandbox's unix sockets live u
 fail=0
 check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fail=1; fi; }
 remote() { timeout 300 ssh "$MINI" "cd $REMOTE && $*"; }
-mkdir -p "$W/config/curated" "$W/i" "$W/l"
-cp "$root/providers.json" "$root/policy.json" "$W/config/"; cp "$root/curated/manifest.json" "$W/config/curated/"
+mkdir -p "$W/config/agents/pi" "$W/i" "$W/l"
+cp "$root/providers.json" "$root/policy.json" "$W/config/"; cp "$root/agents/pi/admitted.json" "$W/config/agents/pi/"
 [[ -z $MAC ]] && node -e 'const f=process.argv[1],p=require(f);p.peers.admit.dev=true;require("fs").writeFileSync(f,JSON.stringify(p,null,1))' "$W/config/providers.json"
 ABALONE_CONFIG="$W/config" node "$root/tools/rehash-manifest.mjs" > /dev/null   # the working tree under test, not HEAD
 export ABALONE_CONFIG="$W/config"
@@ -54,7 +54,7 @@ waitfor "$W/relay.log" "/tcp/" || { cat "$W/relay.log"; echo "FAIL relay did not
 R=$(grep -o "/ip4/$rhost/tcp/[0-9]*/p2p/[A-Za-z0-9]*" "$W/relay.log" | head -1)
 echo "  relay: $R"
 if [[ -n $MAC ]]; then
-  timeout 300 rsync -a --delete -R bin lib node_modules package.json aci/package.json aci/node_modules aci/verifier-ts/dist aci/verifier-ts/package.json anchors providers.json policy.json curated skills tools "$MINI:projects/abalone-edge/" || { echo "FAIL cannot reach $MINI"; exit 1; }
+  timeout 300 rsync -a --delete -R bin lib node_modules package.json vendor/phala-aci/package.json vendor/phala-aci/node_modules vendor/phala-aci/verifier-ts/dist vendor/phala-aci/verifier-ts/package.json verifiers providers.json policy.json agents/pi skills tools "$MINI:projects/abalone-edge/" || { echo "FAIL cannot reach $MINI"; exit 1; }
   remote "rm -rf ledger-test; (nohup /opt/homebrew/bin/node bin/abalone.mjs peer serve --listen /ip4/127.0.0.1/tcp/0 --relay $R --evidence appattest --probe $PROBE --reserve 6usd --ledger ledger-test --issuer $ISS > peer.log 2>&1 & echo \$! > peer.pid); for i in \$(seq 120); do grep -q 'p2p-circuit\|rror\|refused' peer.log && break; sleep 1; done; cat peer.log" > "$W/peer.log"
   ledger() { remote "cat ledger-test/ledger.jsonl"; }
 elif [[ -n $RUN ]]; then

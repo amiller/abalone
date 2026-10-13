@@ -3,10 +3,10 @@
 Usage: run.py --reader CMD --out DIR [--cases slug,...]"""
 import argparse, json, sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools/eval"))
 from llm import ask, parse_json
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 CASES = Path(__file__).parent / "cases"
 
 p = argparse.ArgumentParser()

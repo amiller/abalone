@@ -19,7 +19,7 @@ if [[ ${2:-} == --copy-builds ]]; then
   python3 - "$root" "$target" <<'PY_COPY'
 import glob, os, pathlib, shutil, sys
 source, target = map(pathlib.Path, sys.argv[1:])
-patterns = ['node_modules', 'pi/node_modules', 'pi/packages/*/dist', 'aci/node_modules', 'aci/*/dist', 'aci/*/dist-test', 'contracts/lib']
+patterns = ['node_modules', 'vendor/pi/node_modules', 'vendor/pi/packages/*/dist', 'vendor/phala-aci/node_modules', 'vendor/phala-aci/*/dist', 'vendor/phala-aci/*/dist-test', 'plugins/coupon/contracts/lib']
 for pattern in patterns:
     for entry in glob.glob(str(source / pattern)):
         origin = pathlib.Path(entry)

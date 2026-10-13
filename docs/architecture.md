@@ -36,18 +36,18 @@ exploratory notebooks and abandoned variants in a private workspace or an issue.
 | `.gitignore`, `.gitattributes` | Local state/build hygiene and file treatment |
 | `package.json`, `package-lock.json`, `Makefile` | Locked runtime dependencies and verification commands |
 | `bin/`, `lib/` | Launchers, client, verification, disclosure, trace, transport and compatibility implementation |
-| `curated/` | Runtime extensions and exact hash admission manifest |
-| `anchors/`, `providers.json`, `policy.json` | Verification roots and explicit model/disclosure policies |
+| `agents/pi/` | Runtime extensions and exact hash admission manifest |
+| `verifiers/`, `providers.json`, `policy.json` | Verification roots (per provider) and explicit model/disclosure policies |
 | `skills/` | Entry instructions and supported analytical skills; experimental preparation guidance is labelled |
-| `pi/` | Vendored Pi workspace used to build the reference agent |
-| `aci/` | Provider and verifier packages used by the client |
-| `contracts/` | On-chain contract implementation and tests for the paths that reference it |
+| `vendor/pi/` | Vendored Pi workspace used to build the reference agent |
+| `vendor/phala-aci/` | Provider and verifier packages used by the client |
+| `plugins/coupon/contracts/` | On-chain contract implementation and tests for the paths that reference it |
 | `tests/`, `tests/fixtures/` | Reproducible positive/adversarial checks and selected synthetic/recorded inputs |
 | `tools/` | Build, installer, fixture recording, manifest and development-checkout tooling |
 | `guides/` | Privacy guides independent of the client: private inference, acquiring access, networking |
 | `portable/` | Reserved for portable live-system sessions; nothing supported yet |
 | `docs/`, `docs/protocols/` | User/security/build guides and maintained interface contracts |
-| `evals/` | Skill evaluation harnesses, selected targets and scoring references |
+| `skills/evals/`, `tools/eval/` | Skill evaluation harnesses (one per skill, outside the admitted skill trees), selected targets, scoring references and shared runners |
 
 Root `package.json` uses `"private": true` to prevent accidental npm publication;
 it does not describe GitHub visibility. Root `.github/` contains a PR template,

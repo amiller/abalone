@@ -3,7 +3,7 @@
 import { createProvider } from "@earendil-works/pi-ai";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/compat";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { providers } from "../lib/config.mjs";
+import { providers } from "../../lib/config.mjs";
 
 export default async function (pi: ExtensionAPI) {
   if (process.env.ABALONE_COUPON_SOCKET) return; // the coupon's exact admitted model uses its scoped socket adapter

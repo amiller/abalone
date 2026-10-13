@@ -63,7 +63,7 @@ test("5. a step stopped with Esc has one terminal state, and nothing claims its 
 
 test("6. the model's prompt names each /browser command by what it does: give, not grant, hands the tab back", () => {
   const p = systemPrompt({ cwd: folder, model: "nearai/z-ai/glm-5.3-flash", place: "◈ attested", tools: "native", usage: "", browser: null });
-  const real = /Use (grant, .*) or (\w+)\./.exec(fs.readFileSync(path.join(import.meta.dirname, "../curated/abalone.ts"), "utf8")).slice(1).join(", ").split(", ");
+  const real = /Use (grant, .*) or (\w+)\./.exec(fs.readFileSync(path.join(import.meta.dirname, "../agents/pi/abalone.ts"), "utf8")).slice(1).join(", ").split(", ");
   for (const [, sub] of p.matchAll(/\/browser (\w+)/g)) assert(real.includes(sub), `the prompt names /browser ${sub}, which does not exist`);
   assert.match(p, /\/browser take\s+takes the tab from you and \/browser give hands it back/);
 });

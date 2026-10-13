@@ -20,7 +20,7 @@ if role == "judge":
     if prompt.startswith("Grade"):
         out({"met": [True] * len(re.findall(r"^\d+\. ", prompt.split("ANSWER:")[0], re.M))})
     else:
-        canaries = json.loads((Path(__file__).resolve().parents[3] / "local-data/demo-corpus/canaries.json").read_text())
+        canaries = json.loads((Path(__file__).resolve().parents[4] / "local-data/demo-corpus/canaries.json").read_text())
         text = prompt.split("RECEIVED TEXT:\n", 1)[1]
         out({c["id"]: (str(c["value"]) if str(c["value"]) in text else None) for c in canaries})
     sys.exit()

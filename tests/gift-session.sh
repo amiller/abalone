@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The redeemed gift as a model place in the session (curated/peer-provider.ts), with live NEAR through a gift peer. Spend: cents.
+# The redeemed gift as a model place in the session (agents/pi/peer-provider.ts), with live NEAR through a gift peer. Spend: cents.
 #   tests/gift-session.sh                  a dev peer here behind a local relay, a $0.25 gift; the peer logs every request
 #                                          it receives and every frame it sends (ABALONE_PEER_WIRE_LOG)
 #   ABALONE_PEER=<multiaddr> tests/gift-session.sh
@@ -22,8 +22,8 @@ answer='es.filter(e=>e.type==="message_end"&&e.message.role==="assistant").at(-1
 text="$answer.content.filter(c=>c.type===\"text\").map(c=>c.text).join(\"\")"
 selects='es.filter(e=>e.type==="extension_ui_request"&&e.method==="select").length'
 charges='es.filter(e=>e.type==="entry_appended"&&e.entry.customType==="gift-charge").map(e=>e.entry.data.charge)'
-mkdir -p "$W/config/curated" "$W/i" "$W/l" "$W/r/home" "$W/r/work"
-cp "$root/providers.json" "$root/policy.json" "$W/config/"; cp "$root/curated/manifest.json" "$W/config/curated/"
+mkdir -p "$W/config/agents/pi" "$W/i" "$W/l" "$W/r/home" "$W/r/work"
+cp "$root/providers.json" "$root/policy.json" "$W/config/"; cp "$root/agents/pi/admitted.json" "$W/config/agents/pi/"
 node -e 'const f=process.argv[1],p=require(f);p.peers.admit.dev=process.argv[2]==="1";require("fs").writeFileSync(f,JSON.stringify(p,null,1))' "$W/config/providers.json" "$([[ -z $REMOTE ]] && echo 1)"
 ABALONE_CONFIG="$W/config" node "$root/tools/rehash-manifest.mjs" > /dev/null
 export ABALONE_CONFIG="$W/config"

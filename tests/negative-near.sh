@@ -23,7 +23,7 @@ openssl req -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -subj "/CN=$near"
 openssl x509 -req -in "$tmp/leaf.csr" -CA "$tmp/ca.pem" -CAkey "$tmp/ca.key" -CAcreateserial -days 1 \
   -extfile <(printf "subjectAltName=%s" "$(printf 'DNS:%s,' $near $nras $others | sed 's/,$//')") -out "$tmp/leaf.pem" 2>/dev/null
 export NODE_EXTRA_CA_CERTS="$tmp/ca.pem" ABALONE_CONFIG="$tmp/config"
-mkdir -p "$ABALONE_CONFIG/curated"; cp "$root/providers.json" "$root/policy.json" "$ABALONE_CONFIG/"; cp "$root/curated/manifest.json" "$ABALONE_CONFIG/curated/"
+mkdir -p "$ABALONE_CONFIG/agents/pi"; cp "$root/providers.json" "$root/policy.json" "$ABALONE_CONFIG/"; cp "$root/agents/pi/admitted.json" "$ABALONE_CONFIG/agents/pi/"
 node -e 'const f=process.argv[1],p=require(f);p.peers.admit.dev=true;require("fs").writeFileSync(f,JSON.stringify(p,null,1))' "$ABALONE_CONFIG/providers.json"
 node "$root/tools/rehash-manifest.mjs" > /dev/null   # the tree under test
 fail=0
@@ -59,7 +59,7 @@ waitfor() { for _ in $(seq 120); do grep -q "$2" "$1" && return 0; grep -q "rror
 waitfor "$tmp/relay.log" /tcp/ || { echo "relay did not start:"; cat "$tmp/relay.log"; exit 1; }
 relay=$(grep -o '/ip4/127.0.0.1/tcp/[0-9]*/p2p/[A-Za-z0-9]*' "$tmp/relay.log" | head -1)
 iss=$(ABALONE_DIR="$tmp/i" "$root/bin/abalone" gift --issuer-pub)
-NODE_OPTIONS="--import $root/curated/egress-preload.mjs" ABALONE_EGRESS="$tmp/pe" \
+NODE_OPTIONS="--import $root/agents/pi/egress-preload.mjs" ABALONE_EGRESS="$tmp/pe" \
   "$root/bin/abalone" peer serve --listen /ip4/127.0.0.1/tcp/0 --relay "$relay" --evidence dev --reserve 1usd --ledger "$tmp/ledger" --issuer "$iss" > "$tmp/peer.log" 2>&1 &
 waitfor "$tmp/peer.log" p2p-circuit || { echo "gift peer did not start:"; cat "$tmp/peer.log"; exit 1; }
 peer=$(grep -o '/ip4/127.0.0.1/tcp/[0-9]*/p2p/[A-Za-z0-9]*/p2p-circuit/p2p/[A-Za-z0-9]*' "$tmp/peer.log" | head -1)

@@ -16,8 +16,8 @@ for m in anthropic/claude-fable-5 anthropic/claude-haiku-4-5 openai/gpt-5-nano o
 done
 out=$(run z-ai/glm-5.3-flash); echo "  default policy: $(tail -1 <<<"$out")"
 check "default policy refuses on gateway TCB" '[[ $out == *"gateway TCB status"*"is not UpToDate"* ]]'
-export ABALONE_CONFIG="$work/config"; mkdir -p "$ABALONE_CONFIG/curated"
-cp "$root/curated/manifest.json" "$ABALONE_CONFIG/curated/"; cp "$root/policy.json" "$ABALONE_CONFIG/"
+export ABALONE_CONFIG="$work/config"; mkdir -p "$ABALONE_CONFIG/agents/pi"
+cp "$root/agents/pi/admitted.json" "$ABALONE_CONFIG/agents/pi/"; cp "$root/policy.json" "$ABALONE_CONFIG/"
 node -e 'const p=require(process.argv[1]);p.admitted.find(a=>a.id=="nearai").policy.gatewayTcb="reported";require("fs").writeFileSync(process.argv[2],JSON.stringify(p,null,1))' "$root/providers.json" "$ABALONE_CONFIG/providers.json"
 since=$(date -u +%FT%T)
 out=$(run z-ai/glm-5.3-flash); echo "  gatewayTcb=reported: $out"

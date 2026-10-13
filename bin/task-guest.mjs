@@ -17,7 +17,7 @@ import { spawn, spawnSync } from "node:child_process";
 
 const IN = process.env.TASK_IN ?? "/in", OUT = process.env.TASK_OUT ?? "/out", WORK = process.env.TASK_WORK ?? "/work";
 const STATE = process.env.TASK_STATE ?? "/task-state";
-const PI = path.join(path.dirname(import.meta.filename), "../pi/packages/coding-agent/dist/cli.js");
+const PI = path.join(path.dirname(import.meta.filename), "../vendor/pi/packages/coding-agent/dist/cli.js");
 const send = (o) => process.stdout.write(JSON.stringify(o) + "\n");
 const clip = (s, n = 4000) => (s = String(s ?? ""), s.length > n ? s.slice(0, n) + `… (${s.length - n} more chars)` : s);
 const text = (content) => (Array.isArray(content) ? content : [content]).map((c) => typeof c === "string" ? c : c?.type === "text" ? c.text : "").join("");

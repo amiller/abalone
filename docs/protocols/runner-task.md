@@ -13,8 +13,8 @@ existing `/run/egress.sock`, host `runner.local`. Only the peer VM's compose may
 The peer compose lists the task images it may start, digest-pinned:
 `"tasks": {"images": ["abalone-task@sha256:<digest>"], "max_concurrent": 2, "resources": {...}}`. They are admitted
 by being in the admitted peer compose, so the peer's compose hash covers them. `/task/start` refuses any other image.
-The first image is the standard Abalone/Pi image: node 22, git, `/bin/sh`, the abalone tree at `/abalone` with `pi/`
-built (`pi/packages/coding-agent/dist/cli.js` and its `node_modules`), and the entrypoint
+The first image is the standard Abalone/Pi image: node 22, git, `/bin/sh`, the abalone tree at `/abalone` with `vendor/pi/`
+built (`vendor/pi/packages/coding-agent/dist/cli.js` and its `node_modules`), and the entrypoint
 `node /abalone/bin/task-guest.mjs`. No provider keys, no extra packages. The entrypoint reads `/in` (read-only), works
 on a copy in `/work` (writable rootfs), keeps Pi's state in `/task-state`, and writes `patch.diff`, `test.log`,
 `files/…` and `finish.json` to `/out` before it exits. Its stdin/stdout protocol is in its header comment; it waits

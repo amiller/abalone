@@ -128,7 +128,7 @@ o=$(PATH="$R/stub:$PATH" "$R/repo/tools/release.sh" --site-template "$R/friend.h
 check "release.sh without a base URL writes the tarball and no install.sh, and says how to get one" '[[ -f $rel/$rev/abalone-$rev.tar.gz && ! -e $rel/$rev/install.sh && $o == *"no base URL given, so no install.sh"* ]]'
 check "release.sh copies the given landing template as index.html" 'cmp -s "$rel/$rev/index.html" "$R/friend.html"'
 tar -tzf "$rel/$rev/abalone-$rev.tar.gz" > "$R/archive-members"
-check "release source archive keeps guides, protocols and setup skill without historical notes, eval results or the Pages site" 'grep -q "^abalone/docs/getting-started.md$" "$R/archive-members" && grep -q "^abalone/docs/protocols/coupon.md$" "$R/archive-members" && grep -q "^abalone/skills/abalone-incognito/SKILL.md$" "$R/archive-members" && ! grep -qE "^abalone/(notes/|evals/results/|site/)" "$R/archive-members"'
+check "release source archive keeps guides, protocols and setup skill without historical notes, eval results or the Pages site" 'grep -q "^abalone/docs/getting-started.md$" "$R/archive-members" && grep -q "^abalone/docs/protocols/coupon.md$" "$R/archive-members" && grep -q "^abalone/skills/abalone-incognito/SKILL.md$" "$R/archive-members" && ! grep -qE "^abalone/(notes/|skills/evals/[^/]+/results/|site/)" "$R/archive-members"'
 PATH="$R/stub:$PATH" "$R/repo/tools/release.sh" --site-template "$R/friend.html" HEAD https://example.org/r > /dev/null 2>&1
 check "release.sh with a base URL pins it in install.sh" 'grep -q "curl -fsSL \"https://example.org/r/abalone-$rev.tar.gz\"" $rel/$rev/install.sh'
 rm -rf "$R"

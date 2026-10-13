@@ -3,15 +3,15 @@
  "entries": [
   {
    "kind": "extension",
-   "path": "curated/abalone.ts"
+   "path": "agents/pi/abalone.ts"
   },
   {
    "kind": "extension",
-   "path": "curated/local-provider.ts"
+   "path": "agents/pi/local-provider.ts"
   },
   {
    "kind": "preload",
-   "path": "curated/egress-preload.mjs"
+   "path": "agents/pi/egress-preload.mjs"
   },
   {
    "kind": "tree",
@@ -31,15 +31,15 @@
   },
   {
    "kind": "tree",
-   "path": "aci/pi-provider-aci/dist"
+   "path": "vendor/phala-aci/pi-provider-aci/dist"
   },
   {
    "kind": "tree",
-   "path": "aci/provider/dist"
+   "path": "vendor/phala-aci/provider/dist"
   },
   {
    "kind": "tree",
-   "path": "aci/verifier-ts/dist"
+   "path": "vendor/phala-aci/verifier-ts/dist"
   },
   {
    "kind": "provider",

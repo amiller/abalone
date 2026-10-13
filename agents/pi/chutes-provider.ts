@@ -5,9 +5,9 @@
 import { createProvider, envApiKeyAuth } from "@earendil-works/pi-ai";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/compat";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { providers } from "../lib/config.mjs";
-import { API, open, pick, seal, strip, verifyInstance } from "../lib/chutes.mjs";
-import { untrusted } from "../lib/near.mjs";
+import { providers } from "../../lib/config.mjs";
+import { API, open, pick, seal, strip, verifyInstance } from "../../lib/chutes.mjs";
+import { untrusted } from "../../lib/near.mjs";
 
 const refuse = (status: number, message: string) => new Response(JSON.stringify({ error: { message } }), { status, headers: { "content-type": "application/json" } });
 

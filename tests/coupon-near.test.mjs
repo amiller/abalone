@@ -113,7 +113,7 @@ const verdict = (state) => ({
 });
 
 test("actual Pi OpenAI request grammar reaches the strict NEAR encrypted adapter", async () => {
-  const { streamSimple } = await import("../pi/packages/ai/dist/api/openai-completions.js");
+  const { streamSimple } = await import("../vendor/pi/packages/ai/dist/api/openai-completions.js");
   const state = { chats: 0, closed: false, mode: "ok", bodies: [], keys: ["chat_template_kwargs", "max_tokens", "messages", "model", "stream", "stream_options"] };
   const adapter = openCouponNearAdapterForTesting({ ...options(), verifiedForTesting: verdict(state) });
   const model = { id: "selected/model", name: "SYNTHETIC near trial", provider: "nearai", api: "openai-completions", baseUrl: "http://127.0.0.1:0/v1",

@@ -487,8 +487,8 @@ the passphrase and the traces are gone. Keep a copy in your password manager: ab
   throw new Error(`unknown: abalone trace ${shown(cmd)}`);
 }
 
-// caps.mjs resolves paths as Pi does, so it imports pi/: loaded only here, never on the peer serve/relay path,
-// whose image has no pi/ (tests/peer-image-smoke.sh).
+// caps.mjs resolves paths as Pi does, so it imports vendor/pi/: loaded only here, never on the peer serve/relay path,
+// whose image has no vendor/pi/ (tests/peer-image-smoke.sh).
 async function printCaps(json) {
   const doc = (await import("../lib/caps.mjs")).document(process.cwd());
   if (json) return console.log(JSON.stringify(doc, null, 1));
@@ -690,7 +690,7 @@ async function session() {
     await couponSlot.broker(socketPath, { onState: (state) => state === "installed" && shown === state ? undefined : (shown = state, console.error(state === "usage_not_recorded" ? "Warning: the last answer's token usage was not recorded; the session continues." : `Coupon session: ${state}. Check /coupon; no alternate key is tried.`)) });
     env.ABALONE_COUPON_SOCKET = socketPath; env.ABALONE_COUPON_MODEL = couponSlot.provider.model; env.ABALONE_COUPON_PROVIDER = couponSlot.provider.provider;
     if (couponSlot.provider.provider === "nearai") env.ABALONE_COUPON_MAX_TOKENS = String(couponSlot.provider.maxTokens);
-    loads.push("-e", admit(entries, path.join(ROOT, "curated/coupon-provider.ts"), "coupon provider extension"));
+    loads.push("-e", admit(entries, path.join(ROOT, "agents/pi/coupon-provider.ts"), "coupon provider extension"));
     env.PI_RESUME_HINT = couponSlot.savedCredit ? "This incognito conversation is not resumable. The saved credit remains: abalone credit session --credit <id> starts a fresh one."
       : "Coupon session credentials are session-only and cannot be resumed after exit.";
   }
@@ -771,7 +771,7 @@ async function session() {
   }).listen(path.join(run, "ctl.sock"));
   // The browser bridge: the one tab the user grants with /browser, reached by the session through <run>/browser.sock.
   const closeBrowser = browserBridge(run, { incognito });
-  const pi = path.join(ROOT, "pi/packages/coding-agent/dist/cli.js");
+  const pi = path.join(ROOT, "vendor/pi/packages/coding-agent/dist/cli.js");
   if (claude) env.ABALONE_RUNNER_CLAUDE = claude;
   const settingsFd = incognito && !ownedHost ? fs.openSync(sf, "r") : undefined;
   const prefix = ownedHost ? [] : [...piArgv(run, hosts, process.cwd(), { incognito, gift: !!g, ...(incognito ? { settingsFd: 3 } : {}) }), "--", process.execPath];

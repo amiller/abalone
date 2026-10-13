@@ -35,8 +35,8 @@ P=$(grep -o "/ip4/127.0.0.1/tcp/[0-9]*/p2p/[A-Za-z0-9]*/p2p-circuit/p2p/[A-Za-z0
 fi
 ABALONE_DIR="$W/i" "$root/bin/abalone" gift --setup 6usd > /dev/null
 token=$(ABALONE_DIR="$W/i" "$root/bin/abalone" gift $AMOUNT --peer "$P" | grep -o 'g1[0-9A-Z]\{31\}\.[A-Za-z0-9_-]*')
-mkdir -p "$W/cfg/curated" && tar -xzf "$rel/abalone-$rev.tar.gz" -C "$W" abalone/providers.json abalone/policy.json abalone/curated/manifest.json
-cp "$W/abalone/policy.json" "$W/cfg/"; cp "$W/abalone/curated/manifest.json" "$W/cfg/curated/"
+mkdir -p "$W/cfg/agents/pi" && tar -xzf "$rel/abalone-$rev.tar.gz" -C "$W" abalone/providers.json abalone/policy.json abalone/agents/pi/admitted.json
+cp "$W/abalone/policy.json" "$W/cfg/"; cp "$W/abalone/agents/pi/admitted.json" "$W/cfg/agents/pi/"
 node -e 'const p=require(process.argv[1]);p.peers.admit.dev=!process.argv[3];require("fs").writeFileSync(process.argv[2],JSON.stringify(p,null,1))' "$W/abalone/providers.json" "$W/cfg/providers.json" "${G2_PEER:-}"
 chmod -R a+rX "$W/cfg"
 echo "== the friend's two commands, timed, in a fresh container as a fresh user"

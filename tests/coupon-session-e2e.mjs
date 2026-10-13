@@ -82,9 +82,9 @@ raise SystemExit(peer_worker.main(sys.argv[3:]))
     res.end(event([{ index: 0, delta: { role: "assistant", content: "The sum is 5 (synthetic fixture)." }, finish_reason: null }]) + event([{ index: 0, delta: {}, finish_reason: "stop" }], { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 }) + "data: [DONE]\n\n");
   }); await new Promise((r) => provider.listen(0, "127.0.0.1", r));
   const configDir = path.join(dir, "config"), recipient = path.join(dir, "recipient"), work = path.join(dir, "work"), runtime = path.join(dir, "runtime");
-  for (const folder of [path.join(configDir, "curated"), recipient, work, runtime]) fs.mkdirSync(folder, { recursive: true, mode: 0o700 });
+  for (const folder of [path.join(configDir, "agents", "pi"), recipient, work, runtime]) fs.mkdirSync(folder, { recursive: true, mode: 0o700 });
   const p = { admitted: [], local: [], runners: {}, verifierHosts: [], peers: { admit: { dev: true } }, default: "synthetic-near/fixture-model", couponSession: { mode: "synthetic-loopback", provider: "synthetic-near", baseUrl: `http://127.0.0.1:${provider.address().port}/v1`, models: ["fixture-model"] } };
-  fs.writeFileSync(path.join(configDir, "providers.json"), JSON.stringify(p)); fs.copyFileSync(path.join(root, "policy.json"), path.join(configDir, "policy.json")); fs.copyFileSync(path.join(root, "curated/manifest.json"), path.join(configDir, "curated/manifest.json"));
+  fs.writeFileSync(path.join(configDir, "providers.json"), JSON.stringify(p)); fs.copyFileSync(path.join(root, "policy.json"), path.join(configDir, "policy.json")); fs.copyFileSync(path.join(root, "agents/pi/admitted.json"), path.join(configDir, "agents/pi/admitted.json"));
   const env = { ...process.env, ABALONE_CONFIG: configDir, ABALONE_DIR: recipient, XDG_RUNTIME_DIR: runtime, ABALONE_NO_CANARIES: "1", ABALONE_COUPON_FD: "3", ABALONE_COUPON_CONSENT_FD: "4" };
   delete env.ABALONE_COUPON_SOCKET; delete env.SYNTHETIC_COUPON_API_KEY;
   execFileSync(process.execPath, [path.join(root, "tools/rehash-manifest.mjs")], { env, stdio: "pipe" });

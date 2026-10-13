@@ -12,8 +12,8 @@ fail=0
 check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fail=1; fi; }
 waitfor() { for _ in $(seq 180); do grep -q "$2" "$1" && return 0; grep -q "rror\|refused" "$1" && return 1; sleep 1; done; return 1; }
 export FOUNDRY_DISABLE_NIGHTLY_WARNING=1
-mkdir -p "$W/config/curated" "$W/i" "$W/a"
-cp "$root/providers.json" "$root/policy.json" "$W/config/"; cp "$root/curated/manifest.json" "$W/config/curated/"
+mkdir -p "$W/config/agents/pi" "$W/i" "$W/a"
+cp "$root/providers.json" "$root/policy.json" "$W/config/"; cp "$root/agents/pi/admitted.json" "$W/config/agents/pi/"
 node -e 'const f=process.argv[1],p=require(f);p.peers.admit.dev=true;require("fs").writeFileSync(f,JSON.stringify(p,null,1))' "$W/config/providers.json"
 ABALONE_CONFIG="$W/config" node "$root/tools/rehash-manifest.mjs" > /dev/null
 export ABALONE_CONFIG="$W/config"
@@ -23,7 +23,7 @@ anvil --port "${RPC##*:}" --block-time 1 --slots-in-an-epoch 30 > "$W/anvil.log"
 trap 'kill $anvil $relay ${peer:-} 2>/dev/null; rm -rf "$W"' EXIT
 waitfor "$W/relay.log" "/tcp/"; R=$(grep -o "/ip4/127.0.0.1/tcp/[0-9]*/p2p/[A-Za-z0-9]*" "$W/relay.log" | head -1)
 sleep 2
-REG=$(forge create --root "$root/contracts" --rpc-url "$RPC" --private-key "$OWN" --broadcast src/CouponRegistry.sol:CouponRegistry 2>&1 | grep -o "Deployed to: 0x[0-9a-fA-F]*" | cut -d' ' -f3)
+REG=$(forge create --root "$root/plugins/coupon/contracts" --rpc-url "$RPC" --private-key "$OWN" --broadcast src/CouponRegistry.sol:CouponRegistry 2>&1 | grep -o "Deployed to: 0x[0-9a-fA-F]*" | cut -d' ' -f3)
 M=0x$(printf 'dev-peer' | sha256sum | cut -c1-64)
 openssl rand -hex 32 | tr -d '\n' > "$W/a/eth.key"; chmod 600 "$W/a/eth.key"
 A=$(node -e 'import(process.argv[1]).then(c=>console.log(c.addressOf(Buffer.from(require("fs").readFileSync(process.argv[2],"utf8"),"hex"))))' "$root/lib/chain.mjs" "$W/a/eth.key")

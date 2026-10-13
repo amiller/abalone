@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # M1 lockdown: ambient extensions, skills, context files and project trust stay off, flags cannot turn
-# them back on, and only curated/manifest.json entries with matching sha256 load.
+# them back on, and only agents/pi/admitted.json entries with matching sha256 load.
 set -uo pipefail
 . "$(dirname "$0")/lib/env.sh"; stubcfg
 fail=0
@@ -25,7 +25,7 @@ for flags in "--approve" "-a" "--append-system-prompt AGENTS.md" "--system-promp
 done
 out=$("$root/bin/abalone" sandbox --model stub/script --skill "$root/skills/pour-planning" -p go < /dev/null 2>&1)
 check "a listed skill is admitted by flag ($out)" '[[ $out == "hello from stub" ]]'
-node -e 'const f=process.argv[1],m=JSON.parse(require("fs").readFileSync(f));m.entries.find(e=>e.path=="skills/pour-planning").sha256="0".repeat(64);require("fs").writeFileSync(f,JSON.stringify(m))' "$ABALONE_CONFIG/curated/manifest.json"
+node -e 'const f=process.argv[1],m=JSON.parse(require("fs").readFileSync(f));m.entries.find(e=>e.path=="skills/pour-planning").sha256="0".repeat(64);require("fs").writeFileSync(f,JSON.stringify(m))' "$ABALONE_CONFIG/agents/pi/admitted.json"
 out=$("$root/bin/abalone" sandbox --model stub/script -p go < /dev/null 2>&1); code=$?
 check "hash mismatch refuses to start ($out)" '[[ $code -ne 0 && $out == *"code changed since it was verified (skills/pour-planning)"* && $out == *"rehash-manifest.mjs"*"reinstall"* ]]'
 echo "lockdown: $([[ $fail == 0 ]] && echo PASS || echo FAIL)"; exit $fail

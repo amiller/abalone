@@ -12,8 +12,8 @@ mode. Follow the [development workflow](docs/development.md) for scope and revie
 ## Contributor doors
 
 Each directory has a different audience and a different review bar. Changes to
-`lib/`, `bin/`, `curated/`, `anchors/`, `aci/` and the skills admitted in
-`curated/manifest.json` reach users only through a release.
+`lib/`, `bin/`, `agents/pi/`, `verifiers/`, `vendor/phala-aci/` and the skills admitted in
+`agents/pi/admitted.json` reach users only through a release.
 
 | Directory | Who | First contribution | Review needed |
 | --- | --- | --- | --- |
@@ -22,7 +22,7 @@ Each directory has a different audience and a different review bar. Changes to
 | `docs/` | Anyone who followed a procedure | Fix a step that did not match what happened | Editorial; `make verify-docs` |
 | `skills/` | Agent and skill authors | Improve a skill's eval or report a wrong instruction | Independent review; admitted skills need a release |
 | `tests/` | Anyone with a Linux machine | Run `make verify-offline` and report a failing suite | Independent review |
-| `curated/`, `anchors/`, `providers.json` | Attestation and TEE reviewers | A negative fixture that a verifier must refuse | Security review, full offline gate and a release |
+| `agents/pi/`, `verifiers/`, `providers.json` | Attestation and TEE reviewers | A negative fixture that a verifier must refuse | Security review, full offline gate and a release |
 | `bin/`, `lib/` | Shell developers | A bounded issue from the [tracker](https://github.com/amiller/abalone/issues) | Independent review, full offline gate and a release |
 
 ## Local development
@@ -39,9 +39,9 @@ full offline suite), plus XDG_RUNTIME_DIR for sockets. Build from locked package
 
 ```sh
 npm ci --no-audit --no-fund
-(cd pi && npm ci --no-audit --no-fund && bash -c "$(node -p 'require("./package.json").scripts["build:offline"].replace("cd ../coding-agent && npm run build", "cd ../coding-agent && npm run build:unbundled")')")
-(cd aci && npm ci --no-audit --no-fund && npm run build)
-aci/node_modules/.bin/tsc -p aci/verifier-ts/tsconfig.test.json
+(cd vendor/pi && npm ci --no-audit --no-fund && bash -c "$(node -p 'require("./package.json").scripts["build:offline"].replace("cd ../coding-agent && npm run build", "cd ../coding-agent && npm run build:unbundled")')")
+(cd vendor/phala-aci && npm ci --no-audit --no-fund && npm run build)
+vendor/phala-aci/node_modules/.bin/tsc -p vendor/phala-aci/verifier-ts/tsconfig.test.json
 make verify-offline
 ```
 
@@ -65,7 +65,7 @@ checks and limits. Runtime changes require the offline integration gate; docs
 need `make verify-docs` (local Markdown links/fragments and whitespace). Seek independent review. Worktree helpers are
 optional; no particular assistant model or private directory is required.
 
-Preserve curated/manifest.json. The staged-file import and manifest tools are
+Preserve agents/pi/admitted.json. The staged-file import and manifest tools are
 available under tools/. Maintainers can enable the hook with
 `git config core.hooksPath tools/hooks`; it checks imports and updates the manifest.
 

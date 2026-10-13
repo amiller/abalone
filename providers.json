@@ -2,7 +2,7 @@
   "admitted": [
     {
       "id": "redpill",
-      "extension": "aci/pi-provider-redpill/dist/index.js",
+      "extension": "vendor/phala-aci/pi-provider-redpill/dist/index.js",
       "baseUrl": "https://tee.redpill.ai/v1",
       "hosts": [
         "tee.redpill.ai"
@@ -26,7 +26,7 @@
     },
     {
       "id": "phala",
-      "extension": "aci/pi-provider-phala-cloud/dist/index.js",
+      "extension": "vendor/phala-aci/pi-provider-phala-cloud/dist/index.js",
       "baseUrl": "https://inference.phala.com/v1",
       "hosts": [
         "inference.phala.com"
@@ -50,7 +50,7 @@
     },
     {
       "id": "nearai",
-      "extension": "curated/near-provider.ts",
+      "extension": "agents/pi/near-provider.ts",
       "baseUrl": "https://cloud-api.near.ai/v1",
       "hosts": [
         "cloud-api.near.ai",
@@ -78,7 +78,7 @@
     },
     {
       "id": "chutes",
-      "extension": "curated/chutes-provider.ts",
+      "extension": "agents/pi/chutes-provider.ts",
       "baseUrl": "https://llm.chutes.ai/v1",
       "modelsUrl": "https://llm.chutes.ai/v1/models",
       "hosts": [
@@ -91,7 +91,7 @@
       "tools": "sealed with the request",
       "transport": "chutes-e2ee (per instance)",
       "axes": {
-        "hw": "per instance: TDX quote (Intel PCS, TCB UpToDate), report_data binds our nonce with the ML-KEM key the request is sealed to and the evidence certificate's SPKI, MRTD+RTMR0-3 match a row of anchors/chutes_measurements.json (a reviewed snapshot of Chutes' own unauthenticated, unsigned /servers/tee/measurements list), GPU NRAS verdict with its signature checked; the instance id is Chutes' label, not attested (the quote binds the ML-KEM key, not the id)",
+        "hw": "per instance: TDX quote (Intel PCS, TCB UpToDate), report_data binds our nonce with the ML-KEM key the request is sealed to and the evidence certificate's SPKI, MRTD+RTMR0-3 match a row of verifiers/chutes/chutes_measurements.json (a reviewed snapshot of Chutes' own unauthenticated, unsigned /servers/tee/measurements list), GPU NRAS verdict with its signature checked; the instance id is Chutes' label, not attested (the quote binds the ML-KEM key, not the id)",
         "code": "Chutes' VM image is measured; the chute's serving code that reads the decrypted prompt is not, and nothing binds which model answers (chutesai/chutes#75)",
         "operator": "S0",
         "custody": "unchecked"

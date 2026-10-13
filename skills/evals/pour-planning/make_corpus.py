@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 from scipy import stats
 
-ROOT = Path(__file__).resolve().parents[2] / "local-data" / "demo-corpus"
+ROOT = Path(__file__).resolve().parents[3] / "local-data" / "demo-corpus"
 rng = random.Random(7)
 
 FIRST = "Amara Bastian Corin Delphine Emeric Farah Gideon Halina Ivo Jessamy Kenji Leontyne Mattias Noor Oskar Priya Quillon Rosalind Soren Tamsin Ulrich Vesna Wendell Xiomara Yusuf Zelda".split()

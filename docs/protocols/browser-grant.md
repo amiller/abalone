@@ -1,6 +1,6 @@
 # Browser grant contract (`org.abalone.browser-grant/1`)
 
-This specifies the interface between `curated/abalone.ts`, the in-content tool
+This specifies the interface between `agents/pi/abalone.ts`, the in-content tool
 protocol (`lib/intools.mjs`) and the CDP browser bridge (`lib/browser.mjs`).
 It is a connected-session interface; incognito refuses browser grants.
 
@@ -69,6 +69,6 @@ The footer strip carries one browser segment from the bridge's status file `<run
 
 Into model context: a short grant summary in the system prompt (identity label, tab host, sites, actions, expiry), and the returns of the agent ops above, for the granted tab only. Never: cookies, local storage, saved passwords, the profile directory, the CDP endpoint, or any other tab's title, URL or content. The bridge has no op that reads cookies or storage.
 
-Page text goes only to the session's current model, as an in-content tool result inside its encrypted messages. Browser ops run only for models whose tools are in-content (`◈ attested` or `⌂ local`); a mediated `○ outside` reply's tool lines are never run (existing rule in `curated/abalone.ts`). Native-tool providers get no browser tool in this version. Page text is untrusted: the protocol says so, and a page's instructions cannot reach the grant because only `/browser` changes it.
+Page text goes only to the session's current model, as an in-content tool result inside its encrypted messages. Browser ops run only for models whose tools are in-content (`◈ attested` or `⌂ local`); a mediated `○ outside` reply's tool lines are never run (existing rule in `agents/pi/abalone.ts`). Native-tool providers get no browser tool in this version. Page text is untrusted: the protocol says so, and a page's instructions cannot reach the grant because only `/browser` changes it.
 
 Traces follow the session's mode. In the ordinary connected mode, op requests and results are entries in the Pi session file like other tool results (local, 0600, plaintext). The bridge also appends `<ABALONE_DIR>/browser.jsonl`: grant, revoke, take, give, stop, detach, reconnect and each agent op with its host, action and outcome, but no page text and only the byte count of typed text. Incognito refuses `/browser grant`; this browser interface does not qualify the owned-host recipient profile or an extension attached to an ordinary browser profile.

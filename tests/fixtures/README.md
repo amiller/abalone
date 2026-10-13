@@ -12,7 +12,7 @@ Keep only inputs used by a test; review recorded content before uploading it.
 | Recorded runner evidence | `bundle/recorded-runner/` | Historical compose, attestation and receipt bytes used by bundle verification. Their captured identity is not proof of a current task or service. |
 | Recorded provider evidence | `near/`, `aci-upstreams/` | Captured NEAR reports/signatures and ACI session/receipt inputs for verifier replay and refusal tests. Captured TCB and nonces apply only to the recording. |
 
-Adjacent verifier fixtures also live in `aci/verifier-ts/test/fixtures/`; Pi keeps
+Adjacent verifier fixtures also live in `vendor/phala-aci/verifier-ts/test/fixtures/`; Pi keeps
 upstream test inputs in its own workspace. Preserve their licenses and notices.
 For a new recording, state its source/date, exact consumer, synthetic versus
 recorded status and redactions in a sibling provenance note. Omit auth/cookie

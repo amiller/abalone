@@ -10,8 +10,8 @@ const root = path.resolve(import.meta.dirname, "..");
 async function commands(env) {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), "abalone-commands-"));
   for (const n of ["state", "agent", "run", "work"]) fs.mkdirSync(path.join(base, n), { mode: 0o700 });
-  const child = spawn(process.execPath, [path.join(root, "pi/packages/coding-agent/dist/cli.js"), "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-themes",
-    "--no-context-files", "--no-mcp", "--no-approve", "-e", path.join(root, "curated/abalone.ts"), "--no-session", "--mode", "rpc"], { cwd: path.join(base, "work"),
+  const child = spawn(process.execPath, [path.join(root, "vendor/pi/packages/coding-agent/dist/cli.js"), "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-themes",
+    "--no-context-files", "--no-mcp", "--no-approve", "-e", path.join(root, "agents/pi/abalone.ts"), "--no-session", "--mode", "rpc"], { cwd: path.join(base, "work"),
     env: { PATH: process.env.PATH, HOME: path.join(base, "agent"), ABALONE_DIR: path.join(base, "state"), ABALONE_CONFIG: root, ABALONE_EGRESS: path.join(base, "run"),
       PI_CODING_AGENT_DIR: path.join(base, "agent"), ABALONE_INCOGNITO: "1", ...env } });
   let out = "", err = "";

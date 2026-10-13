@@ -5,7 +5,7 @@ import argparse, json, re, sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-TAGS = set(re.findall(r"^\| `([a-z]+:[a-z-]+)`", (HERE.parents[1] / "skills/attestation-analyst/references/gap-tags.md").read_text(), re.M))
+TAGS = set(re.findall(r"^\| `([a-z]+:[a-z-]+)`", (HERE.parents[2] / "skills/attestation-analyst/references/gap-tags.md").read_text(), re.M))
 parser = argparse.ArgumentParser()
 parser.add_argument("out", type=Path)
 parser.add_argument("--gold", type=Path, default=HERE / "fixtures/gold")

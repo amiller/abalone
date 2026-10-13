@@ -12,8 +12,8 @@ check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fail=1; fi; }
 ev() { node -e 'const l=require("fs").readFileSync(process.argv[1],"utf8").trim().split("\n").map(JSON.parse); console.log(eval("(es=>"+process.argv[2]+")")(l))' "$1" "$2"; }
 answer='es.filter(e=>e.type==="message_end"&&e.message.role==="assistant").at(-1).message.content.filter(c=>c.type==="text").map(c=>c.text).join("")'
 echo "CONFIG: RELAXED copy (nearai.policy.gatewayTcb = reported), repo policy.json (no standing policy for claude)"
-export ABALONE_CONFIG="$work/config"; mkdir -p "$ABALONE_CONFIG/curated"
-cp "$root/curated/manifest.json" "$ABALONE_CONFIG/curated/"; cp "$root/policy.json" "$ABALONE_CONFIG/"
+export ABALONE_CONFIG="$work/config"; mkdir -p "$ABALONE_CONFIG/agents/pi"
+cp "$root/agents/pi/admitted.json" "$ABALONE_CONFIG/agents/pi/"; cp "$root/policy.json" "$ABALONE_CONFIG/"
 node -e 'const p=require(process.argv[1]);p.admitted.find(a=>a.id=="nearai").policy.gatewayTcb="reported";require("fs").writeFileSync(process.argv[2],JSON.stringify(p,null,1))' "$root/providers.json" "$ABALONE_CONFIG/providers.json"
 q="@tenancy-renewal.txt I would like Claude's general view on this: in most US states, if a tenant does not sign a renewal, can the landlord simply end the tenancy on the lease end date with no further notice, and what should I ask the leasing office?"
 since=$(date -u +%FT%T); opens() { grep -c '"domain":"open"' "$state/agents.jsonl"; }; opens0=$(opens); runs0=$(ls "$state/runs" 2>/dev/null)

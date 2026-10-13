@@ -1,16 +1,16 @@
-pi/node_modules
+vendor/pi/node_modules
 secrets/
 local-data/
 *.log
-aci/node_modules
-aci/*/dist-test
+vendor/phala-aci/node_modules
+vendor/phala-aci/*/dist-test
 runner-home/
-contracts/lib/
+plugins/coupon/contracts/lib/
 node_modules/
 
 # Local development outputs
 __pycache__/
 *.pyc
 .worktrees/
-pi/packages/*/dist/
-aci/*/dist/
+vendor/pi/packages/*/dist/
+vendor/phala-aci/*/dist/

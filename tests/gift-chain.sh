@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The chain path against local anvil only (contracts/src/CouponRegistry.sol as it stands): claims and spending windows
+# The chain path against local anvil only (plugins/coupon/contracts/src/CouponRegistry.sol as it stands): claims and spending windows
 # are checkpointed with the encrypted snapshot in calldata, and the peer waits for the safe head (anvil block time 1 s,
 # 2 slots per epoch, so "safe" trails "latest" by about 2 blocks). Dev peers behind a local relay, live NEAR for a few
 # turns. Checks: redeem waits for the safe head and claimedBy names the peer; a second peer cannot claim the same
@@ -11,8 +11,8 @@ W="$(mktemp -d /tmp/abc.XXXX)"
 fail=0
 check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fail=1; fi; }
 waitfor() { for _ in $(seq 120); do grep -q "$2" "$1" && return 0; grep -q "rror\|refused" "$1" && return 1; sleep 1; done; return 1; }
-mkdir -p "$W/config/curated" "$W/i"
-cp "$root/providers.json" "$root/policy.json" "$W/config/"; cp "$root/curated/manifest.json" "$W/config/curated/"
+mkdir -p "$W/config/agents/pi" "$W/i"
+cp "$root/providers.json" "$root/policy.json" "$W/config/"; cp "$root/agents/pi/admitted.json" "$W/config/agents/pi/"
 node -e 'const f=process.argv[1],p=require(f);p.peers.admit.dev=true;require("fs").writeFileSync(f,JSON.stringify(p,null,1))' "$W/config/providers.json"
 ABALONE_CONFIG="$W/config" node "$root/tools/rehash-manifest.mjs" > /dev/null
 export ABALONE_CONFIG="$W/config"
@@ -23,8 +23,8 @@ export FOUNDRY_DISABLE_NIGHTLY_WARNING=1
 trap 'kill $anvil $relay $(cat "$W"/*.pid 2>/dev/null) 2>/dev/null; rm -rf "$W"' EXIT
 waitfor "$W/relay.log" "/tcp/"; R=$(grep -o "/ip4/127.0.0.1/tcp/[0-9]*/p2p/[A-Za-z0-9]*" "$W/relay.log" | head -1)
 sleep 2
-(cd "$root/contracts" && forge build -q) || exit 1
-REG=$(forge create --root "$root/contracts" --rpc-url "$RPC" --private-key "$OWN" --broadcast src/CouponRegistry.sol:CouponRegistry 2>&1 | grep -o "Deployed to: 0x[0-9a-fA-F]*" | cut -d' ' -f3)
+(cd "$root/plugins/coupon/contracts" && forge build -q) || exit 1
+REG=$(forge create --root "$root/plugins/coupon/contracts" --rpc-url "$RPC" --private-key "$OWN" --broadcast src/CouponRegistry.sol:CouponRegistry 2>&1 | grep -o "Deployed to: 0x[0-9a-fA-F]*" | cut -d' ' -f3)
 M=0x$(printf 'dev-peer' | sha256sum | cut -c1-64)
 cast send -q --rpc-url "$RPC" --private-key "$OWN" "$REG" "allow(bytes32,uint32)" "$M" 10 || exit 1
 echo "  registry $REG on anvil"

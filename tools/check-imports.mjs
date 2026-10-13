@@ -7,7 +7,7 @@ const known = new Set([...git("ls-files"), ...git("diff --cached --name-only --d
 for (const g of git("diff --cached --name-only --diff-filter=D")) known.delete(g);
 const bad = [];
 for (const f of git("diff --cached --name-only --diff-filter=AM")) {
-  if (!/^(lib|bin|curated|tools|tests)\/.*\.(mjs|ts)$/.test(f) || !fs.existsSync(f)) continue;
+  if (!/^(lib|bin|agents|verifiers|plugins|tools|tests)\/.*\.(mjs|ts)$/.test(f) || !fs.existsSync(f)) continue;
   const src = execSync(`git show :${f}`, { encoding: "utf8" });
   for (const m of src.matchAll(/(?:import|from)\s*\(?\s*["'](\.{1,2}\/[^"']+)["']/g)) {
     const t = path.normalize(path.join(path.dirname(f), m[1]));

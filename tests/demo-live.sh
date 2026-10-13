@@ -7,8 +7,8 @@ set -uo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 model=${1:?model}; work="$(mktemp -d)"
 if [[ ${2:-} == gatewayTcb=reported ]]; then
-  export ABALONE_CONFIG="$work/config"; mkdir -p "$ABALONE_CONFIG/curated"
-  cp "$root/curated/manifest.json" "$ABALONE_CONFIG/curated/"; cp "$root/policy.json" "$ABALONE_CONFIG/"
+  export ABALONE_CONFIG="$work/config"; mkdir -p "$ABALONE_CONFIG/agents/pi"
+  cp "$root/agents/pi/admitted.json" "$ABALONE_CONFIG/agents/pi/"; cp "$root/policy.json" "$ABALONE_CONFIG/"
   node -e 'const p=require(process.argv[1]);p.admitted.find(a=>a.id=="nearai").policy.gatewayTcb="reported";require("fs").writeFileSync(process.argv[2],JSON.stringify(p,null,1))' "$root/providers.json" "$ABALONE_CONFIG/providers.json"
 fi
 cfg=$(node -e 'console.log(JSON.stringify({mcpServers:{abalone:{command:process.argv[1]+"/bin/abalone-mcp",args:["--model",process.argv[2]],

@@ -1,5 +1,5 @@
 // A coupon holder's requests without Pi, for the ledger tests: the same verification, E2EE and device
-// signing as curated/near-provider.ts, against the real node and real NEAR. ABALONE_DIR is the recipient.
+// signing as agents/pi/near-provider.ts, against the real node and real NEAR. ABALONE_DIR is the recipient.
 //   one | distinct N | same N | seq N → JSON array of turns (seq: N one after another, each timed) (same: N concurrent with one idempotency key, then one more retry)
 //   forge <account>              → a request on someone else's account, signed by a fresh key
 //   hangup-mid | hangup-end      → start a turn, then exit the process (no close) after its first frame, or right after

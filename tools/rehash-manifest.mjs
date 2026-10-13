@@ -1,5 +1,5 @@
 // Maintainer step after reviewing and committing a change to a curated file: rewrite the sha256 of every entry
-// in <ABALONE_CONFIG or repo>/curated/manifest.json. abalone itself never rehashes.
+// in <ABALONE_CONFIG or repo>/agents/pi/admitted.json. abalone itself never rehashes.
 // The repo manifest is rehashed only over committed paths, so it matches what a clone verifies.
 // Tests rehash a copy in a temporary ABALONE_CONFIG over the working tree they test.
 import { execFileSync } from "node:child_process";
@@ -13,5 +13,5 @@ if (path.resolve(CFG) === ROOT) {
   if (dirty) throw new Error(`✗ refused: uncommitted changes under manifest entries; commit them first:\n${dirty}`);
 }
 m.entries = m.entries.map((e) => ({ ...e, sha256: hash(path.join(ROOT, e.path)) }));
-fs.writeFileSync(path.join(CFG, "curated", "manifest.json"), JSON.stringify(m, null, 1) + "\n");
+fs.writeFileSync(path.join(CFG, "agents", "pi", "admitted.json"), JSON.stringify(m, null, 1) + "\n");
 for (const e of m.entries) console.log(e.sha256.slice(0, 12), e.kind.padEnd(9), e.path);

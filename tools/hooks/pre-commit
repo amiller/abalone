@@ -1,6 +1,6 @@
 #!/bin/sh
 # Installed as .git/hooks/pre-commit (tools/dev-worktree.sh installs a dispatcher; worktrees share it). Refuses imports of
-# untracked files, then rehashes curated/manifest.json from the staged blobs and stages it, so every commit is consistent.
+# untracked files, then rehashes agents/pi/admitted.json from the staged blobs and stages it, so every commit is consistent.
 set -e
 node tools/check-imports.mjs
 node tools/manifest-index.mjs --write

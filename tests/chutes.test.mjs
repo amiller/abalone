@@ -63,7 +63,7 @@ for (const [name, args, why] of [
 test("refused: measurements in no anchored row", async () => {
   const rows = anchor.rows, { rtmr3 } = await check();
   anchor.rows = rows.filter((r) => r.rtmr3 !== rtmr3);
-  try { await assert.rejects(check(), /match no row of anchors\/chutes_measurements.json/); } finally { anchor.rows = rows; }
+  try { await assert.rejects(check(), /match no row of verifiers\/chutes\/chutes_measurements.json/); } finally { anchor.rows = rows; }
 });
 
 test("the recorded live reply opens with its one-request key; a flipped byte or another key is refused", () => {

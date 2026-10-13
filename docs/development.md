@@ -36,7 +36,7 @@ understandable state and coherent start-to-close journey. A claim about privacy
 must name its scope. Provider attestation does not establish local host security,
 tool-egress policy, trace ephemerality or network anonymity.
 
-Keep curated/manifest.json consistent using the repository's staged-file checks.
+Keep agents/pi/admitted.json consistent using the repository's staged-file checks.
 Do not attach private transcripts, credentials or raw operator state to issues.
 Publishing a release or changing repository visibility is separate from integrating
 development work. First-party code is MIT licensed and SECURITY.md defines private reporting.

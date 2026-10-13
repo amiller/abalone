@@ -5,7 +5,7 @@ set -uo pipefail
 . "$(dirname "$0")/lib/env.sh"; stubcfg
 . "$root/tests/lib/reader.sh"
 export XDG_RUNTIME_DIR="$(mktemp -d -p "$XDG_RUNTIME_DIR")"   # this test's own, so other sessions' run dirs do not count
-[[ -d $root/local-data/demo-corpus ]] || python3 "$root/evals/pour/make_corpus.py"
+[[ -d $root/local-data/demo-corpus ]] || python3 "$root/skills/evals/pour-planning/make_corpus.py"
 fail=0
 check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fail=1; fi; }
 out=$(mktemp -d)

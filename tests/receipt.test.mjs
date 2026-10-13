@@ -1,10 +1,10 @@
 // Per-response receipt check (§9.3), offline against the verifier's synthetic signed fixtures.
-// Run after: (cd aci/verifier-ts && npx tsc -p tsconfig.test.json)
+// Run after: (cd vendor/phala-aci/verifier-ts && npx tsc -p tsconfig.test.json)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import * as fx from "../aci/verifier-ts/dist-test/test/fixtures.js";
-import { receiptTranscriptFromDigests, hashBody } from "../aci/verifier-ts/dist-test/src/index.js";
-import { auditResponse } from "../aci/provider/dist/provider.js";
+import * as fx from "../vendor/phala-aci/verifier-ts/dist-test/test/fixtures.js";
+import { receiptTranscriptFromDigests, hashBody } from "../vendor/phala-aci/verifier-ts/dist-test/src/index.js";
+import { auditResponse } from "../vendor/phala-aci/provider/dist/provider.js";
 
 const digests = { request: await hashBody(fx.REQUEST_BODY), response: await hashBody(fx.RESPONSE_BODY) };
 const upstream = { session: fx.SESSION, requiresVerified: true, serving: "aggregator" };

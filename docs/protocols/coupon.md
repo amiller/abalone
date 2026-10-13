@@ -245,7 +245,7 @@ rollback enforcement. Signed debug staging is a separate explicit capability; it
 
 The identity verifier is [vendored from a pinned reviewed source](../../lib/vendor/dstack-issuer/README.md).
 Abalone adapts only worker dependency lookup to its existing
-`aci/verifier-ts` package and requires `@phala/dcap-qvl` 0.6.6. The genuine quote
+`vendor/phala-aci/verifier-ts` package and requires `@phala/dcap-qvl` 0.6.6. The genuine quote
 worker has a bounded lifetime, minimal environment and actual process termination
 on timeout or abort; collateral and provider errors are replaced with stable
 messages. Neither the policy nor test reports are a production allowlist.
