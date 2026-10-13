@@ -66,11 +66,21 @@
 <span class="p">$ </span>less install.sh
 <span class="p">$ </span>sh install.sh --credit</pre>
 <p class="cli-note">CLI example — not checked by this page.</p>
+<p class="quiet">What it does:</p>
+<ol class="start does">
+<li>Downloads one archive and four public files from the release.</li>
+<li>Checks each against a SHA256 pinned in the script; any mismatch stops it.</li>
+<li>Extracts the archive in a staging directory and runs nothing from it.</li>
+<li>Moves the runtime and the four files under <code>~/.abalone-app/</code> and links <code>~/.local/bin/abalone</code>.</li>
+<li>Writes a receipt of the digests it checked and prints every path.</li>
+</ol>
 <dl class="term">
+<dt>Refuses</dt><dd>Root or anything but Linux x86_64; a symlink in place of its install directories; an existing install that differs from the release</dd>
 <dt>Needs</dt><dd>Linux x86_64, Node 24, curl, tar, bash, sha256sum and flock; run as your ordinary user, not root. macOS is not supported for this install yet</dd>
 <dt>Changes</dt><dd>Adds <code>~/.abalone-app/</code> and the launcher <code>~/.local/bin/abalone</code></dd>
 <dt>Isolation</dt><dd>None: a credit session runs with your account’s file and network access</dd>
 </dl>
+<p class="quiet">No sudo, no shell startup edits, nothing claimed. <a href="https://github.com/amiller/abalone/blob/main/docs/abalone-coupon-redeem.md#what-installsh-does">What install.sh does, step by step, and how to confirm it</a> · <a href="https://github.com/amiller/abalone/blob/main/docs/abalone-coupon-redeem.md#without-the-script">Without the script</a></p>
 </div>
 </section>
 

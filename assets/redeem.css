@@ -24,6 +24,7 @@ h2{font-size:30px;margin:0 0 14px}
 .primary{display:inline-block;font-weight:650;font-size:15px;border:1px solid var(--accent);border-radius:5px;background:var(--accent);color:var(--on-accent);padding:11px 18px;text-decoration:none}
 .primary[hidden]{display:none}button.primary{font:inherit;font-weight:650;font-size:15px;cursor:pointer}#copy-status{min-height:1.6em;font-size:15px;color:var(--muted);margin:12px 0 0;max-width:33rem}noscript p{margin:12px 0 0;padding:12px;border:1px solid var(--line-strong);border-radius:4px;max-width:33rem}
 .start{margin:18px 0 0;padding-left:1.4em;max-width:36rem}.start li{margin:0 0 14px;padding-left:4px}.start li::marker{color:var(--accent);font-family:var(--mono)}.start pre{margin:8px 0 0;padding:10px 14px}
+.does{margin:0 0 16px;font-size:15px}.does li{margin-bottom:6px}
 .limits{margin:18px 0 0;padding:12px 14px;border:1px solid var(--line-strong);border-radius:4px;font-size:15px;color:var(--muted);max-width:33rem}
 .limits p{margin:0 0 6px}.limits p:last-child{margin:0}
 .limits strong{color:var(--ink)}
