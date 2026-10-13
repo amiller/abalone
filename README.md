@@ -6,124 +6,119 @@ Abalone, a cypherpunk AI privacy shell. Give your user an incognito session usin
 
 [Website](https://amiller.github.io/abalone/) · [Guides](guides/README.md) · [Security](docs/security.md)
 
-## The problem
+Start with a coding agent and a model API. You can ask it to work on your files,
+but now the provider can read your prompts, the tools inherit your account's
+access, and the conversation stays on disk.
 
-Run a coding agent against a model API. The provider can read your prompts, the
-agent's tools inherit your account's files and network, and the transcript remains
-after you close the terminal.
+Move inference into a trusted execution environment (TEE) and encrypt requests
+to it. That protects the remote computation. You still need to check which
+program receives those requests and control what happens on your own computer.
 
-Put the model inside a trusted execution environment (TEE) and encrypt each request to
-a key held there. The operator now handles ciphertext. But how do you know which
-program holds that key? And what stops the agent from sending your files somewhere
-else?
+Abalone puts those checks around an agent session. It verifies supported
+providers, keeps credentials out of saved agent configuration, and starts
+incognito sessions without saved conversation history. Its skills and guides
+cover sandbox setup and network security.
 
-Abalone checks the remote program before sending a prompt, and starts the agent
-without a saved conversation. Its separate sandbox mode restricts what the agent's
-tools can reach.
-
-## Who sees what
-
-A session is a coding agent ([Pi](vendor/pi/)) started by Abalone, with the
-environment arranged so that:
-
-- **The provider handles ciphertext.** Before sending the first prompt byte, Abalone
-  verifies the provider's attestation, the signed hardware evidence identifying the
-  running program, compares its code fingerprint with the expected value pinned in
-  [`verifiers/`](verifiers/), and encrypts each request to the key bound to that
-  evidence. The operator still sees metadata: model name, request sizes, timing, and
-  which account paid.
-- **Tool connections are restricted.** In the sandbox session the agent's tools run
-  under bubblewrap, a Linux isolation tool, with connections only to permitted
-  destinations. Planted test secrets in your folder, and checks on outgoing text,
-  reject the obvious leaks; they do not catch a paraphrase.
-- **Credentials are separate from the agent.** They live in a small store on your
-  computer, are supplied to the agent at launch for that session, and survive the
-  session until you forget them.
-- **Incognito disables saved conversation history.** Temporary agent state uses
-  memory-backed storage and is removed at exit. Credentials, workspace files and
-  terminal captures remain, and the docs say so plainly.
-
-Each session reports an assurance level. Today a provider that fails verification is
-refused; a lower level for providers Abalone cannot verify is planned, and will be
-labelled as such.
-
-Private inference providers protect the remote computation. Abalone checks the
-provider's evidence and manages the local session; Tor and Tails address network
-anonymity, and the [guides](guides/README.md) say how to combine them.
+Already have private inference? Use Abalone to check your provider and keep the
+session clean. Need a model? Start with the
+[acquiring guide](guides/acquiring-private-inference/README.md) to choose a
+provider and find how to buy access.
 
 ## Run it
 
-A session needs a model. Pick where yours comes from.
+There are three ways to bring a model.
 
-**Own key or local model: source build; key setup lands in the next release.**
-Build from source ([CONTRIBUTING](CONTRIBUTING.md); Linux x86_64, Node 24), then:
+**Your own key or a local model.** The sandbox is available from source on
+Linux x86_64 with Node 24; follow [CONTRIBUTING](CONTRIBUTING.md).
+See [providers.json](providers.json) for admitted routes and the
+[getting-started guide](docs/getting-started.md) for configuration.
+A local model needs no provider key.
 
-```
-abalone key add <provider>
+```sh
 abalone canary init <folder>
 abalone sandbox --incognito --model <provider>/<model>
 ```
 
-`key add` reads the key from hidden input and checks it with the provider. Admitted
-providers are listed in [providers.json](providers.json); a local model needs no key.
+The simpler key setup command is planned for a future release:
 
-**Gift: the released installer.** Someone running
-[Dsmack](https://github.com/amiller/dsmack) sends you a link. The
-[redeem page](https://amiller.github.io/abalone/redeem) walks you through installing
-the released client and turning the gift into a saved credit; after that, plain
-`abalone` opens the session. The procedure, and what the installer changes, is in
-[Redeem a coupon](docs/abalone-coupon-redeem.md).
+```sh
+abalone key add <provider>
+```
 
-**Zcash: planned.** Swap Zcash for a slice of model access and open the session. The
-[acquiring guide](guides/acquiring-private-inference/README.md) tracks it.
+**A gift from someone running [Dsmack](https://github.com/amiller/dsmack).**
+The [redeem page](https://amiller.github.io/abalone/redeem) takes you through
+the released installer and saves the delivered credential as a credit.
+Then run `abalone`. See [Redeem a coupon](docs/abalone-coupon-redeem.md)
+for the procedure and what the installer changes.
 
-Use synthetic, non-sensitive material for now. The current trial is a preview.
+**Zcash, planned.** Pay for a slice of model access and open a session.
+Invoice and payment detection have a testnet prototype; the swap is dry-run
+only, and buying provider credit with the proceeds remains unresolved.
 
-## What is not done yet
+Today plain `abalone` opens a saved credit or asks for a gift.
+Bringing keys and coupons into the same launcher, with sandbox capabilities
+independent of how you acquired access, is planned.
 
-- **Provider retention.** What a provider keeps is a property of the program the
-  attestation names, so verifying it means auditing that program's source and deriving
-  the reference values Abalone pins. That audit is the project; it is not done. Today the
-  pins are the providers' published measurements, so "attested" means the program the
-  provider says it runs, not yet a program reviewed not to retain your prompts.
-- **Network identity.** The shell alone does not hide your IP address; the
-  [network guides](guides/README.md) and the Tails route are how that is addressed.
-  Current state: NEAR's attestation service refuses Tor exits, so the NEAR route fails
-  over Tor; RedPill and Phala answer over Tor.
-- **The gift trial** has no tool sandbox and accepts outdated platform firmware under an
-  explicit warning; strong privacy guarantees remain unqualified while that holds.
+## What happens in a session
+
+Abalone launches [Pi](vendor/pi/). On a supported TEE route, it checks
+attestation before sending the first prompt: signed hardware evidence binds
+the running program to a key. Abalone compares the program's measurement with
+the expected value in [`verifiers/`](verifiers/) and protects requests using
+the attested key. The provider operator sees encrypted traffic, along with
+metadata such as timing, request sizes and the paying account.
+
+In `abalone sandbox`, bubblewrap limits filesystem access and network
+connections to permitted destinations. Canaries are planted test secrets;
+outgoing-text checks reject recognizable leaks. Ordinary connected sessions
+also have a disclosure gate for text sent to outside models.
+
+Abalone supplies the credential at launch. With a coupon, the issuer delivers
+it encrypted to keys generated on your computer. The issuer sees the coupon;
+prompts go directly to the model provider.
+
+Private inference providers supply the remote computation; Abalone checks
+their evidence and manages the agent's local session. Tor and Tails address
+network identity; the [guides](guides/README.md) cover combining them.
 
 ## What incognito means here
 
-Incognito is a property of the session, not of you. Saved conversation history is
-off; the next session starts fresh. A fresh session is not deletion: the credential
-stays in `~/.abalone/credit` until `abalone credit forget` removes it, workspace files
-and scrollback keep their own lifetimes, and your own computer is trusted.
-[Local host and retention](docs/security.md#local-host-and-retention) lists exactly
-what each mode keeps.
+The conversation stays in process memory, with no conversation file or trace
+written by default. Temporary managed state uses memory-backed storage.
+The next session starts fresh; saved access stays until you remove it with
+`abalone credit forget`.
 
-On the gift route the coupon is redeemed with an issuer on the Dsmack network. Abalone
-accepts the issuer only if its fresh admission matches the identity pinned in the
-release, and the issuer delivers the model credential encrypted to keys your computer
-generated. The issuer sees the coupon, not your prompts. The coupon's operator can
-revoke the credential, and spending can overshoot the cap.
+A fresh session is not deletion. Workspace files, terminal captures, backups
+and crash artifacts have their own lifetimes, and memory-backed storage may
+swap. Your computer remains trusted.
+[Local host and retention](docs/security.md#local-host-and-retention)
+records each mode's behavior. Without `--incognito`, the sandbox saves a
+resumable conversation.
 
-## Details
+## Work still to do
 
-Plain `abalone` opens a saved credit's session, or asks for a gift if none is saved.
-`abalone sandbox [folder]` is the developer session: bubblewrap, permitted-host egress,
-planted test secrets required unless `--no-canaries`, models from `providers.json` or
-local. Without `--incognito` the sandbox keeps a resumable session under
-`~/.abalone/agent` and may pass approved text to a frontier model through
-`ask_frontier`. The one-at-a-time commands behind the front door are `abalone credit
-inspect`, `redeem`, `recover`, `status`, `session` and `forget`; `abalone help` lists
-everything.
+Provider retention is part of the verification work. Today Abalone pins
+providers' published measurements. Establishing what their programs retain
+requires auditing the source and deriving reference measurements from it;
+that audit is unfinished.
 
-## Where to go next
+Network identity is also in scope. Tor/Tails integration needs working
+provider routes: NEAR's attestation service currently refuses Tor exits;
+RedPill and Phala answer over Tor. Verification failures currently stop the
+session. An explicitly labelled mode for unverified providers is planned.
 
-- [Guides](guides/README.md): what private inference protects, how to pay for it, which network to connect from
-- [Getting started](docs/getting-started.md) and [Redeem a coupon](docs/abalone-coupon-redeem.md)
-- [Watch a synthetic PDF become meeting minutes](https://pod.dstack.soc1024.com/artifact-reports-2026c/abalone-coupon-pdf-meeting-minutes--lWMO2qY1hfbnqZdRWwg8cQ/) over a real coupon
-- [Architecture and source layout](docs/architecture.md), the [documentation index](docs/README.md), [Contributing](CONTRIBUTING.md), [issues](https://github.com/amiller/abalone/issues), [security reporting](SECURITY.md)
+Use synthetic, non-sensitive material with the current preview. The released
+coupon route runs tools as your account without an OS sandbox and permits an
+explicit outdated-firmware warning. Its operator can access and revoke the
+credential, and spending can exceed the cap. Sandbox disclosure checks can
+miss paraphrases. The [security document](docs/security.md) gives the exact
+boundaries.
+
+## Explore
+
+- [Guides](guides/README.md): providers, payment and network setup
+- [Watch a synthetic PDF become meeting minutes](https://pod.dstack.soc1024.com/artifact-reports-2026c/abalone-coupon-pdf-meeting-minutes--lWMO2qY1hfbnqZdRWwg8cQ/) using a coupon
+- [Architecture and source layout](docs/architecture.md) and [documentation index](docs/README.md)
+- [Contributing](CONTRIBUTING.md), [issues](https://github.com/amiller/abalone/issues) and [security reporting](SECURITY.md)
 
 First-party code is [MIT licensed](LICENSE); preserve [component notices](THIRD_PARTY_NOTICES.md).
