@@ -61,8 +61,10 @@ worker handoffs and raw release coordination do not belong in this repository.
 ## Changes and review
 
 Describe the user-visible outcome, changed trust/retention boundary, relevant
-checks and limits. Runtime changes require the offline integration gate; docs
-need `make verify-docs` (local Markdown links/fragments and whitespace). Seek independent review. Worktree helpers are
+checks and limits. Follow [Choosing checks](docs/testing.md): run focused checks
+during development and one settled offline gate for runtime integration. Reuse
+evidence only with its original revision/environment and a reason it still applies.
+Docs need `make verify-docs`; executable instructions also need rehearsal. Seek independent review. Worktree helpers are
 optional; no particular assistant model or private directory is required.
 
 Preserve agents/pi/admitted.json. The staged-file import and manifest tools are
