@@ -1,7 +1,7 @@
 .intro{padding:44px 0 40px;border-bottom:1px solid var(--line)}
 .intro h1{max-width:18ch;margin:0 0 12px}
 .subhead{font:21px/1.45 var(--serif);color:var(--muted);margin:0 0 28px;max-width:36rem}
-.intro-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:36px;align-items:start}
+.intro-grid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(0,1fr);gap:32px;align-items:start}
 .intro-grid>div>p{margin:0 0 12px}
 .plate{margin:0;padding:12px;background:#0b1012;border:1px solid var(--line-strong);border-radius:4px}
 .level{font-family:var(--mono);font-size:.9em;white-space:nowrap}
@@ -19,6 +19,7 @@
 .observers small{display:block;font-weight:400;font-size:14px;color:var(--muted)}
 .steps-v{list-style:none;padding:0;margin:18px 0 0}
 .steps-v li{margin:0 0 28px;max-width:46rem}
+.steps-v p code,.intro-grid p code{white-space:nowrap}
 .steps-v h3{font:400 23px/1.2 var(--serif);margin:0 0 8px}
 .nots{margin:0;padding-left:1.2em;max-width:46rem}.nots li{margin:0 0 6px}
 @media(max-width:720px){.intro{padding:28px 0}.intro-grid,.cards{grid-template-columns:minmax(0,1fr)}.level{white-space:normal}.plate{grid-row:1;max-width:320px;margin:0 auto}

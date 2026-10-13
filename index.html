@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
-<meta name="description" content="Abalone, a cypherpunk AI privacy shell: a terminal shell around a coding agent that checks a TEE model's attestation before sending it requests. Redeem a gift link, or bring your own provider key.">
+<meta name="description" content="Abalone, a cypherpunk AI privacy shell: a terminal shell around a coding agent that checks a TEE model's attestation before sending it requests. Redeem a gift link; a bought provider key works from the next release.">
 <meta property="og:title" content="Abalone">
 <meta property="og:description" content="A cypherpunk AI privacy shell: a terminal shell around a coding agent that checks a TEE model's attestation before sending it requests.">
 <meta property="og:type" content="website">
@@ -33,9 +33,9 @@
 <p class="subhead">Give your user an incognito session using TEE-based private inference.</p>
 <div class="intro-grid">
 <div>
-<p>Abalone is a terminal shell around a coding agent. A session starts with nothing saved from the last one: the conversation stays in process memory, and run files on tmpfs are removed at exit.</p>
+<p>Abalone is a terminal shell around a coding agent. Each session starts fresh: the conversation is held in memory, not saved, and tmpfs run files go at exit. Saved access, workspace files and scrollback stay.</p>
 <p>Before the first prompt byte leaves your computer, Abalone checks the provider’s TEE attestation and encrypts each request to a key inside that TEE.</p>
-<p>Two assurance levels: <span class="level">◈ private inference</span> when the attestation checks out; <span class="level">○ local safeguards only · provider not verified</span> is planned. Today an unverified provider is refused.</p>
+<p>The gift session and <code>abalone sandbox --incognito</code> refuse a provider that fails attestation; NEAR passes today with an out-of-date firmware warning. Planned: <span class="level">◈ private inference</span> and <span class="level">○ local safeguards only · provider not verified</span>.</p>
 <div class="limits">
 <p><strong>Linux x86_64 with Node 24</strong>, on a computer you trust. There is no OS isolation: tools have your account’s files and network.</p>
 <p><strong>Synthetic material only.</strong> The current NEAR route accepts a verified out-of-date firmware warning.</p>
@@ -52,7 +52,7 @@
 <p class="quiet">Prose guides in the repository. A draft has not been reviewed.</p>
 <div class="cards">
 <a class="card" href="https://github.com/amiller/abalone/blob/main/guides/private-inference/README.md"><span class="status">Draft</span><h3>Private inference</h3><p>Follow a request from your terminal to the model’s attested key, and see which metadata still reaches the provider.</p></a>
-<a class="card" href="https://github.com/amiller/abalone/blob/main/guides/acquiring-private-inference/README.md"><span class="status">Draft</span><h3>Acquiring private inference</h3><p>What a sponsor, an issuer and a payment route can connect to you. A coupon works today; a bought provider key works only in the developer session.</p></a>
+<a class="card" href="https://github.com/amiller/abalone/blob/main/guides/acquiring-private-inference/README.md"><span class="status">Draft</span><h3>Acquiring private inference</h3><p>What a sponsor, an issuer and a payment route can connect to you. A coupon works in the current release. A bought provider key will work only in the developer session, from the next release.</p></a>
 <a class="card" href="https://github.com/amiller/abalone/blob/main/portable/README.md"><span class="status">Research · unsupported</span><h3>Portable / Tails</h3><p>Nothing here is supported yet. The current NEAR route fails on Tails because NVIDIA’s attestation service refuses Tor exits.</p></a>
 </div>
 </section>
@@ -71,13 +71,13 @@
 <td data-label="Prompt contents">No. The conversation never passes through Dsmack.</td>
 <td data-label="Credential">Yes. The operator can read and revoke the credential it delivers.</td>
 <td data-label="Metadata">The coupon at redemption, and your IP address. The sponsor knows who they gave the gift to.</td></tr>
-<tr><th scope="row">The model provider’s TEE<small>NEAR today</small></th>
+<tr><th scope="row">The model provider<small>NEAR today</small></th>
 <td data-label="Prompt contents">Decrypted only inside the attested TEE. Abalone does not verify what the provider retains, and strong private guarantees are unqualified under the firmware exception.</td>
 <td data-label="Credential">Yes. It is a capped credential for the provider’s own API.</td>
 <td data-label="Metadata">When you connect, from which IP address, how much you use, and which credit paid.</td></tr>
 <tr><th scope="row">The network<small>your ISP, Wi-Fi, anyone on the path</small></th>
 <td data-label="Prompt contents">No. Requests are encrypted to the admitted model key.</td>
-<td data-label="Credential">Not in the clear. The issuer delivers it encrypted to a key on your computer over an authenticated Noise connection (<a href="https://github.com/amiller/abalone/blob/main/docs/protocols/coupon.md">coupon protocol</a>); model requests use TLS pinned to the key in the verified quote (<a href="https://github.com/amiller/abalone/blob/main/docs/protocols/near-adapter.md">NEAR adapter</a>).</td>
+<td data-label="Credential">Not in the clear. The issuer delivers it encrypted to a key on your computer over an authenticated Noise connection (<a href="https://github.com/amiller/abalone/blob/main/docs/protocols/coupon.md">coupon protocol</a>); model requests use TLS pinned to the gateway’s TLS key in the verified quote (<a href="https://github.com/amiller/abalone/blob/main/docs/protocols/near-adapter.md">NEAR adapter</a>).</td>
 <td data-label="Metadata">Your IP address, the hosts you contact, when, and how much. Neither incognito nor provider encryption gives IP anonymity.</td></tr>
 </tbody>
 </table>
@@ -95,15 +95,16 @@
 <span class="p">$ </span>sh install.sh --credit</pre>
 <p class="cli-note">CLI example — not checked by this page.</p></li>
 <li><span class="step-no">02 / With a gift link · today</span><h3>Inspect the offer, redeem it, open the session.</h3>
-<p>Put the gift link in a private 0600 file, never in a command argument. Use the <code>trial.json</code> path the installer printed. Inspecting claims nothing.</p>
+<p>Put the gift link in a private 0600 file, never in a command argument. Use the <code>trial.json</code> path the installer printed. Inspecting claims nothing. Have a gift link? The <a href="redeem/">redeem page</a> walks through the same steps.</p>
 <pre><span class="p">$ </span>abalone credit inspect --trial /ABS/trial.json --input-file /private/gift.txt
 <span class="p">$ </span>abalone credit redeem --trial /ABS/trial.json --input-file /private/gift.txt --accept-offer OFFER_HASH
 <span class="p">$ </span>abalone</pre>
 <p class="cli-note">CLI example — not checked by this page. In the next release, plain <code>abalone</code> takes a pasted gift link and does all three.</p></li>
 <li><span class="step-no">03 / With your own provider key · next release</span><h3>Save the key, open the developer session.</h3>
-<p>This is on main and not yet in a release. The key is read from hidden input, never an argument. Only <code>abalone sandbox</code>, the bubblewrap developer session, uses it; plain <code>abalone</code> does not yet. <a href="https://github.com/amiller/abalone/blob/main/guides/acquiring-private-inference/README.md">Acquiring private inference</a> says what buying a key links to you.</p>
+<p>This is on main and not yet in a release. The key is read from hidden input, never an argument, and checked with the provider before it is saved. Only <code>abalone sandbox</code>, the bubblewrap developer session, uses it; plain <code>abalone</code> does not yet. Add <code>--incognito</code>: without it the sandbox keeps a resumable plaintext session under <code>~/.abalone/agent</code>. The sandbox refuses a folder without canaries; plant them first, or start with <code>--no-canaries</code>. <a href="https://github.com/amiller/abalone/blob/main/guides/acquiring-private-inference/README.md">Acquiring private inference</a> says what buying a key links to you.</p>
 <pre><span class="p">$ </span>abalone key add &lt;provider&gt;
-<span class="p">$ </span>abalone sandbox</pre>
+<span class="p">$ </span>abalone canary init &lt;folder&gt;
+<span class="p">$ </span>abalone sandbox --incognito --model &lt;provider&gt;/&lt;model&gt;</pre>
 <p class="cli-note">CLI example — not checked by this page.</p></li>
 </ol>
 </section>
