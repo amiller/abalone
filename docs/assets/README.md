@@ -1,14 +1,23 @@
 # Documentation artwork
 
-`abalone-shell-light.svg` and `abalone-shell-dark.svg` are the same contour
-shell, coloured for GitHub's light and dark themes. The README shows one or the
-other with the `#gh-light-mode-only` and `#gh-dark-mode-only` suffixes. They are
-generated from the paper-wallet contour design by a generator not yet
-published. SHA-256:
+`abalone-banner-light.svg` and `abalone-banner-dark.svg` are the README banner:
+the contour shell, the wordmark and the line "a cypherpunk AI privacy shell",
+coloured for GitHub's light and dark themes on a transparent background. The
+README shows one or the other with the `#gh-light-mode-only` and
+`#gh-dark-mode-only` suffixes. Text uses system font stacks; nothing external
+is loaded.
 
-    f4a6ac67f67f6bb758d71034433869395dc8825228e7e20031cda67a738a13e2  docs/assets/abalone-shell-light.svg
-    8300f39213db861fcc7a279be1e94d3f421c40164db05329a740da9ad09512a4  docs/assets/abalone-shell-dark.svg
+They are generated from the paper-wallet contour design by `shell-svg.py`, a
+generator not yet published:
 
-Check with `sha256sum docs/assets/abalone-shell-*.svg`. The same drawing is the
-hero of the hosted redeem page. It is illustration, not evidence of a security
-property.
+    python3 shell-svg.py banner light > docs/assets/abalone-banner-light.svg
+    python3 shell-svg.py banner dark > docs/assets/abalone-banner-dark.svg
+
+SHA-256:
+
+    ba471b3b74e481fac7c1b948267923c8b140c1a705fbbe0ad734091820441814  docs/assets/abalone-banner-light.svg
+    98d39fe978dd9a3af7cc2dbf059916da4bcf8169e031ea63b3493d05e576117b  docs/assets/abalone-banner-dark.svg
+
+Check with `sha256sum docs/assets/abalone-banner-*.svg`. The same shell drawing
+is the hero of the hosted redeem page. It is illustration, not evidence of a
+security property.

@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/assets/abalone-shell-light.svg#gh-light-mode-only" width="360" alt="Line drawing of an abalone shell: an asymmetric ear-shaped outline, growth lines, and a row of breathing holes along one edge."><img src="docs/assets/abalone-shell-dark.svg#gh-dark-mode-only" width="360" alt="Line drawing of an abalone shell: an asymmetric ear-shaped outline, growth lines, and a row of breathing holes along one edge."></p>
+<p align="center"><img src="docs/assets/abalone-banner-light.svg#gh-light-mode-only" width="720" alt="Abalone, a cypherpunk AI privacy shell. A contour line drawing of an abalone shell, with growth lines and a row of breathing holes, beside the wordmark."><img src="docs/assets/abalone-banner-dark.svg#gh-dark-mode-only" width="720" alt="Abalone, a cypherpunk AI privacy shell. A contour line drawing of an abalone shell, with growth lines and a row of breathing holes, beside the wordmark."></p>
 
 # Abalone
 
