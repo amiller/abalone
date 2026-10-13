@@ -104,6 +104,9 @@ async function piSession(name) {
   const cwd = path.join(scratch, name), agentDir = path.join(cwd, "agent"); fs.mkdirSync(agentDir, { recursive: true });
   fs.writeFileSync(path.join(cwd, "sample.md"), "private specimen draft\n");
   fs.writeFileSync(path.join(agentDir, "settings.json"), JSON.stringify({ retry: { enabled: true, maxRetries: 3, baseDelayMs: 1, provider: { maxRetries: 3 } }, compaction: { enabled: false }, cacheWarming: "off" }));
+  if (["endpoint-override", "api-override"].includes(name)) fs.writeFileSync(path.join(agentDir, "models.json"), JSON.stringify({ providers: {
+    chutes: { baseUrl: replayUrl + "/plaintext-trap", ...(name === "api-override" ? { models: [{ id: modelId, api: "anthropic-messages", contextWindow: 65536, maxTokens: 4096 }] } : {}) },
+  } }));
   const driver = path.join(cwd, "synthetic-extension.ts");
   fs.writeFileSync(driver, behavior === "retry-control" ? `import { createProvider, envApiKeyAuth } from "@earendil-works/pi-ai";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/compat";
@@ -137,7 +140,7 @@ export default async function(pi) {
     buffer += b;
     let nl; while ((nl = buffer.indexOf("\n")) >= 0) {
       const line = buffer.slice(0, nl); buffer = buffer.slice(nl + 1);
-      try { const event = JSON.parse(line); events.push(event); if (event.type === "agent_end" && event.willRetry === false) completed(); } catch {}
+      try { const event = JSON.parse(line); events.push(event); if (event.type === "agent_end" && event.willRetry === false || name === "api-override" && event.type === "response" && event.command === "prompt" && event.success) completed(); } catch {}
     }
   });
   return { cwd, events, prompt: async (message) => {
@@ -145,18 +148,31 @@ export default async function(pi) {
     await Promise.race([done, new Promise((_, reject) => { const timer = setTimeout(() => reject(new Error("Pi test deadline: " + errors)), 20000); timer.unref(); })]);
   }, close: () => child.kill() };
 }
-for (const operation of ["read", "edit"]) test(`unmodified Pi executes native ${operation} through sealed requests`, async () => {
+for (const operation of ["read", "edit", "endpoint-override"]) test(`unmodified Pi ${operation} stays on the sealed request path`, async () => {
   calls = []; bodies = []; behavior = operation;
   const session = await piSession(operation);
   const { cwd } = session;
   try {
     await session.prompt(`Use ${operation} on sample.md, a private specimen, then report completion.`);
 
-    assert.equal(bodies.length, 2);
-    assert.ok(bodies[0].tools.some((t) => t.function.name === operation));
-    assert.ok(bodies[1].messages.some((m) => m.role === "tool"));
+    assert.equal(bodies.length, operation === "endpoint-override" ? 1 : 2);
+    if (operation !== "endpoint-override") {
+      assert.ok(bodies[0].tools.some((t) => t.function.name === operation));
+      assert.ok(bodies[1].messages.some((m) => m.role === "tool"));
+    }
     assert.equal(session.events.findLast((e) => e.type === "message_end" && e.message?.role === "assistant").message.stopReason, "stop");
     if (operation === "edit") assert.equal(fs.readFileSync(path.join(cwd, "sample.md"), "utf8"), "private specimen ready\n");
+  } finally { session.close(); }
+});
+
+test("custom API override cannot silently replace Chutes private inference with another transport", async () => {
+  calls = []; bodies = []; behavior = "answer";
+  const session = await piSession("api-override");
+  try {
+    await session.prompt("private specimen");
+    assert.equal(bodies.length, 0);
+    assert.ok(!session.events.some((e) => e.type === "agent_start"));
+    assert.ok(session.events.some((e) => e.type === "extension_ui_request" && /custom API override/.test(e.message ?? "")));
   } finally { session.close(); }
 });
 

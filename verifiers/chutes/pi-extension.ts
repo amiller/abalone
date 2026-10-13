@@ -17,6 +17,13 @@ export async function registerChutes(pi: ExtensionAPI, options: any = {}) {
   if (!response.ok) throw new Error(`Chutes private inference model list returned HTTP ${response.status}.`);
   const models = privateModels(await response.json());
   if (!models.length) throw new Error("Chutes currently lists no private inference models with tool support.");
+  pi.on("input", (_event: any, ctx: any) => {
+    if (ctx.model?.provider !== "chutes") return { action: "continue" };
+    if (ctx.model.api === "openai-completions" && models.some((m: any) => m.id === ctx.model.id)) return { action: "continue" };
+    status = "refused: unsupported model or API override"; display();
+    ctx.ui.notify("Choose a Chutes private-inference model from this integration. A custom API override cannot use its protected transport.", "error");
+    return { action: "handled" };
+  });
   const send = protectedFetch({ models, policy: options.policy ?? POLICY, http, ...(options.verify ? { verify: options.verify } : {}),
     onState: (state: string) => { status = ({ checking: "checking instance", sending: "encrypted request", verified: "instance checked · request and tools encrypted", refused: "refused" } as any)[state]; display(); },
     onVerified: (profile: any) => {

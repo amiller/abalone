@@ -83,7 +83,7 @@ check "changed code: /folder explains what it means and what to do, and the sess
 tmux send-keys -t $t "/folder $other" Enter; wait_for "Switch to $other"
 screen > "$ABALONE_DIR/screen-folder-confirm.txt"; sleep 1; tmux send-keys -t $t Enter; sleep 2; screen > "$ABALONE_DIR/screen-folder-after.txt"; wait_for "abalone · $other (1 entries)"
 screen > "$ABALONE_DIR/screen-folder.txt"
-check "/folder restarts abalone in the other folder, and the first screen says where it is now" 'grep -q "^ abalone · $other (1 entries) · abalone reads" "$ABALONE_DIR/screen-folder.txt"'
+check "/folder restarts abalone in the other folder, and the first screen says where it is now" 'grep -q "^ abalone · $other (1 entries)$" "$ABALONE_DIR/screen-folder.txt"'
 tmux send-keys -t $t "hello there" Enter; wait_for "private model turn"
 tmux send-keys -t $t C-d; sleep 0.5; tmux send-keys -t $t C-d; wait_for "Resume with: abalone"
 resume=$(screen -J | grep -o "Resume with: abalone .*" | tail -1 | sed "s/^Resume with: //; s/ *$//")
