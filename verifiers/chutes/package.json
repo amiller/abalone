@@ -1,0 +1,19 @@
+{
+  "name": "@abalone/pi-private-inference-chutes",
+  "version": "0.1.0",
+  "description": "Chutes private inference for Pi, with instance verification and encrypted tool requests",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22.19.0" },
+  "keywords": ["pi-package", "private-inference"],
+  "pi": { "extensions": ["./pi-extension.ts"] },
+  "files": ["*.mjs", "pi-extension.ts", "chutes_measurements.json", "README.md"],
+  "dependencies": {
+    "@noble/post-quantum": "0.5.4",
+    "@phala/dcap-qvl": "0.6.6"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "1.1.0",
+    "@earendil-works/pi-coding-agent": "1.1.0"
+  }
+}

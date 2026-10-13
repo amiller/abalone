@@ -18,7 +18,7 @@ import { FIRST_USE_SOURCE_FILES } from "../../tools/coupon-first-use.mjs";
 import { OUT_OF_DATE_TRIAL_POLICY } from "../../lib/near.mjs";
 
 const root = path.resolve(import.meta.dirname, "../.."), out = path.resolve(process.argv[2]);
-const AGREED = ["coupon", "status"];
+const AGREED = ["banner", "coupon", "status"];
 const NEXT = /(^|[.;:!]\s+|\n\s*)(run|ask|retry|use|review|accept|restore|reinstall|start|supply|remove|open|type|request|get|contact|wait|paste|configure)\b/i;
 const sha = (b) => crypto.createHash("sha256").update(b).digest("hex");
 const check = (name, ok, detail = "") => console.log(`${ok ? "PASS" : "FAIL"} ${name}${detail ? ` (${detail})` : ""}`);

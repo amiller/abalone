@@ -716,6 +716,10 @@ async function session() {
       network: ownedHost ? { shell: "ordinary account network access; not isolated", public_web: true, egress: "tool network is not confined; inference remains pinned to the admitted coupon provider" } : { shell: "none", public_web: false, egress: "admitted TEE hosts, their verifier hosts and loopback model ports" },
       retention: tw ? { kind: "encrypted-trace", format: "abalone-trace/2", trace: tw.file, key_id: key.kid, key_file: key.file, encrypted: true,
         session_can_read_back: false, other_harness_writes: "tmpfs (memory), gone at exit", reopened: reopened?.id ?? null } : { kind: "session-only", session_can_read_back: false, other_harness_writes: "tmpfs (memory), gone at exit", reopened: reopened?.id ?? null } }, null, 1), { mode: 0o400 });
+  } else {
+    env.ABALONE_SESSION_DESCRIPTOR = path.join(run, "session.json");
+    fs.writeFileSync(env.ABALONE_SESSION_DESCRIPTOR, JSON.stringify({ version: 1, workspace: process.cwd(),
+      local_boundary: "bubblewrap", retention: { kind: "pi-history" } }), { mode: 0o400 });
   }
   // /redeem and /gift in the session need the network, which the sandbox lacks: the session asks the launcher to run
   // exactly these CLI commands. ask_frontier's runner runs here too, since the runner logins are not in the sandbox.
