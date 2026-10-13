@@ -71,7 +71,7 @@ export async function acquire({ options, manager, admission, input, confirm, out
   }
   try { await manager.redeem(offer.creditId, { offerHash: offer.offerHash }); }
   catch (error) {
-    if (["credit_not_claimed", "claim_not_reserved"].includes(error?.code)) { output("No authorized claim is reserved. Run redemption again with the original gift and review its terms before accepting; keep the saved records."); return false; }
+    if (error?.code === "credit_not_claimed") { output("No authorized claim is reserved. Run redemption again with the original gift and review its terms before accepting; keep the saved records."); return false; }
     if (error?.code === "claim_expired") { output("The gift's claim window closed. Ask its sender for new access; recovery cannot reopen it."); return false; }
     if (error?.code === "reconciliation_required") { output("This claim needs the issuer's operator to reconcile it. Keep the saved records; do not start another claim."); return false; }
     if (["credit_intent_required", "credit_locked", "credit_store_refused", "credit_record_refused", "credit_provider_unsupported", "staging_approval_expired"].includes(error?.code)) {
@@ -110,6 +110,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
       : error.code === "claim_expired" ? "The claim window closed. Ask the sender for a new gift."
       : error.code === "reconciliation_required" ? "This claim needs the issuer's operator to reconcile it; keep the saved recovery records."
       : error.code === "credit_not_claimed" ? "This gift was not claimed. Run redemption with the original gift and review its terms."
+      : error.code === "claim_not_reserved" ? `The earlier claim is uncertain. Keep the original records and recover with: node plugins/coupon/acquire.mjs --recover ${process.argv.slice(2).includes("--recover") ? process.argv[process.argv.indexOf("--recover") + 1] : "CREDIT_ID"}`
       : "Coupon acquisition stopped. Check the public bundle, input permissions and saved status. No agent was opened; use --help for options.";
     console.error(message); process.exitCode = 1;
   });

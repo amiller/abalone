@@ -4,7 +4,7 @@
   {
    "kind": "provider",
    "path": "agents/pi/coupon-provider.ts",
-   "sha256": "91d84da81ae509027a4c7a5cc0886c8273b0c003f3a4a6198c2262e0ad68e13e"
+   "sha256": "cc94f725d8686a1e5ec7117a5dbfd2048793fb1739f76761b688779e632c2e75"
   },
   {
    "kind": "extension",

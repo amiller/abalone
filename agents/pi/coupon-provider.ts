@@ -16,9 +16,14 @@ export default async function (pi: ExtensionAPI) {
   const p = providerId === "nearai" ? admitAttestedCouponNearProvider(selected, false, Number(process.env.ABALONE_COUPON_MAX_TOKENS)) : admitCouponSessionProvider(providers(), selected);
   const socketFetch = couponSocketFetch(socketPath);
   const send: typeof fetch = async (input, init) => {
-    const response = await socketFetch(input, init);
-    if (providerId === "nearai") pi.appendEntry?.("coupon-provider-result", { provider: providerId, model: selected, accepted: response.ok });
-    return response;
+    try {
+      const response = await socketFetch(input, init);
+      if (providerId === "nearai") pi.appendEntry?.("coupon-provider-result", { provider: providerId, model: selected, accepted: response.ok });
+      return response;
+    } catch (error) {
+      if (providerId === "nearai") pi.appendEntry?.("coupon-provider-result", { provider: providerId, model: selected, accepted: false });
+      throw error;
+    }
   };
   const api = openAICompletionsApi();
   const near = providerId === "nearai";

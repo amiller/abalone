@@ -66,8 +66,19 @@ let provider;
 await registerChutes({ on() {}, appendEntry() {}, registerProvider: (p) => { provider = p; } },
   { http, verify: async () => { if (checkFails) throw new Error("wrong quote/key " + key); return { model_tcb: ["UpToDate"] }; } });
 const model = provider.getModels()[0];
+let retryCalls = 0;
 const server = createServer(async (request, response) => {
   try {
+    if (request.url === "/retry-control") {
+      for await (const _ of request) {}
+      retryCalls++;
+      if (retryCalls === 1) { response.writeHead(503, { "content-type": "application/json" }); response.end(JSON.stringify({ error: { message: "temporarily overloaded" } })); }
+      else {
+        response.writeHead(200, { "content-type": "text/event-stream" });
+        response.end(`data: ${JSON.stringify({ id: "retry-control", model: modelId, choices: [{ index: 0, delta: { content: "Retry control complete." }, finish_reason: "stop" }], usage: { prompt_tokens: 1, completion_tokens: 1 } })}\n\ndata: [DONE]\n\n`);
+      }
+      return;
+    }
     const chunks = []; for await (const c of request) chunks.push(c);
     const replay = JSON.parse(Buffer.concat(chunks));
     const init = { ...replay.init, ...(replay.init.body ? { body: Buffer.from(replay.init.body, "base64") } : {}) };
@@ -94,7 +105,16 @@ async function piSession(name) {
   fs.writeFileSync(path.join(cwd, "sample.md"), "private specimen draft\n");
   fs.writeFileSync(path.join(agentDir, "settings.json"), JSON.stringify({ retry: { enabled: true, maxRetries: 3, baseDelayMs: 1, provider: { maxRetries: 3 } }, compaction: { enabled: false }, cacheWarming: "off" }));
   const driver = path.join(cwd, "synthetic-extension.ts");
-  fs.writeFileSync(driver, `import { registerChutes } from ${JSON.stringify(path.join(pkg, "pi-extension.ts"))};
+  fs.writeFileSync(driver, behavior === "retry-control" ? `import { createProvider, envApiKeyAuth } from "@earendil-works/pi-ai";
+import { openAICompletionsApi } from "@earendil-works/pi-ai/compat";
+export default function(pi) {
+  const api = openAICompletionsApi();
+  pi.registerProvider(createProvider({ id: "chutes", baseUrl: ${JSON.stringify(replayUrl)},
+    auth: { apiKey: envApiKeyAuth("synthetic", ["CHUTES_API_KEY"]) }, models: [${JSON.stringify({ ...model, baseUrl: replayUrl })}],
+    api: { stream: (m,c,o) => api.stream(m,c,{...o,maxRetries:0,fetch:(_u,i)=>fetch(${JSON.stringify(replayUrl + "/retry-control")},i)}),
+      streamSimple: (m,c,o) => api.streamSimple(m,c,{...o,maxRetries:0,fetch:(_u,i)=>fetch(${JSON.stringify(replayUrl + "/retry-control")},i)}) }
+  }));
+}` : `import { registerChutes } from ${JSON.stringify(path.join(pkg, "pi-extension.ts"))};
 export default async function(pi) {
   await registerChutes(pi, {
     http: async (url, init = {}) => fetch(${JSON.stringify(replayUrl)}, { method: "POST", body: JSON.stringify({url: String(url), init: {...init, signal: undefined, body: init.body ? Buffer.from(init.body).toString("base64") : undefined}}) }),
@@ -117,7 +137,7 @@ export default async function(pi) {
     buffer += b;
     let nl; while ((nl = buffer.indexOf("\n")) >= 0) {
       const line = buffer.slice(0, nl); buffer = buffer.slice(nl + 1);
-      try { const event = JSON.parse(line); events.push(event); if (event.type === "agent_end") completed(); } catch {}
+      try { const event = JSON.parse(line); events.push(event); if (event.type === "agent_end" && event.willRetry === false) completed(); } catch {}
     }
   });
   return { cwd, events, prompt: async (message) => {
@@ -140,6 +160,18 @@ for (const operation of ["read", "edit"]) test(`unmodified Pi executes native ${
   } finally { session.close(); }
 });
 
+test("retry control: harness waits through agent_end.willRetry and observes the second invocation", async () => {
+  behavior = "retry-control"; retryCalls = 0;
+  const session = await piSession("retry-control");
+  try {
+    await session.prompt("private specimen");
+    assert.equal(retryCalls, 2);
+    assert.ok(session.events.some((e) => e.type === "agent_end" && e.willRetry === true));
+    assert.ok(session.events.some((e) => e.type === "auto_retry_start"));
+    assert.equal(session.events.findLast((e) => e.type === "agent_end").willRetry, false);
+  } finally { session.close(); }
+});
+
 for (const mode of ["503", "lost", "corrupt", "bad-evidence"]) test(`stock Pi ${mode}: no automatic charged replay and no secret in errors`, async () => {
   calls = []; bodies = []; behavior = mode; checkFails = mode === "bad-evidence";
   // Fresh provider/cache for the verification refusal.
@@ -151,6 +183,7 @@ for (const mode of ["503", "lost", "corrupt", "bad-evidence"]) test(`stock Pi ${
     await session.prompt("private specimen");
     assert.equal(bodies.length, mode === "bad-evidence" ? 0 : 1);
     assert.ok(!events.some((e) => e.type === "auto_retry_start"));
+    assert.ok(events.filter((e) => e.type === "agent_end").every((e) => e.willRetry === false));
     const final = events.findLast((e) => e.type === "message_end" && e.message?.role === "assistant").message;
     assert.equal(final.stopReason, "error"); assert.ok(!final.errorMessage.includes(key));
   } finally { session.close(); checkFails = false; }
