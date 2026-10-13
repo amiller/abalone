@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/assets/abalone-banner-light.png#gh-light-mode-only" width="720" alt="Abalone, a cypherpunk AI privacy shell. A cartoon abalone peeks out from under its mottled shell, eye stalks up and smiling, beside the wordmark."><img src="docs/assets/abalone-banner-dark.png#gh-dark-mode-only" width="720" alt="Abalone, a cypherpunk AI privacy shell. A cartoon abalone peeks out from under its mottled shell, eye stalks up and smiling, beside the wordmark."></p>
+<p align="center"><img src="docs/assets/abalone-banner-light.png#gh-light-mode-only" width="556" alt="Abalone, a cypherpunk AI privacy shell. A cartoon abalone peeks out from under its mottled shell, eye stalks up and smiling, beside the wordmark."><img src="docs/assets/abalone-banner-dark.png#gh-dark-mode-only" width="556" alt="Abalone, a cypherpunk AI privacy shell. A cartoon abalone peeks out from under its mottled shell, eye stalks up and smiling, beside the wordmark."></p>
 
 # Abalone
 
