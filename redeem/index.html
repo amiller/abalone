@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'self'; script-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="description" content="Someone sent you an Abalone gift link. It pays for an incognito AI session in your own terminal; each model request is encrypted to an attested NEAR model. Install Abalone, run abalone and paste the link.">
+<meta name="description" content="Someone sent you an Abalone gift link. It pays for an incognito AI session in your own terminal; each model request is encrypted to an attested NEAR model. Download and unpack Abalone, run it and paste the link.">
 <meta property="og:title" content="Abalone — you have a gift link">
-<meta property="og:description" content="It pays for an incognito AI session in your own terminal; each model request is encrypted to an attested NEAR model. Install Abalone, run abalone and paste the link.">
+<meta property="og:description" content="It pays for an incognito AI session in your own terminal; each model request is encrypted to an attested NEAR model. Download and unpack Abalone, run it and paste the link.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://amiller.github.io/abalone/assets/og-1200x630.png">
 <meta property="og:image:width" content="1200">
@@ -33,10 +33,9 @@
 <h1 id="hero-title">You have a gift link.</h1>
 <p class="lead">It pays for an incognito AI session in your own terminal. Three steps:</p>
 <ol class="start">
-<li>Download <code>install.sh</code> from the newest release whose tag starts with <code>v0.1.0-preview</code> on the <a href="https://github.com/amiller/abalone/releases">Abalone releases page</a> (not a coupon bundle). Check <code>sha256sum install.sh</code> against the <code>install.sh SHA256</code> line in its release notes, then run it:
-<pre><span class="p">$ </span>sh install.sh --credit</pre></li>
-<li>Run Abalone in your terminal:
-<pre><span class="p">$ </span>abalone</pre></li>
+<li>Download the client archive and three public files from the <a href="https://github.com/amiller/abalone/releases">Abalone releases page</a>, check them with <code>sha256sum -c</code> and unpack them into a folder you choose. <a href="#s1">The commands are below.</a></li>
+<li>Run Abalone from that folder (or plain <code>abalone</code> if you installed the optional launcher):
+<pre><span class="p">$ </span>~/abalone-portable/abalone/bin/abalone</pre></li>
 <li>Paste the gift link you were sent (this page’s address with <code>#code=…</code>) at the prompt. Nothing is shown as you paste. Abalone prints the offer’s terms; type the 8 characters it shows you to accept, and the session opens.</li>
 </ol>
 <p class="quiet">Needs a Linux x86_64 computer you trust, with Node 24.</p>
@@ -60,34 +59,32 @@
 </section>
 
 <section class="section split" aria-labelledby="s1">
-<div><span class="step-no">01 / Install</span><h2 id="s1">Check it, then install.</h2><p class="quiet">The installer verifies the release archive and four public files against hashes pinned inside it. It claims nothing and starts nothing. A matching checksum shows the bytes are the published ones, not that they are safe.</p></div>
+<div><span class="step-no">01 / Get it</span><h2 id="s1">Get it, verify it, unpack it.</h2><p class="quiet">The client archive and the public trial files are separate downloads. Take the three files and <code>FRIEND-SHA256SUMS</code> from the newest release whose tag starts with <code>v0.1.0-preview</code>, and the archive its release notes name, which also give the archive’s SHA256. A matching checksum shows the bytes are the published ones, not that they are safe.</p></div>
 <div>
-<pre><span class="p">$ </span>sha256sum install.sh
-<span class="p">$ </span>less install.sh
-<span class="p">$ </span>sh install.sh --credit</pre>
+<p class="quiet">For v0.1.0-preview.8.1, whose archive is published with v0.1.0-preview.8:</p>
+<pre><span class="p">$ </span>mkdir -m 700 ~/abalone-portable &amp;&amp; cd ~/abalone-portable
+<span class="p">$ </span>curl -fLO https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8/abalone-ca6a250.tar.gz
+<span class="p">$ </span>for f in FRIEND-SHA256SUMS trial.json issuer-pin.json staging-approval.json; do curl -fLO "https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8.1/$f"; done
+<span class="p">$ </span>echo "f4ff14b6ebba56f891ca7547fc5e6c51676438850661cfa4fcabb36bedf85043  abalone-ca6a250.tar.gz" | sha256sum -c
+<span class="p">$ </span>sha256sum -c --ignore-missing FRIEND-SHA256SUMS
+<span class="p">$ </span>tar -xzf abalone-ca6a250.tar.gz
+<span class="p">$ </span>mkdir public-credit/gift &amp;&amp; mv trial.json issuer-pin.json staging-approval.json public-credit/gift/
+<span class="p">$ </span>~/abalone-portable/abalone/bin/abalone</pre>
 <p class="cli-note">CLI example — not checked by this page.</p>
-<p class="quiet">What it does:</p>
-<ol class="start does">
-<li>Downloads one archive and four public files from the release.</li>
-<li>Checks each against a SHA256 pinned in the script; any mismatch stops it.</li>
-<li>Extracts the archive in a staging directory and runs nothing from it.</li>
-<li>Moves the runtime and the four files under <code>~/.abalone-app/</code> and links <code>~/.local/bin/abalone</code>.</li>
-<li>Writes a receipt of the digests it checked and prints every path.</li>
-</ol>
 <dl class="term">
-<dt>Refuses</dt><dd>Root or anything but Linux x86_64; a symlink in place of its install directories; an existing install that differs from the release</dd>
-<dt>Needs</dt><dd>Linux x86_64, Node 24, curl, tar, bash, sha256sum and flock; run as your ordinary user, not root. macOS is not supported for this install yet</dd>
-<dt>Changes</dt><dd>Adds <code>~/.abalone-app/</code> and the launcher <code>~/.local/bin/abalone</code></dd>
+<dt>Needs</dt><dd>Linux x86_64, Node 24, curl, tar, bash, sha256sum and flock; run as your ordinary user, not root. macOS is not supported yet</dd>
+<dt>Changes</dt><dd>The folder you chose. Saved access goes to <code>~/.abalone/credit/</code> unless you set <code>ABALONE_DIR</code> for every <code>abalone</code> command</dd>
 <dt>Isolation</dt><dd>None: a credit session runs with your account’s file and network access</dd>
 </dl>
-<p class="quiet">No sudo, no shell startup edits, nothing claimed. <a href="https://github.com/amiller/abalone/blob/main/docs/abalone-coupon-redeem.md#what-installsh-does">What install.sh does, step by step, and how to confirm it</a> · <a href="https://github.com/amiller/abalone/blob/main/docs/abalone-coupon-redeem.md#without-the-script">Without the script</a></p>
+<p class="quiet"><a href="https://github.com/amiller/abalone/blob/main/docs/abalone-coupon-redeem.md#run-it-portably">Run it, portably: each step and why</a></p>
+<p class="quiet">Optional: <code>install.sh --credit</code> does the same downloads and checks and puts a launcher on your <code>PATH</code>, so plain <code>abalone</code> works. <a href="https://github.com/amiller/abalone/blob/main/docs/abalone-coupon-redeem.md#what-installsh-does">What install.sh does</a> · <a href="https://github.com/amiller/abalone/blob/main/docs/abalone-coupon-redeem.md#how-to-confirm-it">How to confirm it</a></p>
 </div>
 </section>
 
 <section class="section split" id="what-it-prints" aria-labelledby="s2">
-<div><span class="step-no">02 / Terms</span><h2 id="s2">Read the offer, then accept that exact offer.</h2><p class="quiet">The 8 characters are the start of the offer’s hash, so your consent binds to the offer on screen. Anything else stops without claiming and saves nothing.</p></div>
+<div><span class="step-no">02 / Terms</span><h2 id="s2">Read the offer, then accept that exact offer.</h2><p class="quiet">Run the unpacked <code>abalone/bin/abalone</code>, or <code>abalone</code> if you installed the launcher. The 8 characters are the start of the offer’s hash, so your consent binds to the offer on screen. Anything else stops without claiming and saves nothing.</p></div>
 <div>
-<pre><span class="p">$ </span>abalone
+<pre><span class="p">$ </span>~/abalone-portable/abalone/bin/abalone
 No saved credit yet.
 Two ways in:
   1. Paste a gift link or code here (or the full path of a private 0600 file holding it).
@@ -129,8 +126,8 @@ Review the terms above. To accept and redeem, type 1a2b3c4d; anything else stops
 <span class="label">◈ Attestation: NEAR model checked before the first prompt byte</span>
 <span class="label caution">⚠ NEAR firmware out of date (N Intel advisories); synthetic input only</span>
 <span class="label">Input: synthetic, non-sensitive only</span>
-<p class="quiet">Next time, run plain <code>abalone</code>. With one saved credit ready, it opens that session. <code>abalone credit session --credit CREDIT_ID</code> opens a chosen one.</p>
-<pre><span class="p">$ </span>abalone</pre>
+<p class="quiet">Next time, run the same command again (plain <code>abalone</code> if you installed the launcher). With one saved credit ready, it opens that session. <code>abalone credit session --credit CREDIT_ID</code> opens a chosen one.</p>
+<pre><span class="p">$ </span>~/abalone-portable/abalone/bin/abalone</pre>
 <p class="cli-note">CLI example — not checked by this page.</p>
 <dl class="term">
 <dt>Conversation</dt><dd>Held in process memory only; no conversation file or trace is written by default</dd>
