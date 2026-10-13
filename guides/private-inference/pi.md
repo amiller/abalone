@@ -36,7 +36,7 @@ Read your Chutes private-inference API key privately, then launch your Pi:
 read -rsp 'Chutes private-inference API key: ' CHUTES_API_KEY
 echo
 export CHUTES_API_KEY
-pi -e "npm:$private_inference_package" --provider abalone-chutes --no-session
+pi -e "npm:@abalone/pi-private-inference-chutes@file:$private_inference_package" --provider abalone-chutes --model Qwen --no-session
 unset CHUTES_API_KEY
 ```
 
@@ -47,9 +47,11 @@ paste it in a prompt or put its value in a shell command.
 
 `-e` loads the package for this invocation without adding it to Pi's saved package
 settings. Pi still caches the package and its dependencies in its own directory.
-To keep it in Pi's configuration, use `pi install "npm:$private_inference_package"`.
-Select a model under **Chutes private inference (Abalone)**
-with Pi's usual `/model` picker. The status starts at **not checked yet**.
+To keep it in Pi's configuration, use `pi install "npm:@abalone/pi-private-inference-chutes@file:$private_inference_package"`.
+The command selects a Chutes private-inference model matching `Qwen`. If that
+model is unavailable, choose another name from `pi --list-models` with the same
+`-e` option. Change models under **Chutes private inference (Abalone)** with Pi's
+usual `/model` picker. The status starts at **not checked yet**.
 Before a prompt is sent, the integration verifies the chosen instance, then
 seals the entire request to its verified key. Provider model lists are contacted
 at startup; Intel and NVIDIA verification services are contacted when checking
