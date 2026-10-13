@@ -4,21 +4,21 @@
 
 Abalone, a cypherpunk AI privacy shell. Give your user an incognito session using TEE-based private inference.
 
-Abalone is a terminal shell around a coding agent (Pi). It keeps the
-agent's environment clean: a bubblewrap sandbox, network egress only to admitted
-hosts, canary values planted in your folder, and a disclosure gate that checks
-anything about to leave. Model requests go to a model whose attestation Abalone
-has checked, encrypted to that model's key. In this release a coupon session
-runs as your own user, without the sandbox and canaries (see [Details](#details)).
+Abalone is a terminal shell around a coding agent (Pi). On the coupon route,
+each request is encrypted to a NEAR model whose attestation Abalone has checked;
+the session runs as your own user, with no sandbox. `abalone sandbox` adds a
+bubblewrap sandbox, egress only to admitted hosts, canary values in your folder,
+and a gate on text the agent sends to outside models (see [Details](#details)).
 
 You need a Linux x86_64 computer you trust, with Node 24. Use synthetic,
 non-sensitive material.
 
 ## Start
 
-1. Download `install.sh` from the newest release on the
-   [releases page](https://github.com/amiller/abalone/releases). Compare its
-   hash with the `install.sh SHA256` line in the release notes, read it, then run it:
+1. Download `install.sh` from the newest release whose tag starts with
+   `v0.1.0-preview` on the [releases page](https://github.com/amiller/abalone/releases)
+   (not a coupon bundle). Check `sha256sum install.sh` against the
+   `install.sh SHA256` line in its release notes, read it, then run it:
 
    ```
    sha256sum install.sh
@@ -41,7 +41,7 @@ Next time, plain `abalone` opens the saved credit's session.
 
 - **A gift coupon** from someone running [Dsmack](https://github.com/amiller/dsmack).
   An issuer on the Dsmack network turns it into model access; it sees the coupon,
-  not your prompts. One session at a time uses a credit.
+  not your prompts.
   [Redeem a coupon](docs/abalone-coupon-redeem.md) has the step-by-step procedure.
 - **Your own provider key:** `abalone key add <provider>` saves a key for a
   provider in [providers.json](providers.json), read from hidden standard input
@@ -54,7 +54,8 @@ Next time, plain `abalone` opens the saved credit's session.
 
 - It does not verify what the model provider retains.
 - The coupon route accepts a verified out-of-date firmware warning from the
-  NEAR model. Strong private guarantees are unqualified under this exception.
+  NEAR model. Abalone makes no strong privacy claim for this route while that
+  exception applies.
 - It is not for real private material yet: the current trial is for synthetic,
   non-sensitive prompts only.
 
