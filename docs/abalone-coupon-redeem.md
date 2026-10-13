@@ -14,8 +14,8 @@ provides `install.sh --credit` and the `abalone credit` commands. Download
 [install.sh](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8/install.sh) and
 [FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8/FRIEND-SHA256SUMS) from that release.
 Its `install.sh` SHA256 is
-`@INSTALL_SHA@` <!-- HOLD: the install.sh line of release-assets.txt (= the published notes line) -->.
-The signed issuer approval expires @CLAIM_DEADLINE@ <!-- HOLD: 2026-10-18T18:00:00Z, expires_at in staging-approval.json, the same approval as preview.7.1 -->;
+`a80cf10e48bfb0215827ab96cd746277396f8c19fa222ae9985b0da55b10c37b`.
+The signed issuer approval expires 2026-10-18T18:00:00Z;
 each gift's own claim-by time is earlier, and `abalone credit inspect` shows it.
 
 ## Conditions before you start
