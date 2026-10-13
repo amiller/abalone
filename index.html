@@ -36,11 +36,6 @@
 <p>Abalone is a terminal shell around a coding agent. Each session starts fresh: the conversation is held in memory, not saved, and tmpfs run files go at exit. Saved access, workspace files and scrollback stay.</p>
 <p>Before the first prompt byte leaves your computer, Abalone checks the provider’s TEE attestation and encrypts each request to a key inside that TEE.</p>
 <p>The gift session and <code>abalone sandbox --incognito</code> refuse a provider that fails attestation; NEAR passes today with an out-of-date firmware warning. Planned: <span class="level">◈ private inference</span> and <span class="level">○ local safeguards only · provider not verified</span>.</p>
-<div class="limits">
-<p><strong>Linux x86_64 with Node 24</strong>, on a computer you trust. There is no OS isolation: tools have your account’s files and network.</p>
-<p><strong>Synthetic material only.</strong> The current NEAR route accepts a verified out-of-date firmware warning.</p>
-<p><strong>Provider retention is unverified.</strong> Abalone does not hide your IP address.</p>
-</div>
 <div class="actions"><a class="primary" href="https://github.com/amiller/abalone/blob/main/guides/private-inference/README.md">Read the private inference guide</a><a href="#start">Start</a></div>
 </div>
 <figure class="plate"><img class="painting" src="assets/nacre-960.webp" width="960" height="640" alt="An open abalone shell, with a rough edge and luminous teal and ivory interior."></figure>
@@ -89,7 +84,7 @@
 <p class="quiet">Three routes into a session. The commands are CLI examples; this page runs nothing and checks nothing.</p>
 <ol class="steps-v">
 <li><span class="step-no">01 / Install · v0.1.0-preview.7.1</span><h3>Check the installer, then run it.</h3>
-<p>Download <code>install.sh</code> from the newest release whose tag starts with <code>v0.1.0-preview</code> on the <a href="https://github.com/amiller/abalone/releases">releases page</a>. Compare its hash with the <code>install.sh SHA256</code> line in the release notes, read it, then run it. It claims nothing and starts nothing.</p>
+<p>Today this runs on Linux x86_64 with Node 24. Download <code>install.sh</code> from the newest release whose tag starts with <code>v0.1.0-preview</code> on the <a href="https://github.com/amiller/abalone/releases">releases page</a>. Compare its hash with the <code>install.sh SHA256</code> line in the release notes, read it, then run it. It claims nothing and starts nothing.</p>
 <pre><span class="p">$ </span>sha256sum install.sh
 <span class="p">$ </span>less install.sh
 <span class="p">$ </span>sh install.sh --credit</pre>
