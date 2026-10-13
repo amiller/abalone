@@ -54,12 +54,44 @@ suites=(
   "needs-key|frontier-live (Claude runner login)|tests/frontier-live.sh" "needs-key|claude-code-mcp (your Claude login)|tests/claude-code-mcp.sh"
   "needs-key|demo-live|tests/demo-live.sh" "needs-key|g2-container (docker)|tests/g2-container.sh" "needs-key|p2p-mac (Mac mini)|tests/p2p-mac.sh"
 )
+# Selection is explicit; ambiguity refuses before creating evidence or running checks.
+mode=${1:-all}
+if [[ $mode == --list ]]; then
+  for s in "${suites[@]}"; do IFS='|' read -r label name cmd <<<"$s"; printf '%-10s  %s: %s\n' "$label" "$name" "$cmd"; done
+  exit 0
+fi
+[[ $mode == all || $mode == offline ]] || { echo 'usage: tests/verify.sh [offline [SUITE...]] | --list' >&2; exit 2; }
+[[ $# == 0 ]] || shift
+selected=("$@")
+for wanted in "${selected[@]}"; do
+  count=0
+  for s in "${suites[@]}"; do
+    IFS='|' read -r label name cmd <<<"$s"
+    [[ $label != needs-key && ( $mode != offline || $label == offline ) ]] || continue
+    [[ $wanted == "$name" || $wanted == "${name%% *}" ]] && ((count+=1))
+  done
+  [[ $count == 1 ]] || { echo "Unknown or ambiguous suite '$wanted'; use its exact name from --list. No suites ran." >&2; exit 2; }
+done
 fail=0; logs="${TMPDIR:-/tmp}/abalone-verify-$$"; mkdir -p "$logs"
+node tools/record-test-run.mjs start "$logs" "$mode" "${selected[@]}" || exit 1
+: > "$logs/results.tsv"
 for s in "${suites[@]}"; do
   IFS='|' read -r label name cmd <<<"$s"
-  if [[ $label == needs-key || ( ${1:-} == offline && $label != offline ) ]]; then printf 'NOT RUN  %-10s  %s: %s\n' "$label" "$name" "$cmd"; continue; fi
-  t0=$SECONDS; bash -c "$cmd" < /dev/null > "$logs/${name%% *}.log" 2>&1; code=$?
+  if [[ ${#selected[@]} != 0 ]]; then
+    match=no
+    for wanted in "${selected[@]}"; do [[ $wanted == "$name" || $wanted == "${name%% *}" ]] && match=yes; done
+    [[ $match == yes ]] || continue
+  fi
+  if [[ $label == needs-key || ( $mode == offline && $label != offline ) ]]; then printf 'NOT RUN  %-10s  %s: %s\n' "$label" "$name" "$cmd"; continue; fi
+  id=$(printf '%s-%s' "$label" "$name" | LC_ALL=C tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9][^a-z0-9]*/-/g;s/-$//')
+  logfile="$logs/$id.log"
+  [[ ! -e $logfile ]] || { echo "FAIL duplicate suite log: $id" >&2; fail=1; continue; }
+  t0=$SECONDS; bash -c "$cmd" < /dev/null > "$logfile" 2>&1; code=$?
+  elapsed=$((SECONDS - t0))
   [[ $code == 0 ]] && r=PASS || { r=FAIL; fail=1; }
-  printf '%-7s  %-10s  %s (%ds; log %s)\n' "$r" "$label" "$name" $((SECONDS - t0)) "$logs/${name%% *}.log"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$id" "$label" "$name" "$code" "$elapsed" "$logfile" >> "$logs/results.tsv"
+  printf '%-7s  %-10s  %s (%ds; log %s)\n' "$r" "$label" "$name" "$elapsed" "$logfile"
 done
+node tools/record-test-run.mjs finish "$logs" || fail=1
+echo "Results: $logs/run.json"
 echo "verify: $([[ $fail == 0 ]] && echo PASS || echo FAIL)"; exit $fail

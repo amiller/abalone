@@ -26,8 +26,11 @@ Milestones identify user outcomes; later work is not silently a release dependen
 
 Explain the resulting behavior, boundary changes and limits. Seek independent
 review before integration. Documentation changes need relevant link and whitespace
-checks; runtime changes retain the required offline integration gate and targeted
-positive/negative checks. Live or paid checks need a bounded purpose and budget.
+checks. Follow [Choosing checks](testing.md): use targeted positive/negative checks
+while editing and one settled offline gate for runtime integration. Repair an
+environment or individual assertion with a targeted rerun first. Prose-only deltas
+do not restart a passing runtime gate. Live or paid checks need a bounded purpose
+and budget.
 Reuse applicable evidence with its original revision/environment; do not call it
 a fresh run. A repeated failure needs a new diagnostic hypothesis, not blind retry.
 
