@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'self'; script-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="description" content="Someone sent you an Abalone gift link. It pays for an incognito AI session in your own terminal, with requests sent only to an attested TEE model. Install Abalone, run abalone and paste the link.">
+<meta name="description" content="Someone sent you an Abalone gift link. It pays for an incognito AI session in your own terminal; each model request is encrypted to an attested NEAR model. Install Abalone, run abalone and paste the link.">
 <meta property="og:title" content="Abalone — you have a gift link">
-<meta property="og:description" content="It pays for an incognito AI session in your own terminal, with requests sent only to an attested TEE model. Install Abalone, run abalone and paste the link.">
+<meta property="og:description" content="It pays for an incognito AI session in your own terminal; each model request is encrypted to an attested NEAR model. Install Abalone, run abalone and paste the link.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://amiller.github.io/abalone/assets/og-1200x630.png">
 <meta property="og:image:width" content="1200">
@@ -33,11 +33,11 @@
 <h1 id="hero-title">You have a gift link.</h1>
 <p class="lead">It pays for an incognito AI session in your own terminal. Three steps:</p>
 <ol class="start">
-<li>Download <code>install.sh</code> from the newest release on the <a href="https://github.com/amiller/abalone/releases">Abalone releases page</a>. Check <code>sha256sum install.sh</code> against the release notes, then run it:
+<li>Download <code>install.sh</code> from the newest release whose tag starts with <code>v0.1.0-preview</code> on the <a href="https://github.com/amiller/abalone/releases">Abalone releases page</a> (not a coupon bundle). Check <code>sha256sum install.sh</code> against the <code>install.sh SHA256</code> line in its release notes, then run it:
 <pre><span class="p">$ </span>sh install.sh --credit</pre></li>
 <li>Run Abalone in your terminal:
 <pre><span class="p">$ </span>abalone</pre></li>
-<li>Copy this page’s full address, including <code>#code=…</code>, and paste it at the prompt. Nothing is shown as you paste. Abalone prints the offer’s terms; type the 8 characters it shows you to accept, and the session opens.</li>
+<li>Paste the gift link you were sent (this page’s address with <code>#code=…</code>) at the prompt. Nothing is shown as you paste. Abalone prints the offer’s terms; type the 8 characters it shows you to accept, and the session opens.</li>
 </ol>
 <p class="quiet">Needs a Linux x86_64 computer you trust, with Node 24.</p>
 <div class="limits">
@@ -54,12 +54,12 @@
 <div>
 <p class="quiet">Your agent reads the setup skill, explains what installation changes and prepares access. Your documents, questions and answers belong in the session you open afterwards, not in the setup chat.</p>
 <div class="actions"><button class="primary" id="copy-instructions" type="button" hidden>Copy instructions for your agent</button><a href="https://github.com/amiller/abalone/blob/main/skills/abalone-incognito/SKILL.md">Read the setup skill ↗</a></div>
-<p id="copy-status" role="status" aria-live="polite">Or paste this page’s full link into your coding agent.</p>
-<noscript><p>Copy this page’s full address, including <code>#code=…</code>, into your coding agent. The instructions below work without JavaScript.</p></noscript>
+<p id="copy-status" role="status" aria-live="polite">Or paste the gift link you were sent into your coding agent.</p>
+<noscript><p>Paste the gift link you were sent (this page’s address with <code>#code=…</code>) into your coding agent. The instructions below work without JavaScript.</p></noscript>
 </div>
 </section>
 
-<section class="section split" id="what-it-prints" aria-labelledby="s1">
+<section class="section split" aria-labelledby="s1">
 <div><span class="step-no">01 / Install</span><h2 id="s1">Check it, then install.</h2><p class="quiet">The installer verifies the release archive and four public files against hashes pinned inside it. It claims nothing and starts nothing. A matching checksum shows the bytes are the published ones, not that they are safe.</p></div>
 <div>
 <pre><span class="p">$ </span>sha256sum install.sh
@@ -74,7 +74,7 @@
 </div>
 </section>
 
-<section class="section split" aria-labelledby="s2">
+<section class="section split" id="what-it-prints" aria-labelledby="s2">
 <div><span class="step-no">02 / Terms</span><h2 id="s2">Read the offer, then accept that exact offer.</h2><p class="quiet">The 8 characters are the start of the offer’s hash, so your consent binds to the offer on screen. Anything else stops without claiming and saves nothing.</p></div>
 <div>
 <pre><span class="p">$ </span>abalone
@@ -106,7 +106,7 @@ Review the terms above. To accept and redeem, type 1a2b3c4d; anything else stops
 <p class="cli-note">CLI example — not checked by this page. Inspecting claims nothing and saves nothing.</p>
 <ol class="fn">
 <li id="fn1"><span>1</span><span>A nominal cap is not a spent amount, an owned wallet or a verified remaining balance. The operator or provider can end access at any time; spending can overshoot the cap. <a href="#r1" aria-label="Back to note 1">↩</a></span></li>
-<li id="fn2"><span>2</span><span>Readable by your administrator and by other processes running as you. Redeem creates the record before it sends the first claim, and it survives closing a session. One session at a time uses a credit. <code>abalone credit forget --credit CREDIT_ID</code> removes the record and its lock file. Forgetting does not revoke the credential. <a href="#r2" aria-label="Back to note 2">↩</a></span></li>
+<li id="fn2"><span>2</span><span>Readable by your administrator and by other processes running as you. Redeem creates the record before it sends the first claim, and it survives closing a session. A second session on the same credit is refused while one is open. <code>abalone credit forget --credit CREDIT_ID</code> removes the record and its lock file. Forgetting does not revoke the credential. <a href="#r2" aria-label="Back to note 2">↩</a></span></li>
 </ol>
 </div>
 </section>
