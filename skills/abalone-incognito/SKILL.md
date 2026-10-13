@@ -24,6 +24,14 @@ its administrator are trusted. Local tools have ordinary account filesystem and
 network access. Stepping aside is cooperation, not OS isolation or IP anonymity.
 See [security details](../../docs/security.md).
 
+Prefer the portable path,
+[Run it, portably](../../docs/abalone-coupon-redeem.md#run-it-portably):
+download the archive and three public files into a directory the user chooses,
+check them with `sha256sum -c`, unpack the archive and run
+`abalone/bin/abalone` from there. Tell the user that saved credit goes to
+`~/.abalone/credit` unless `ABALONE_DIR` is set for every command. Offer
+`install.sh --credit` only if the user wants a launcher on `PATH`.
+
 Before you run `install.sh --credit`, you must:
 
 1. Download it to a file; never pipe a download into a shell.
@@ -41,13 +49,9 @@ Before you run `install.sh --credit`, you must:
    write (`~/.abalone-app/REV/`, `~/.local/bin/abalone`), that it runs nothing
    from the download, uses no sudo and claims nothing.
 
-A matching checksum establishes matching bytes, not safety. If the user does
-not want a script run, offer
-[Without the script](../../docs/abalone-coupon-redeem.md#without-the-script):
-download and check the archive and three public files, extract them into a
-directory the user chooses and run `abalone --trial` with that `trial.json`.
-After an install, show the user the receipt it wrote. Do not install merely
-because the user asked what Abalone does.
+A matching checksum establishes matching bytes, not safety. After an install,
+show the user the receipt it wrote. Do not download or install merely because
+the user asked what Abalone does.
 
 ## Choose the access path
 
@@ -65,9 +69,8 @@ because the user asked what Abalone does.
   Do not invent a checkout, payment address, Zcash funding endpoint or availability
   claim. A future funding design is not a working acquisition path.
 
-Use the [release/access instructions](../../docs/redeem.md) to obtain the
-reviewed distribution; its `install.sh --credit` fetches and checks the pinned
-public trial files and prints their path. Check actual
+Use the [release/access instructions](../../docs/redeem.md) to
+obtain the reviewed distribution and its public trial files. Check actual
 availability and expiry there. Use a release exposing the `credit` commands;
 do not substitute an older process-only coupon launcher. Supported recipient:
 trusted Linux x86_64 with the documented Node 24 and system prerequisites, plus
@@ -90,8 +93,8 @@ No web page fetch or link opening authorizes redemption automatically.
 
 ## Inspect, redeem and save access
 
-Follow [Inspect, redeem and save access](../../docs/redeem.md#inspect-redeem-and-save-access). Use the absolute launcher and `trial.json` paths the installer
-printed. Agent-specific rules:
+Follow [Inspect, redeem and save access](../../docs/redeem.md#inspect-redeem-and-save-access). Use the absolute launcher and `trial.json` paths in the unpacked
+directory, or those the installer printed. Agent-specific rules:
 
 - Explain the inspected offer's provider, cap, expiry and material restrictions.
   When the user has requested redemption, accept that exact offer by its returned
