@@ -2,8 +2,10 @@
 
 Dsmack defines four coupon versions. Their accepted terms, recipient bindings
 and delivery domains are incompatible by design. The client implements only
-version 4, with explicit signed debug-staging authority; versions 1 to 3 are
-described because version 4 builds on their terms.
+version 4, with explicit signed debug-staging authority. The issuer still serves
+versions 1 to 3 for older clients; this client has no implementation of them, and
+its version 4 requests for their coupons are refused. They are described here
+because version 4 builds on their terms.
 [Getting started](../getting-started.md) is the user path; the
 [development gift trial](../gift-trial.md) specifies source-wrapper inputs.
 
@@ -62,8 +64,7 @@ policy and qualified issuer/observer attestation.
 dsmack worker stores each coupon's protocol version and refuses cross-protocol
 redemption. Authorization comes from the Noise connection and protected peer to
 subject/role mapping. Its configured issuer PeerId is durably pinned and must
-match the connection's actual local peer. The client independently checks it
-against the service PeerId pinned in its admitted dial address.
+match the connection's actual local peer.
 
 The authorized `offer` operation returns `{offer, offer_hash}` with exact fields:
 
@@ -97,9 +98,7 @@ Claim wire fields are exactly `id`, `op`, `coupon`, `recipient_key`, `offer_hash
 Before a provider effect, dsmack checks the accepted hash and recipient grant.
 Encrypted delivery keeps the v1 X25519/HKDF/AES-GCM crypto wrapper; its authenticated
 data is exact canonical JSON `{domain:"dsmack-coupon-delivery-v2", version:2,
-offer_hash, coupon_digest, key_id, recipient_key_sha256}`. The recipient helper
-checks every binding against the retained offer, coupon, result key ID and its
-own public key before returning the provider secret. Altering provider scope,
+offer_hash, coupon_digest, key_id, recipient_key_sha256}`. Altering provider scope,
 issuer policy, terms or recipient changes the authenticated binding.
 
 ### Expiry, status and observation
@@ -123,9 +122,7 @@ An authorized observer obtains a v2 signed local observation with accepted
 `offer_hash`, coupon/key/delivery/recipient commitments, requested window and
 verifier-originated challenge. Threshold and cumulative reported usage are decimal
 strings; the cumulative total is a canonical nonnegative value of at most 39 digits.
-The client checks exact fields, accepted terms, challenge/window and signature
-integrity. Callers can additionally pin `expectedPublicKey`, `keyId`, `recipientKey`
-and `envelope`. The embedded public key alone supplies no trusted signer provenance.
+The embedded public key alone supplies no trusted signer provenance.
 Even a separately pinned local key is not attested policy; replay tracking,
 freshness/finality and deposit release remain outside this experiment.
 
@@ -172,10 +169,8 @@ Delivery uses the same crypto wrapper as v1/v2, with canonical authenticated dat
 ```
 
 The peer commitment is SHA-256 of `dsmack-coupon-recipient-peer-v3\0` followed by the
-actual ASCII PeerId. The recipient helper reconstructs it from privately retained
-client metadata, not from a claimed peer in a frame or envelope. It checks the
-accepted offer, coupon, result key ID and its own public key before decrypting.
-This prevents another peer from substituting the winner's name while retaining
+actual ASCII PeerId of the authenticated winner, not a peer claimed in a frame or
+envelope. Another peer therefore cannot substitute the winner's name while retaining
 the same delivery key. Voluntary transfer of all key material or the resulting
 provider bearer secret remains outside that guarantee.
 
@@ -183,8 +178,7 @@ Lost acknowledgements and issuer-worker restarts permit replay only to the same
 winner, delivery key and accepted offer. Delivered replay remains possible after
 claim expiry; a new claim after expiry is refused. Provider expiry remains null,
 meaning no upstream-expiry promise. Losing either local private key is not
-transparently recoverable. These helpers choose no automatic replacement, permanent
-retention, secure-erasure guarantee or UI policy.
+transparently recoverable.
 
 ### Status, observer and direct use
 
@@ -201,9 +195,7 @@ A self-contained signature establishes only integrity, and even a separately
 pinned local key does not qualify measured observer provenance. Accounting and
 deposit release remain local-unattested/fail-closed.
 
-Successful decryption returns a provider credential deliberately to recipient
-code for direct use. It is never installed or logged by the helper. Ordinary
-provider/model admission still applies. This synthetic path does not establish
+Ordinary provider/model admission still applies to a delivered credential. This synthetic path does not establish
 that a real sponsor's provider account-owner APIs cannot retrieve issued secrets.
 Neither inference prompts nor provider credentials need travel through dsmack.
 
