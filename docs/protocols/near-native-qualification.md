@@ -11,9 +11,10 @@ and the [DevProof supplement](https://github.com/amiller/devproof-audits-guide/p
 The configured model, `z-ai/glm-5.3-flash`, accepted encrypted native function
 schemas, names, arguments and tool-result history. Two consecutive native tool
 calls completed with the expected synthetic arguments. A separate complete
-call/result/final-answer round trip passed. Every accepted reply had its exact
-request and completed encrypted response verified against the attested **model**
-signing key (`provider_tee`); a gateway signature is insufficient here.
+call/result/final-answer round trip passed. Every accepted reply had a genuine attested **model** signature (`provider_tee`)
+whose declared request hash matched the client's wire request and whose response
+hash matched the received encrypted bytes. A gateway signature is insufficient.
+The request-hash authority dependency below limits what this proves about input origin.
 
 Six synthetic chat POSTs were made in total. Catalog prices applied to signed
 reported token usage give an estimated total of **$0.00022808**, within the
@@ -37,8 +38,8 @@ Observed compose hashes:
 These identify the observed workloads. They do not close the inner serving
 code/model supply chain to the reviewed source. The existing verifier reads
 NEAR's compose registry through a pinned Base RPC; it is not an independent
-light-client finality proof. Source-to-deployment closure, independent review,
-and normal-provider integration remain outstanding.
+light-client finality proof. Source-to-deployment closure, gateway request-hash authority/credential custody,
+independent review and normal-provider integration remain outstanding.
 
 ## Field and response contract
 
@@ -62,7 +63,7 @@ accepts plaintext for compatibility, so client-side wire canaries matter.
 A successful ciphertext decryption is not sender authentication: anyone with
 the public client key can encrypt a fabricated command. The codec therefore
 holds the full response until the attested model's signature verifies over the
-request and response bytes. It refuses wrong signers, altered requests, spliced
+declared request and response hashes. It refuses wrong signers, altered requests, spliced
 responses, missing completion, malformed fields, invalid argument JSON and
 unsupported shapes. Returned results are immutable and internally marked;
 only those results can be converted into Pi's native tool stream.
@@ -80,6 +81,30 @@ emits an inline reasoning prefix ending in `</think>` with thinking disabled;
 the synthetic final-answer check strips that known prefix. This is a rendering
 behavior, separate from encryption or signature verification.
 
+## Request-integrity trust dependency
+
+The reviewed [chat dispatcher](https://github.com/nearai/inference-proxy/blob/efd600a46c4327c8d8d038ab8b01c25a0e74b5bd/src/routes/chat.rs)
+lets a caller authenticated with the trusted service token (`config.token`)
+supply `X-Request-Hash`, including a hash different from the backend's received
+body. End-user cloud API keys cannot use that override. This supports gateways
+that re-serialize requests, but places that gateway authority in the integrity
+trust boundary.
+
+Consequently, a model signature matching the client's request hash does not by
+itself prove which body the model received: a privileged gateway could supply
+that hash while substituting another encrypted request. Anyone can encrypt new
+fields for the public model key; reply authentication alone does not authenticate
+the client as the request's author. The regression suite demonstrates this
+signature-level limitation using synthetic model signatures. It does not use a
+real service credential or demonstrate an attack on the deployed service.
+
+Gateway-independent tool execution needs request binding enforced inside the
+model enclave without a gateway-asserted hash, or a verified client-authorized
+request signature. Alternatively the gateway, its code and privileged service
+credential custody must be explicitly included and qualified in the trust model.
+The current live encryption observations establish neither alternative. Keep
+private-work migration gated on this question as well as source/deployment review.
+
 ## Reproducing the checks
 
 After the repository's normal dependency/build setup, offline checks are:
@@ -88,7 +113,7 @@ After the repository's normal dependency/build setup, offline checks are:
 node --test tests/near-native-qualification.test.mjs
 ```
 
-The fourteen tests cover real ECDSA encryption/signatures, wire canaries,
+The fifteen tests cover real ECDSA encryption/signatures, wire canaries,
 unsupported inputs, corrupt/plaintext fields, stream completeness, signer
 substitution, authenticated-result immutability, and actual Pi tool calls with
 encrypted result history. They make no provider calls. Local SDK evidence used

@@ -171,3 +171,16 @@ test('public metadata cannot contain unexpected plaintext payload fields', async
     await assert.rejects(authenticate(bytes));
   }
 });
+
+test('a model signature cannot prove input origin when a trusted gateway supplies the claimed hash', async () => {
+  // Expected protocol limitation, not a deployed exploit. The reviewed server
+  // lets config.token callers override request_hash with X-Request-Hash.
+  // The signature alone cannot distinguish its own wire hash from that claim.
+  const differentModelInput = Buffer.from('synthetic gateway-selected model input');
+  assert.notDeepEqual(differentModelInput, requestBytes);
+  const reply = sse([{ delta: { tool_calls: [{ index: 0, id: 'call_1', type: 'function',
+    function: { name: seal('synthetic_echo'), arguments: seal('{"value":"gateway-selected"}') } }] }, finish_reason: 'tool_calls' }]);
+  const genuineModelSignature = signature(requestBytes, reply);
+  const result = await authenticate(reply, genuineModelSignature);
+  assert.equal(JSON.parse(result.calls[0].function.arguments).value, 'gateway-selected');
+});
