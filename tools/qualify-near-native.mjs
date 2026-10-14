@@ -109,7 +109,7 @@ try {
   }
   write('result.json', { protocol_qualified: true, strict_tcb_eligible: strictTcbEligible, private_work_enabled: false,
     model, gateway_compose: admitted.profile.gateway_compose, model_composes: admitted.profile.compose_hashes, rounds, observed_usage_cost_usd: journal.observed_usage_cost_usd,
-    limits: ['source-to-deployment closure not established', 'normal provider integration and independent review outstanding'] });
+    gateway_independent_request_integrity_qualified: false, limits: ['trusted gateway request-hash authority not qualified', 'source-to-deployment closure not established', 'normal provider integration and independent review outstanding'] });
   console.log(JSON.stringify({ protocol_qualified: true, strict_tcb_eligible: strictTcbEligible, model, posts: journal.posts, observed_usage_cost_usd: journal.observed_usage_cost_usd }));
 } catch (error) {
   const code = typeof error.code === 'string' && /^[a-zA-Z0-9_]+$/.test(error.code) ? error.code : 'qualification_refused';
