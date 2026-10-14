@@ -13,6 +13,7 @@ live service.
 | Prepare and qualify a distribution | [Release procedure](release.md) |
 | Exercise the source-only gift wrapper | [Development gift trial](gift-trial.md), [schema](coupon-first-use.schema.json) and [template](coupon-first-use.example.json) |
 | Integrate coupon redemption | [Coupon protocol](protocols/coupon.md) and [NEAR adapter](protocols/near-adapter.md) |
+| Qualify native NEAR tool encryption | [Experimental qualification](protocols/near-native-qualification.md) |
 | Inspect trace encryption and recovery | [Trace format](protocols/trace-store.md) |
 | Integrate delegated tasks and verification | [Task protocol](protocols/task-v1.md), [runner interface](protocols/runner-task.md) and [receipts](protocols/receipt-v1.md) |
 | Inspect the CDP browser interface | [Browser grants](protocols/browser-grant.md) |
