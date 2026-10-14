@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Your portable workspace</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body data-pane="agent">
+  <a class="skip-link" href="#prompt">Skip to agent</a>
+  <header class="topbar">
+    <a class="wordmark" href="./" aria-label="Portable workspace home"><span class="mark" aria-hidden="true">◈</span> portable<span class="wordmark-light"> / workspace</span></a>
+    <div class="top-actions"><span id="connection" class="status"></span><div class="credit-group"><button id="credit" class="credit" aria-expanded="false" aria-controls="funding" aria-describedby="credit-freshness"></button><span id="credit-freshness"></span></div></div>
+  </header>
+  <div class="fixture-banner"><span class="fixture-dot" aria-hidden="true"></span> Local scripted agent; real tools <span class="banner-detail">Model turns are a local script; tool runs execute for real. Tor and payments remain simulated.</span></div>
+  <main>
+    <aside class="sidebar" aria-label="Workspace navigation">
+      <div class="eyebrow">YOUR SPACE</div>
+      <button id="agent-nav" class="nav-item selected"><span aria-hidden="true">✳</span> Agent <span class="keyhint">⌘ / Ctrl K</span></button>
+      <button id="terminal-nav" class="nav-item"><span aria-hidden="true">›_</span> Terminal</button>
+      <div class="sidebar-section"><div class="eyebrow">WORKSPACE FILES</div><button id="file-nav" class="file-item">▤ <span>hello.txt</span></button></div>
+      <div class="session-card"><span class="session-symbol" aria-hidden="true">◌</span><strong>Local, scripted, honest</strong><p>Agent runs execute on this machine with real tools. Tor and funding states in this tab are fixtures.</p></div>
+    </aside>
+    <section class="workspace" aria-labelledby="workspace-title">
+      <div class="workspace-heading"><div><div class="eyebrow">A LITTLE COMPUTER. YOUR NEXT BIG IDEA.</div><h1 id="workspace-title">Make yourself at home.</h1></div><span class="workspace-label">workspace / 01</span></div>
+      <section id="funding" class="funding panel" hidden aria-labelledby="funding-title">
+        <div class="funding-content"><div class="eyebrow">COMPUTE CREDIT · SIMULATED</div><h2 id="funding-title">A little fuel for your ideas.</h2><p id="funding-description"></p><ol class="payment-steps" id="payment-steps"></ol><button id="advance-payment" class="secondary">Simulate payment detected</button></div>
+        <div class="qr-card"><div class="qr-placeholder" aria-hidden="true">DEMO<br>ONLY</div><strong>Not a payment QR</strong><code>preview-only · no address</code><p>No funds can be sent from this preview.</p></div>
+      </section>
+      <div class="panels">
+        <section class="agent-panel panel" aria-labelledby="agent-title">
+          <div class="panel-header"><h2 id="agent-title"><span class="accent" aria-hidden="true">✳</span> Your agent</h2><span id="agent-status" class="small-status">Checking agent…</span></div>
+          <div id="activity" class="activity" role="log" aria-label="Agent activity" aria-live="polite"><div class="welcome"><div class="orb" aria-hidden="true">✳</div><h3>What shall we make?</h3><p>A quiet place to think, build, and follow your curiosity.<br>Start with an idea. Open a terminal when you need one.</p><button id="example" class="suggestion">Try it: watch a real tool run <span aria-hidden="true">↗</span></button></div></div>
+          <form id="agent-form" class="composer"><label for="prompt" class="sr-only">Your instruction to the agent</label><textarea id="prompt" rows="3" placeholder="Ask your agent to make something…"></textarea><div class="composer-footer"><span id="composer-hint">Checking workspace server…</span><div><button id="stop-agent" type="button" class="secondary" hidden>Stop</button><button id="send-agent" class="primary" type="submit">Start <span aria-hidden="true">↗</span></button></div></div></form>
+        </section>
+        <section class="tools-panel panel" aria-label="Workspace tools">
+          <div class="tool-tabs" role="tablist" aria-label="Workspace view"><button id="terminal-tab" role="tab" aria-selected="true" aria-controls="terminal-view">›_ Terminal</button><button id="file-tab" role="tab" aria-selected="false" aria-controls="file-view" tabindex="-1">▤ hello.txt</button></div>
+          <div id="terminal-view" role="tabpanel" aria-labelledby="terminal-tab"><div id="terminal-tabs" class="terminal-tabs" role="tablist" aria-label="Terminal sessions"></div><div class="terminal-meta"><span id="terminal-state">Checking terminal…</span><span class="terminal-actions"><button id="new-terminal" class="text-button">New session</button><button id="close-terminal" class="text-button" disabled>Close session</button></span></div><pre id="terminal-output" tabindex="0" aria-label="Terminal output"></pre><form id="terminal-form"><label for="command" class="terminal-prompt" aria-label="Command">$</label><input id="command" autocomplete="off" spellcheck="false" placeholder="Enter a command" aria-label="Terminal command"><button type="submit" class="text-button">Run</button></form><p class="terminal-note" id="terminal-note"></p></div>
+          <div id="file-view" role="tabpanel" aria-labelledby="file-tab" hidden><div class="terminal-meta">hello.txt <span>Preview fixture · browser memory</span></div><pre id="file-content">The explicit preview fixture writes a browser-memory hello.txt here. Real agent runs write into the server workspace; inspect them from the Terminal tab.</pre></div>
+        </section>
+      </div>
+      <footer class="workspace-footer"><span>Local first. Room to explore.</span><details class="dev-controls"><summary>Preview scenarios</summary><label for="scenario">Connection &amp; credit</label><select id="scenario"><option value="funded">Funded · connected</option><option value="unfunded">Unfunded · connected</option><option value="connecting">Starting · connecting</option><option value="offline">Offline · balance unknown</option><option value="reconnect">Connection interrupted</option></select><button id="preview-agent" type="button" class="text-button">Run the browser preview fixture</button><p>Scenarios and the preview fixture simulate states only and never contact the workspace server. Real agent runs use the local scripted adapter.</p></details></footer>
+    </section>
+  </main>
+</body>
+</html>
