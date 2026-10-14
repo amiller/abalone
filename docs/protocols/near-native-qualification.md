@@ -39,15 +39,37 @@ Observed compose hashes:
 These identify the observed workloads. They do not close the inner serving
 code/model supply chain to the reviewed source. The existing verifier reads
 NEAR's compose registry through a pinned Base RPC; it is not an independent
-light-client finality proof. The saved compose-manager nonce matches both model and gateway request nonces.
-That equality is not verification of its quote or action-log binding. The
-qualification tool saves parsed attestation JSON with new formatting; it does
-not retain the original HTTP bytes needed to independently hash the exact
-`actions` value. Upstream deliberately preserves that value as `RawValue`
-([source regression](https://github.com/nearai/inference-proxy/blob/efd600a46c4327c8d8d038ab8b01c25a0e74b5bd/src/attestation.rs#L1820)).
-A future deployment check must retain those bytes, verify the manager quote
-and report-data binding, then connect approved actions to the running inner
-images and model artifacts. The saved action metadata alone cannot close this chain.
+light-client finality proof.
+
+A later read-only capture verified the compose-manager quote with Intel PCS
+collateral: its TCB was `UpToDate`, its report data bound the action digest and
+our fresh nonce, and its MRTD and RTMR0–3 matched the model CVM. Its 186 recorded
+actions were authenticated under the canonical action encoding described below.
+The last recorded compose file also matched the bytes fetched at its reported
+commit. The fresh report contains different model outer-compose bytes from
+the earlier native-tool observations; those earlier interoperability results
+are not silently carried forward to this capture. This authenticates reported
+action history, not the current running state.
+The [manager source](https://github.com/nearai/compose-manager/blob/aa9de34419c753c432259ecbcc717b6e2a7357c6/src/main.rs#L300)
+explicitly notes that `compose_up` can be recorded before success; an attempted
+or historical deployment cannot substitute for evidence of active containers.
+
+Current [manager source](https://github.com/nearai/compose-manager/blob/aa9de34419c753c432259ecbcc717b6e2a7357c6/src/main.rs#L357)
+defines sorted-key, compact UTF-8 JSON with string-valued action fields and
+string-array services, omitting absent optional fields and empty services.
+That canonical contract allows a digest to survive reformatting. The earlier
+claim that reformatted records necessarily prevent digest verification was too
+broad. Original bytes remain useful for legacy exact-byte variants and review;
+the collector retains them and requires an explicit encoding rather than trying
+alternate hashes until one passes. The inspected public source is not yet bound
+to the deployed manager image.
+
+The verified file was
+[`prod/GLM-5.3-Flash-SGL-TP2x4-W4AFP8-V8KdaCanary.yaml`](https://github.com/nearai/cvm-compose-files/blob/46bfd83ec22c179693e06308e40950d540154b4d/prod/GLM-5.3-Flash-SGL-TP2x4-W4AFP8-V8KdaCanary.yaml),
+SHA-256 `c7c1bf4d82e137b8d2e0788f41cd6637b38bd08fdc74f38e87b4571ce0c8562e`.
+It configures the inference proxy's `TOKEN` from `PROXY_TOKEN` and gives the
+registrar that same inference token. These placeholders establish a source-level
+configuration path; they do not establish who can read the deployed credential.
 
 Source-to-deployment closure, gateway request-hash authority/credential custody,
 independent review and normal-provider integration remain outstanding.
@@ -116,7 +138,20 @@ Gateway-independent tool execution needs request binding enforced inside the
 model enclave without a gateway-asserted hash, or a verified client-authorized
 request signature. Alternatively the gateway, its code and privileged service
 credential custody must be explicitly included and qualified in the trust model.
-The current live encryption observations establish neither alternative. Keep
+The public [cloud-api forwarding source](https://github.com/nearai/cloud-api/blob/752e2976a7ee2a8790163974ba4a70dd218bbf3b/crates/inference_providers/src/attested/nearai/mod.rs#L1941)
+sets `X-Request-Hash` from the gateway's request-hash argument while rewriting
+stream options and sending a configured upstream bearer credential.
+Its [body-hash middleware](https://github.com/nearai/cloud-api/blob/752e2976a7ee2a8790163974ba4a70dd218bbf3b/crates/api/src/middleware/body_hash.rs)
+computes SHA-256 over the received request bytes. This explains the intended
+honest-gateway path; a gateway compromise is still inside the integrity TCB.
+The gateway pool receives its bearer key from
+[`config.inference_api_key`](https://github.com/nearai/cloud-api/blob/752e2976a7ee2a8790163974ba4a70dd218bbf3b/crates/api/src/lib.rs#L849),
+loaded from [`INFERENCE_API_KEY`](https://github.com/nearai/cloud-api/blob/752e2976a7ee2a8790163974ba4a70dd218bbf3b/crates/config/src/types.rs#L63).
+This is a source configuration path, not proof that its deployed value equals
+`PROXY_TOKEN`. The registrar has the inference token in its environment, but the
+inspected registration requests do not send it in their request bodies.
+The gateway image-to-source mapping and deployed token custody remain open.
+The current observations establish neither integrity alternative. Keep
 private-work migration gated on this question as well as source/deployment review.
 
 ## Reproducing the checks
@@ -157,3 +192,31 @@ Parsed attestation records, encrypted wires, signatures, decoded synthetic resul
 pricing evidence remain under the ignored output directory with owner-only
 permissions. Review them before any publication. Re-run against a fresh source
 revision/model deployment before claiming broader or future qualification.
+
+## Read-only deployment evidence
+
+These tools make no chat POSTs and do not use or reset the paid-check ledger:
+
+```sh
+python3 tools/near-deployment-evidence.py --model z-ai/glm-5.3-flash \
+  --configured-key --out local-data/deployment/run-1
+node tools/verify-near-manager-quote.mjs --evidence local-data/deployment/run-1
+python3 tests/near-deployment-evidence.test.py
+```
+
+The collector uses ordinary HTTPS for the initial report fetch. Evidence becomes
+authenticated only through nonce-bound quote verification; this check alone does
+not establish the full model signing-key/TLS/compose admission profile. The Node
+check uses the repository's installed `@phala/dcap-qvl` dependency and Intel PCS.
+It reports TCB status rather than granting private-work admission. It requires
+matching manager/model measurements and recomputes the action digest from the
+captured evidence. A separate negative check altered a byte in the captured manager quote and
+confirmed refusal without writing a success verdict. Seven offline tests cover digest corruption, nonce swaps,
+report-data mismatch, duplicate keys, unsupported action schemas and exact-byte
+versus canonical encoding. They do not replace cryptographic quote tests.
+
+To inspect a historical exact-byte manager contract, explicitly supply
+`--action-encoding exact` to both tools. Do not use exact-mode success or a
+canonical-mode success to infer the deployed manager source revision. Active
+container/image evidence, model artifact integrity and privileged credential
+custody are still separate checks.
