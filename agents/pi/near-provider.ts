@@ -9,76 +9,14 @@ import { createProvider, envApiKeyAuth } from "@earendil-works/pi-ai";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/compat";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { providers } from "../../lib/config.mjs";
-import { ATTESTED_OWNERS, chatSignatureFails, peerStatus, untrusted, decrypt, encrypt, verifyNearModel, withKey } from "../../lib/near.mjs";
+import { ATTESTED_OWNERS, chatSignatureFails, untrusted, encrypt, verifyNearModel, withKey } from "../../lib/near.mjs";
 import { deviceHeaders } from "../../lib/gift.mjs";
 import { saveLeft } from "../../lib/peer.mjs";
+import { prepareNearTextTools } from "../../lib/near-tool-boundary.mjs";
+import { decryptSse } from "../../lib/near-sse.mjs";
 import { tcbFlag } from "../../lib/status.mjs";
 
 const FIELDS = ["content", "reasoning_content", "reasoning"];
-
-// The node appends ": abalone-charge {charge, remaining}" after NEAR's stream. We recompute the charge from
-// NEAR's usage and our own price list, and stop the turn if they differ.
-// ": abalone-status <text>" from the peer (e.g. "confirming credit" while its next spending window reaches the chain's
-// safe head) is shown until the answer starts.
-// onNear gets NEAR's own bytes (without the peer's status and charge lines) before [DONE] is released.
-// thinkOff: with enable_thinking=false GLM still writes a short thought, then "</think>", into the content (measured on
-// NEAR). That prefix is passed on as reasoning, so the answer starts after the marker; with no marker, the buffered
-// text is the answer and is sent as content at the end.
-function decryptSse(body: ReadableStream<Uint8Array>, ecdh: crypto.ECDH, price?: { input: number; output: number }, onCharge?: (c: any) => void, onStatus?: (s: string | null) => void, onNear?: (raw: Buffer) => Promise<void>, thinkOff = false): ReadableStream<Uint8Array> {
-  const raw: Buffer[] = [];
-  let pending = "", usage: any = null, pre = "", split = !thinkOff;
-  const dec = new TextDecoder(), enc = new TextEncoder();
-  let held = false, charged = false;
-  const line = (l: string) => {
-    // The node's charge line follows NEAR's [DONE]; hold [DONE] back so the client reads (and checks) the charge first.
-    if ((price || !split) && l === "data: [DONE]") { held = true; return ""; }
-    if (price && l.startsWith(": abalone-charge ")) {
-      const c = JSON.parse(l.slice(17));
-      if (!usage) throw new Error(`Stopped. NEAR reported no usage for that answer, so its charge (${c.charge} µ$, the most it could have cost) cannot be checked here and nothing more will be sent.`);
-      const expect = Math.ceil(usage.prompt_tokens * price.input + usage.completion_tokens * price.output);
-      if (c.charge !== expect) throw new Error(`Stopped. The charge for that answer didn't match what was used, so nothing more will be sent.\ndetails: node charged ${c.charge} µ$, usage ${JSON.stringify(usage)} prices to ${expect} µ$`);
-      onCharge!(c);
-      charged = true;
-      return l;
-    }
-    if (l.startsWith(": abalone-status ")) { onStatus?.(peerStatus(l)); return ""; }
-    if (!l.startsWith("data: {")) return l;
-    onStatus?.(null);
-    const d = JSON.parse(l.slice(6));
-    usage = d.usage ?? usage;
-    for (const c of d.choices ?? []) for (const f of FIELDS) if (typeof c.delta?.[f] === "string" && c.delta[f]) c.delta[f] = decrypt(c.delta[f], ecdh);
-    for (const c of d.choices ?? []) {
-      if (split || typeof c.delta?.content !== "string" || !c.delta.content) continue;
-      const start = pre.length; pre += c.delta.content;
-      const i = pre.indexOf("</think>");
-      if (i < 0) { c.delta.reasoning_content = c.delta.content; delete c.delta.content; continue; }
-      c.delta.reasoning_content = pre.slice(start, Math.max(start, i));
-      c.delta.content = pre.slice(i + "</think>".length);
-      split = true;
-    }
-    return "data: " + JSON.stringify(d);
-  };
-  return body.pipeThrough(new TransformStream({
-    transform(chunk, ctl) {
-      if (onNear) raw.push(Buffer.from(chunk));
-      pending += dec.decode(chunk, { stream: true });
-      const lines = pending.split("\n");
-      pending = lines.pop()!;
-      for (const l of lines) ctl.enqueue(enc.encode(line(l) + "\n"));
-    },
-    async flush(ctl) {
-      if (pending) ctl.enqueue(enc.encode(line(pending)));
-      if (!split && pre) ctl.enqueue(enc.encode(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: pre } }] })}\n\n`));
-      if (price && !charged) throw new Error("Stopped. The gift node sent no charge for that answer, so nothing more will be sent.");
-      if (onNear) {
-        let b = Buffer.concat(raw);
-        while (b.subarray(0, 17).toString() === ": abalone-status ") b = b.subarray(b.indexOf("\n\n") + 2);
-        await onNear(b.subarray(0, b.lastIndexOf(": abalone-charge ")));
-      }
-      if (held) ctl.enqueue(enc.encode("data: [DONE]\n\n"));
-    },
-  }));
-}
 
 // Shown in the status strip once a model is verified. Policy (providers.json): gateway and model TCB are reported, not
 // gating. The model's out-of-date TCB is red; the gateway's (gw-tcb:) is not, since it sees only ciphertext and metadata.
@@ -103,14 +41,12 @@ export async function nearProvider(pi: ExtensionAPI, id: string, gift: Gift | nu
 
   const fetchE2ee: typeof fetch = async (input, init) => {
     const body = JSON.parse(String(init!.body));
+    prepareNearTextTools(body);
     if (!verified.has(body.model)) verified.set(body.model, verifyNearModel(cfg.baseUrl, body.model, getReport, cfg.policy).then((v) => (pi.appendEntry("near-attestation", { ...v.profile, provider: id }), ui?.setStatus(id, strip(v.profile, gift)), v)));
     // A refusal must reach the user verbatim; the OpenAI client reports a thrown fetch only as "Connection error."
     const v = await verified.get(body.model)!.catch((e) => e as Error);
     const plain = crypto.createHash("sha256").update(String(init!.body)).digest("hex");
     if (v instanceof Error) return new Response(JSON.stringify({ error: { message: v.message } }), { status: 403, headers: { "content-type": "application/json" } });
-    // Tool definitions and tool-call arguments are not covered by NEAR's E2EE, so they never go to NEAR.
-    delete body.tools; delete body.tool_choice; delete body.parallel_tool_calls;
-    if (body.messages.some((m: any) => m.tool_calls || m.role === "tool")) throw new Error("✗ refused: tool calls are not sent to NEAR (their arguments are not end-to-end encrypted)");
     for (const m of body.messages) {
       if (Array.isArray(m.content)) {
         if (m.content.some((p: any) => p.type !== "text")) throw new Error("✗ refused: NEAR E2EE carries text only");

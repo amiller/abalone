@@ -95,7 +95,7 @@ const verdict = (state) => ({
       state.bodies?.push(body);
       assert.deepEqual(Object.keys(body).sort(), state.keys ?? ["max_tokens", "messages", "model", "stream"]);
       assert.equal(body.model, "selected/model"); assert.equal(body.stream, true);
-      assert.deepEqual(body.messages.map((m) => ({ role: m.role, content: decrypt(m.content, modelKey) })), [{ role: "user", content: "synthetic qualification content" }]);
+      assert.deepEqual(body.messages.map((m) => ({ role: m.role, content: decrypt(m.content, modelKey) })), state.messages ?? [{ role: "user", content: "synthetic qualification content" }]);
       const clientPub = new Headers(init.headers).get("x-client-pub-key");
       assert.match(clientPub, /^[0-9a-f]{128}$/);
       assert.equal(new Headers(init.headers).get("x-model-pub-key"), modelKey.getPublicKey("hex"));
@@ -106,10 +106,35 @@ const verdict = (state) => ({
       if (mode === "unavailable") return new Response("retry later", { status: 503 });
       if (mode === "json") return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
       if (mode === "tampered") return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: "00".repeat(96) } }] })}\n\ndata: [DONE]\n`, { status: 200, headers: { "content-type": "text/event-stream" } });
+      if (mode === "native-tool" || mode === "legacy-function") return new Response(`data: ${JSON.stringify({ choices: [{ delta: mode === "native-tool"
+        ? { tool_calls: [{ id: "synthetic-call", type: "function", function: { name: "read", arguments: '{"path":"synthetic-secret"}' } }] }
+        : { function_call: { name: "read", arguments: '{"path":"synthetic-secret"}' } } }] })}\n\ndata: [DONE]\n`, { status: 200, headers: { "content-type": "text/event-stream" } });
       if (mode === "cleartext") return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: `not ciphertext ${options().credential}` } }] })}\n\ndata: [DONE]\n`, { status: 200, headers: { "content-type": "text/event-stream" } });
       return new Response(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: encrypt(`useful synthetic answer ${options().credential}`, clientPub) }, finish_reason: null }] })}\n\ndata: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] })}\n\ndata: [DONE]\n`, { status: 200, headers: { "content-type": "text/event-stream" } });
     },
   },
+});
+
+test("tool text stays encrypted while native tool fields are removed or refused", async () => {
+  const canary = "synthetic-tool-argument-canary";
+  const state = { chats: 0, closed: false, bodies: [], messages: [{ role: "user", content: `<tool_call>read<arg_key>path</arg_key><arg_value>${canary}</arg_value></tool_call>` }] };
+  const adapter = openCouponNearAdapterForTesting({ ...options(), verifiedForTesting: verdict(state) });
+  try {
+    const payload = { ...body(), messages: state.messages, tools: [{ type: "function", function: { name: "read", description: canary, parameters: { type: "object" } } }], tool_choice: "auto", parallel_tool_calls: true, functions: [{ name: canary }], function_call: { name: canary } };
+    await (await adapter.fetch(`${options().baseUrl}/chat/completions`, request(payload))).text();
+    assert.equal(state.chats, 1);
+    assert.ok(!JSON.stringify(state.bodies[0]).includes(canary), "sensitive tool text and schema must not be visible on the wire");
+    for (const messages of [
+      [{ role: "assistant", content: "", tool_calls: [{ function: { name: "read", arguments: canary } }] }],
+      [{ role: "assistant", content: "", function_call: { name: "read", arguments: canary } }],
+      [{ role: "tool", content: canary }],
+    ]) await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request({ ...body(), messages })), { code: "request_refused" });
+    assert.equal(state.chats, 1, "unsupported tool history must refuse before contacting the provider");
+    for (const mode of ["native-tool", "legacy-function"]) {
+      state.mode = mode;
+      await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request({ ...body(), messages: state.messages })), { code: "provider_response_refused" });
+    }
+  } finally { await adapter.close(); }
 });
 
 test("actual Pi OpenAI request grammar reaches the strict NEAR encrypted adapter", async () => {

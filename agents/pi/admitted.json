@@ -29,7 +29,7 @@
   {
    "kind": "tree",
    "path": "lib",
-   "sha256": "fbe13e2031ba2dda14a42634ec1d1cb710bfe5a6f87c3d105e9f71fe2e041e64"
+   "sha256": "cbb5bf80c669ea3ba0b6fa608181736f88ae61b71502f858b63418f050893349"
   },
   {
    "kind": "skill",
@@ -74,7 +74,7 @@
   {
    "kind": "provider",
    "path": "agents/pi/near-provider.ts",
-   "sha256": "2cf2c4d7dd1c2a69e98d7cb8506b58ec7787480ba16257c36f16a023a4ad3ded"
+   "sha256": "ead5b421867089bf13a0a209bf19ef4d5e65cb32f18634eae83a4482c2f3c630"
   },
   {
    "kind": "provider",
