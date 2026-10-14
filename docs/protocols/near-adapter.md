@@ -200,3 +200,10 @@ re-enable those automatic requests while the coupon socket is active. A failed
 request may already have been charged; a later explicit user request is a new
 request, not proof that repeating the earlier one is safe. Tool continuations
 requested by the model remain part of normal work and may make further requests.
+
+
+## Native-tool qualification
+
+The normal provider still carries local tools in encrypted text. The experimental
+[native-tool qualification](near-native-qualification.md) records live field and
+model-signature checks without enabling that route in user configuration.

@@ -34,6 +34,7 @@ suites=(
   "offline|chat-signature (NEAR per-chat signature, recorded reply and forgeries)|node --test tests/chat-signature.test.mjs"
   "offline|mac-coupon-issuer (Apple issuer binding, synthetic contract only)|node --test tests/mac-coupon-issuer.test.mjs"
   "offline|coupon-staging (signed service staging admission, exact schema)|node --test tests/coupon-staging.test.mjs"
+  "offline|NEAR native qualification (synthetic, no provider calls)|node --test tests/near-native-qualification.test.mjs"
   "offline|intools (in-content tool call parser)|node --test tests/intools.test.mjs"
   "offline|regress (tests/regress fixtures replayed)|tests/regress/run.sh" "offline|report (/report, abalone report)|tests/report.sh"
   "offline|fetch (/fetch routes, stub arXiv)|tests/fetch.sh" "offline|tor (built-in Tor transport, stub client)|node --test tests/tor.test.mjs"
