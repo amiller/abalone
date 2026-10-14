@@ -54,8 +54,9 @@ text, collateral errors and wire payloads never surface.
 
 This integration encrypts message content and reasoning with the attested model
 key. It does not implement NEAR's opt-in all-fields tool protocol. Native tool
-schemas are removed before sending; structured tool history is refused. The
-coupon adapter also refuses structured tool calls in responses.
+schemas (including legacy function definitions) are removed before sending;
+structured tool history in either format is refused before admission. The
+ordinary and coupon adapters also refuse structured tool calls in responses.
 
 Tools remain available through [the in-content protocol](../../lib/intools.mjs):
 the system prompt describes them inside encrypted text, the model returns a tool
@@ -69,7 +70,7 @@ means native API tools are disabled; it does not mean local tools are disabled.
 | Native request tool schemas | Removed before sending |
 | Native tool-call history | Refused |
 | Native response calls on the coupon route | Refused |
-| Native response calls on the ordinary route | Decoder does not explicitly refuse them; qualification remains open |
+| Native response calls on the ordinary route | Refused before delivery to Pi |
 | Local tool execution | Runs on the client under the selected host/sandbox profile |
 | Data sent by a tool to an external service | Disclosed to that destination; inference E2EE does not cover its use there |
 

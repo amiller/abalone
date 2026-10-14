@@ -120,7 +120,7 @@ test("tool text stays encrypted while native tool fields are removed or refused"
   const state = { chats: 0, closed: false, bodies: [], messages: [{ role: "user", content: `<tool_call>read<arg_key>path</arg_key><arg_value>${canary}</arg_value></tool_call>` }] };
   const adapter = openCouponNearAdapterForTesting({ ...options(), verifiedForTesting: verdict(state) });
   try {
-    const payload = { ...body(), messages: state.messages, tools: [{ type: "function", function: { name: "read", description: canary, parameters: { type: "object" } } }], tool_choice: "auto", parallel_tool_calls: true };
+    const payload = { ...body(), messages: state.messages, tools: [{ type: "function", function: { name: "read", description: canary, parameters: { type: "object" } } }], tool_choice: "auto", parallel_tool_calls: true, functions: [{ name: canary }], function_call: { name: canary } };
     await (await adapter.fetch(`${options().baseUrl}/chat/completions`, request(payload))).text();
     assert.equal(state.chats, 1);
     assert.ok(!JSON.stringify(state.bodies[0]).includes(canary), "sensitive tool text and schema must not be visible on the wire");
