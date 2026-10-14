@@ -4,6 +4,7 @@ This is an experimental qualification tool, separate from the normal NEAR and
 coupon providers. It does not enable native tools in a user's configuration.
 Tracking: [issue 73](https://github.com/amiller/abalone/issues/73),
 [research issue 23](https://github.com/amiller/awesome-private-inference/issues/23),
+[request-origin sprint 77](https://github.com/amiller/abalone/issues/77),
 and the [DevProof supplement](https://github.com/amiller/devproof-audits-guide/pull/5).
 
 ## Evidence from 14 October 2026
@@ -38,7 +39,17 @@ Observed compose hashes:
 These identify the observed workloads. They do not close the inner serving
 code/model supply chain to the reviewed source. The existing verifier reads
 NEAR's compose registry through a pinned Base RPC; it is not an independent
-light-client finality proof. Source-to-deployment closure, gateway request-hash authority/credential custody,
+light-client finality proof. The saved compose-manager nonce matches both model and gateway request nonces.
+That equality is not verification of its quote or action-log binding. The
+qualification tool saves parsed attestation JSON with new formatting; it does
+not retain the original HTTP bytes needed to independently hash the exact
+`actions` value. Upstream deliberately preserves that value as `RawValue`
+([source regression](https://github.com/nearai/inference-proxy/blob/efd600a46c4327c8d8d038ab8b01c25a0e74b5bd/src/attestation.rs#L1820)).
+A future deployment check must retain those bytes, verify the manager quote
+and report-data binding, then connect approved actions to the running inner
+images and model artifacts. The saved action metadata alone cannot close this chain.
+
+Source-to-deployment closure, gateway request-hash authority/credential custody,
 independent review and normal-provider integration remain outstanding.
 
 ## Field and response contract
@@ -86,7 +97,10 @@ behavior, separate from encryption or signature verification.
 The reviewed [chat dispatcher](https://github.com/nearai/inference-proxy/blob/efd600a46c4327c8d8d038ab8b01c25a0e74b5bd/src/routes/chat.rs)
 lets a caller authenticated with the trusted service token (`config.token`)
 supply `X-Request-Hash`, including a hash different from the backend's received
-body. End-user cloud API keys cannot use that override. This supports gateways
+body. The [authentication extractor](https://github.com/nearai/inference-proxy/blob/efd600a46c4327c8d8d038ab8b01c25a0e74b5bd/src/auth.rs#L354)
+compares configured service tokens first; a match sets `cloud_api_key` to
+`None`, while ordinary validated cloud keys set it to `Some`. Multiple tokens
+can be configured for rotation. End-user cloud API keys cannot use that override. This supports gateways
 that re-serialize requests, but places that gateway authority in the integrity
 trust boundary.
 
@@ -139,7 +153,7 @@ charge keeps its reservation; only authenticated token usage releases it.
 Requests are never automatically retried. A crash leaves the ledger lock for
 reconciliation. Do not reset or move the ledger to bypass its authorized cap.
 
-Raw attestations, encrypted wires, signatures, decoded synthetic results and
+Parsed attestation records, encrypted wires, signatures, decoded synthetic results and
 pricing evidence remain under the ignored output directory with owner-only
 permissions. Review them before any publication. Re-run against a fresh source
 revision/model deployment before claiming broader or future qualification.
