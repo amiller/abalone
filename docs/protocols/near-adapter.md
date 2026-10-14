@@ -50,6 +50,45 @@ A refused endpoint identity at the pinned transport is reported as `transport_re
 distinct from `access_revoked_or_expired`. Every failure is a stable code; upstream
 text, collateral errors and wire payloads never surface.
 
+## Tool confidentiality and execution boundary
+
+This integration encrypts message content and reasoning with the attested model
+key. It does not implement NEAR's opt-in all-fields tool protocol. Native tool
+schemas are removed before sending; structured tool history is refused. The
+coupon adapter also refuses structured tool calls in responses.
+
+Tools remain available through [the in-content protocol](../../lib/intools.mjs):
+the system prompt describes them inside encrypted text, the model returns a tool
+request inside encrypted answer text, Abalone executes it locally, and the result
+returns as another encrypted message. “Tools off” in the ordinary NEAR status
+means native API tools are disabled; it does not mean local tools are disabled.
+
+| Data or action | Current integration boundary |
+| --- | --- |
+| Tool descriptions, requests and results in message text | Encrypted to/from the attested model |
+| Native request tool schemas | Removed before sending |
+| Native tool-call history | Refused |
+| Native response calls on the coupon route | Refused |
+| Native response calls on the ordinary route | Decoder does not explicitly refuse them; qualification remains open |
+| Local tool execution | Runs on the client under the selected host/sandbox profile |
+| Data sent by a tool to an external service | Disclosed to that destination; inference E2EE does not cover its use there |
+
+NEAR's [published agent-loop example](https://github.com/nearai/nearai-cloud-verifier/blob/main/py/encrypted_agent_loop_verifier.py)
+uses `X-Encrypt-All-Fields: true` with encryption version 2 and describes encryption
+of tool names, arguments, definitions, reasoning and search-result output. Its
+server-side search loop is described as running in the confidential VM, with the
+query sent to Brave over TLS. This is source evidence checked on 2026-10-14,
+not a fresh live test or qualification of every model. The example retrieves a
+key from an attestation report; that operation alone is not cryptographic
+verification of the key.
+
+Adopting native encrypted tools requires verified key binding, complete field
+coverage in both directions, response integrity checks, and refusal of plaintext
+or unsupported protocol fallback. Keep the current encrypted-text path until
+those properties are qualified. See [integration issue 73](https://github.com/amiller/abalone/issues/73),
+[parser issue 56](https://github.com/amiller/abalone/issues/56), and the
+[research thread](https://github.com/amiller/awesome-private-inference/issues/23).
+
 ## Bounded session lifetime and expiry
 
 An adapter session is a bounded monotonic window set at opening — default 60 seconds,

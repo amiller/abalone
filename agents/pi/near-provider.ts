@@ -108,7 +108,7 @@ export async function nearProvider(pi: ExtensionAPI, id: string, gift: Gift | nu
     const v = await verified.get(body.model)!.catch((e) => e as Error);
     const plain = crypto.createHash("sha256").update(String(init!.body)).digest("hex");
     if (v instanceof Error) return new Response(JSON.stringify({ error: { message: v.message } }), { status: 403, headers: { "content-type": "application/json" } });
-    // Tool definitions and tool-call arguments are not covered by NEAR's E2EE, so they never go to NEAR.
+    // This integration does not use NEAR's opt-in all-fields tool encryption; native tool fields never go to NEAR.
     delete body.tools; delete body.tool_choice; delete body.parallel_tool_calls;
     if (body.messages.some((m: any) => m.tool_calls || m.role === "tool")) throw new Error("✗ refused: tool calls are not sent to NEAR (their arguments are not end-to-end encrypted)");
     for (const m of body.messages) {
