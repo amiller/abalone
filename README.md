@@ -124,7 +124,7 @@ boundaries.
 - [Watch a synthetic PDF become meeting minutes](https://pod.dstack.soc1024.com/artifact-reports-2026c/abalone-coupon-pdf-meeting-minutes--lWMO2qY1hfbnqZdRWwg8cQ/) using a coupon
 - [Architecture and source layout](docs/architecture.md) and [documentation index](docs/README.md)
 - [ZCon demo](portable/zcon-demo/README.md): a Raspberry Pi agent computer on a USB stick, paid with Zcash
-- Related: [teep](https://github.com/13rac1/teep), a local proxy that checks provider attestation before forwarding requests, and [awesome-private-inference](https://github.com/amiller/awesome-private-inference), a registry of TEE inference providers
+- Related: [teep](https://github.com/13rac1/teep), a local proxy that checks provider attestation before forwarding requests, and [awesome-private-inference](https://github.com/amiller/awesome-private-inference), a registry of TEE inference providers, with a [daily news digest](https://github.com/amiller/awesome-private-inference/tree/main/watch/beat)
 - [Contributing](CONTRIBUTING.md), [issues](https://github.com/amiller/abalone/issues) and [security reporting](SECURITY.md)
 
 First-party code is [MIT licensed](LICENSE); preserve [component notices](THIRD_PARTY_NOTICES.md).
