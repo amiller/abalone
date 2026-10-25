@@ -54,9 +54,10 @@ only under `~/.abalone-app` and `~/.local/bin`, and claims nothing
 ([what install.sh does](docs/abalone-coupon-redeem.md#what-installsh-does);
 [without the script](docs/abalone-coupon-redeem.md#without-the-script)).
 
-**Zcash, planned.** Pay for a slice of model access and open a session.
-Invoice and payment detection have a testnet prototype; the swap is dry-run
-only, and buying provider credit with the proceeds remains unresolved.
+**Zcash.** Pay for a slice of model access and open a session. The
+[ZCon demo](portable/zcon-demo/README.md) does this on a Raspberry Pi: it swaps
+ZEC to USDC and buys NEAR AI credit with it. The laptop client does not have
+this route yet.
 
 Today plain `abalone` opens a saved credit or asks for a gift.
 Bringing keys and coupons into the same launcher, with sandbox capabilities
@@ -122,6 +123,8 @@ boundaries.
 - [Guides](guides/README.md): providers, payment and network setup
 - [Watch a synthetic PDF become meeting minutes](https://pod.dstack.soc1024.com/artifact-reports-2026c/abalone-coupon-pdf-meeting-minutes--lWMO2qY1hfbnqZdRWwg8cQ/) using a coupon
 - [Architecture and source layout](docs/architecture.md) and [documentation index](docs/README.md)
+- [ZCon demo](portable/zcon-demo/README.md): a Raspberry Pi agent computer on a USB stick, paid with Zcash
+- Related: [teep](https://github.com/13rac1/teep), a local proxy that checks provider attestation before forwarding requests, and [awesome-private-inference](https://github.com/amiller/awesome-private-inference), a registry of TEE inference providers
 - [Contributing](CONTRIBUTING.md), [issues](https://github.com/amiller/abalone/issues) and [security reporting](SECURITY.md)
 
 First-party code is [MIT licensed](LICENSE); preserve [component notices](THIRD_PARTY_NOTICES.md).

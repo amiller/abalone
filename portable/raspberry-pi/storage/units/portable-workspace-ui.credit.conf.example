@@ -1,0 +1,6 @@
+# Optional /etc/systemd/system/portable-workspace-ui.service.d/30-credit.conf
+# Install only together with an admitted active portable-credit.service.
+# Never installed as an active drop-in by runtime staging.
+[Service]
+ExecStart=
+ExecStart=/opt/portable/bin/node /opt/portable/portable/workspace/server.mjs --workspace /run/portable-workspace --backend /run/portable-agent/agent.sock --backend-user portable-agent --port 8765 --credit-socket /run/portable-credit/credit.sock

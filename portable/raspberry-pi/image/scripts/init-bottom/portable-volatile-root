@@ -1,0 +1,287 @@
+#!/bin/sh
+# Assemble overlay before udev moves /dev; initial lower must already be ro,noload.
+# /run carries both the moved lower and bounded upper through run-init.
+PREREQ=""
+
+prereqs() {
+	echo "$PREREQ"
+}
+
+case "${1:-}" in
+	prereqs)
+		prereqs
+		exit 0
+		;;
+esac
+
+# PVR_CFG is an input-path override (offline tests / hook reuse of the parser);
+# it never relaxes validation.
+PVR_CFG="${PVR_CFG:-/etc/portable-volatile-root.conf}"
+PVR_CMDLINE="${PVR_CMDLINE:-/proc/cmdline}"
+PVR_MOUNTINFO="${PVR_MOUNTINFO:-/proc/self/mountinfo}"
+PVR_UPPER_BASE="${PVR_UPPER_BASE:-/run/portable-volatile-root}"
+PVR_LOWER_BASE="${PVR_LOWER_BASE:-/run/portable-volatile-lower}"
+PVR_OVERLAY_NAME="portable-volatile-root"
+
+pvr_log() {
+	echo "portable-volatile-root: $*" > /dev/console 2>/dev/null \
+		|| echo "portable-volatile-root: $*"
+}
+
+# Fail closed: recovery shell; when it exits, power off. Never return.
+pvr_fail() {
+	# panic may exit its shell when panic= is set; never let it exit us.
+	( panic "portable-volatile-root: FAIL-CLOSED: $*
+Recovery shell follows; the machine powers off when it exits.
+To boot non-volatile instead, add portable-volatile-root=off to the kernel cmdline." )
+	sync 2>/dev/null || true
+	# ORDER does not propagate script failure: never return after recovery.
+	while :; do
+		poweroff -f 2>/dev/null || halt -f 2>/dev/null || true
+		sleep 1
+	done
+}
+
+# --- strict config parser (no eval; untrusted text) --------------------------
+# Schema: VOLATILE_ROOT_MODE=overlay-tmpfs|off
+#         UPPER_SIZE=<1..9999><K|M|G> or <1..90>%
+#         JOURNAL_MAX_USE=<1..9999><M|G>
+# Unknown or duplicate keys, unparsable lines and invalid values are refusals.
+pvr_config_check_value() { # <key> <value>: rc 0 ok
+	case "$1" in
+		UPPER_SIZE | JOURNAL_MAX_USE)
+			case "$2" in 0*) return 1 ;; esac ;;
+	esac
+	case "$1" in
+		VOLATILE_ROOT_MODE)
+			[ "$2" = "overlay-tmpfs" ] || [ "$2" = "off" ] ;;
+		UPPER_SIZE)
+			# size with suffix K/M/G (1..9999) or percent of RAM (1..90)
+			case "$2" in
+				[0-9]K | [0-9]M | [0-9]G | \
+				[0-9][0-9]K | [0-9][0-9]M | [0-9][0-9]G | \
+				[0-9][0-9][0-9]K | [0-9][0-9][0-9]M | [0-9][0-9][0-9]G | \
+				[0-9][0-9][0-9][0-9]K | [0-9][0-9][0-9][0-9]M | [0-9][0-9][0-9][0-9]G) return 0 ;;
+				[1-9]% | [1-8][0-9]% | 90%) return 0 ;;
+				*) return 1 ;;
+			esac ;;
+		JOURNAL_MAX_USE)
+			case "$2" in
+				[0-9]M | [0-9]G | \
+				[0-9][0-9]M | [0-9][0-9]G | \
+				[0-9][0-9][0-9]M | [0-9][0-9][0-9]G | \
+				[0-9][0-9][0-9][0-9]M | [0-9][0-9][0-9][0-9]G) return 0 ;;
+				*) return 1 ;;
+			esac ;;
+		*) return 1 ;;
+	esac
+}
+
+pvr_parse_config() { # sets PVR_MODE / PVR_UPPER_SIZE / PVR_JOURNAL_MAX_USE
+	PVR_MODE=
+	PVR_UPPER_SIZE=
+	PVR_JOURNAL_MAX_USE=
+	[ -f "$PVR_CFG" ] || { echo "config not found: $PVR_CFG (staging incomplete; refusing to guess)" >&2; return 1; }
+	[ "$(wc -c < "$PVR_CFG")" -le 4096 ] || { echo "config too large: $PVR_CFG" >&2; return 1; }
+	local line key value lineno=0 seen=
+	while IFS= read -r line || [ -n "$line" ]; do
+		lineno=$((lineno + 1))
+		case "$line" in
+			'' | '#'*) continue ;;
+			*=*) ;;
+			*) printf '%s:%d: unparsable line: %.100s\n' "$PVR_CFG" "$lineno" "$line" >&2; return 1 ;;
+		esac
+		key="${line%%=*}"
+		value="${line#*=}"
+		case "$key" in
+			VOLATILE_ROOT_MODE | UPPER_SIZE | JOURNAL_MAX_USE) ;;
+			*) echo "$PVR_CFG:$lineno: unknown key: $key" >&2; return 1 ;;
+		esac
+		case " $seen " in
+			*" $key "*) echo "$PVR_CFG:$lineno: duplicate key: $key" >&2; return 1 ;;
+		esac
+		seen="$seen $key"
+		if ! pvr_config_check_value "$key" "$value"; then
+			echo "$PVR_CFG:$lineno: invalid value for $key" >&2
+			return 1
+		fi
+		case "$key" in
+			VOLATILE_ROOT_MODE) PVR_MODE="$value" ;;
+			UPPER_SIZE) PVR_UPPER_SIZE="$value" ;;
+			JOURNAL_MAX_USE) PVR_JOURNAL_MAX_USE="$value" ;;
+		esac
+	done < "$PVR_CFG"
+	[ -n "$PVR_MODE" ] || { echo "$PVR_CFG: missing VOLATILE_ROOT_MODE" >&2; return 1; }
+	if [ "$PVR_MODE" = overlay-tmpfs ]; then
+		[ -n "$PVR_UPPER_SIZE" ] && [ -n "$PVR_JOURNAL_MAX_USE" ] || { echo "missing overlay bounds" >&2; return 1; }
+	fi
+	return 0
+}
+
+# --- mountinfo helpers -------------------------------------------------------
+# Fields: id parent major:minor root mount_point mount_opts [optional..] -
+#         fstype source super_options
+# Require one unambiguous record per mountpoint; mountinfo order is not visibility.
+pvr_mountinfo_field() { # <mountpoint> <fstype|source|mopts|superopts>: prints unique match
+	awk -v mp="$1" -v want="$2" '
+		$5 == mp {
+			count++
+			sep = 0
+			for (i = 6; i <= NF; i++) if ($i == "-") { sep = i; break }
+			if (sep == 0) next
+			if (want == "fstype") { out = $(sep + 1) }
+			if (want == "source") { out = $(sep + 2) }
+			if (want == "superopts") { out = $(sep + 3) }
+			if (want == "mopts") { out = $6 }
+		}
+		END { if (count == 1 && out != "") print out; else exit 1 }' "$PVR_MOUNTINFO" 2>/dev/null
+}
+
+pvr_mountinfo_isro() { # <mountpoint>: rc 0 when the unique mount there is ro
+	awk -v mp="$1" '
+		$5 == mp {
+			count++
+			ro = 0
+			n = split($6, a, ",")
+			for (i = 1; i <= n; i++) if (a[i] == "ro") ro = 1
+		}
+		END { exit (count == 1 && ro) ? 0 : 1 }' "$PVR_MOUNTINFO" 2>/dev/null
+}
+
+pvr_child_mounts() { # prints mount points strictly under <mountpoint>/
+	awk -v base="$1/" 'index($5, base) == 1 { print $5 }' "$PVR_MOUNTINFO" 2>/dev/null
+}
+
+# --- main --------------------------------------------------------------------
+
+pvr_selfcheck() { # validate config only (used by the hook at build time)
+	if ! pvr_parse_config; then
+		echo "portable-volatile-root: selfcheck: config INVALID: $PVR_CFG" >&2
+		return 1
+	fi
+	echo "portable-volatile-root: selfcheck: config ok (mode=$PVR_MODE upper=$PVR_UPPER_SIZE journal=$PVR_JOURNAL_MAX_USE)"
+	return 0
+}
+
+case "${1:-}" in
+	selfcheck)
+		pvr_selfcheck
+		exit $?
+		;;
+esac
+
+# Boot path: run inside the initramfs where /scripts/functions (panic et al.)
+# is available. PVR_FUNCTIONS is an input-path override for offline tests.
+. "${PVR_FUNCTIONS:-/scripts/functions}"
+ROOTMNT="${rootmnt:-/root}"
+
+# Explicit non-volatile recovery path (the only one). Loud, never quiet.
+if [ -r "$PVR_CMDLINE" ]; then
+	for pvr_tok in $(cat "$PVR_CMDLINE" 2>/dev/null); do
+		case "$pvr_tok" in
+			portable-volatile-root=off)
+				pvr_log "DISABLED by kernel cmdline (portable-volatile-root=off): booting NON-VOLATILE read-write root. This is the explicit recovery path; do not use it for a volatile session."
+				printf '' > /run/portable-volatile-root.disabled 2>/dev/null || true
+				exit 0
+				;;
+		esac
+	done
+fi
+
+if ! pvr_parse_config; then
+	pvr_fail "configuration missing or invalid (see messages above)"
+fi
+
+if [ "$PVR_MODE" = "off" ]; then
+	pvr_log "VOLATILE_ROOT_MODE=off in config: booting NON-VOLATILE. Staging left the mechanism disabled on purpose."
+	exit 0
+fi
+
+# 1. The real root must be mounted at ${ROOTMNT} (resolved by initramfs-tools
+#    from the kernel cmdline; this script never guesses devices).
+pvr_fstype="$(pvr_mountinfo_field "$ROOTMNT" fstype)"
+[ -n "$pvr_fstype" ] || pvr_fail "no mount at ${ROOTMNT} in ${PVR_MOUNTINFO}; root resolution upstream failed"
+case "$pvr_fstype" in
+	ext4) ;;
+	overlay | tmpfs | ramfs | squashfs | erofs | 9p | 9pnet | nfs | nfs4)
+		pvr_fail "root at ${ROOTMNT} is fstype ${pvr_fstype}: already volatile or network/squash backed; refusing to stack another overlay" ;;
+	*)
+		pvr_fail "root at ${ROOTMNT} is fstype ${pvr_fstype}: this slice supports local ext4 lower roots only" ;;
+esac
+
+# 2. Nothing may be mounted under ${ROOTMNT}: stacking the overlay would hide
+#    it (e.g. an early-moved /dev, or a separate /usr). Refuse, never hide.
+pvr_children="$(pvr_child_mounts "$ROOTMNT")"
+if [ -n "$pvr_children" ]; then
+	pvr_fail "mount(s) exist under ${ROOTMNT} and would be hidden by the overlay: $(echo "$pvr_children" | tr '\n' ' ' | cut -c1-200)"
+fi
+
+# A late remount cannot undo journal replay or fsck. Refuse rather than repair.
+pvr_mountinfo_isro "$ROOTMNT" || pvr_fail "initial lower is not read-only"
+case ",$(pvr_mountinfo_field "$ROOTMNT" superopts)," in
+    *,noload,* | *,norecovery,*) ;;
+    *) pvr_fail "initial ext4 lower lacks noload/norecovery" ;;
+esac
+# Move instead of covering the lower: /run is moved intact by the supported /init.
+[ "$PVR_LOWER_BASE" != "$PVR_UPPER_BASE" ] || pvr_fail "lower and upper paths overlap"
+mkdir -p "$PVR_LOWER_BASE" || pvr_fail "cannot create lower mountpoint"
+[ -z "$(pvr_mountinfo_field "$PVR_LOWER_BASE" fstype)" ] || pvr_fail "lower destination occupied"
+mount -n -o move "$ROOTMNT" "$PVR_LOWER_BASE" || pvr_fail "cannot move lower under /run"
+pvr_mountinfo_isro "$PVR_LOWER_BASE" || pvr_fail "moved lower not read-only"
+
+# 4. Bounded tmpfs for overlay upper+work (its size= bounds all upper writes).
+modprobe overlay 2>/dev/null || true
+mkdir -p "$PVR_UPPER_BASE" || pvr_fail "cannot create $PVR_UPPER_BASE"
+[ -z "$(pvr_mountinfo_field "$PVR_UPPER_BASE" fstype)" ] \
+	|| pvr_fail "$PVR_UPPER_BASE is already a mountpoint; refusing to stack"
+mount -n -t tmpfs -o "size=${PVR_UPPER_SIZE},mode=0755,nodev,nosuid" tmpfs "$PVR_UPPER_BASE" \
+	|| pvr_fail "cannot mount bounded tmpfs (size=${PVR_UPPER_SIZE}) at $PVR_UPPER_BASE"
+mkdir -p "$PVR_UPPER_BASE/upper" "$PVR_UPPER_BASE/work" \
+	|| pvr_fail "cannot create upper/work dirs under $PVR_UPPER_BASE"
+
+# 5. Mount overlay at the now vacant root mountpoint.
+mount -n -t overlay "$PVR_OVERLAY_NAME" \
+	-o "lowerdir=${PVR_LOWER_BASE},upperdir=${PVR_UPPER_BASE}/upper,workdir=${PVR_UPPER_BASE}/work" \
+	"$ROOTMNT" \
+	|| pvr_fail "cannot mount overlay (lowerdir=${PVR_LOWER_BASE}, upper on tmpfs size=${PVR_UPPER_SIZE}); kernel overlay support missing?"
+
+# 6. Verify the assembled state from mountinfo; refuse anything unexpected.
+pvr_ovl_fstype="$(pvr_mountinfo_field "$ROOTMNT" fstype)"
+pvr_ovl_src="$(pvr_mountinfo_field "$ROOTMNT" source)"
+pvr_ovl_opts="$(pvr_mountinfo_field "$ROOTMNT" superopts)"
+[ "$pvr_ovl_fstype" = "overlay" ] || pvr_fail "verification: ${ROOTMNT} reports fstype ${pvr_ovl_fstype:-none}, expected overlay"
+[ "$pvr_ovl_src" = "$PVR_OVERLAY_NAME" ] || pvr_fail "verification: overlay source is '${pvr_ovl_src}', expected ${PVR_OVERLAY_NAME}"
+case ",$pvr_ovl_opts," in
+	*",lowerdir=${PVR_LOWER_BASE},"* | ",lowerdir=${PVR_LOWER_BASE}") ;;
+	*) pvr_fail "verification: overlay options lack lowerdir=${PVR_LOWER_BASE} (got: $(echo "$pvr_ovl_opts" | cut -c1-160))" ;;
+esac
+case ",$pvr_ovl_opts," in
+	*",upperdir=${PVR_UPPER_BASE}/upper,"*) ;;
+	*) pvr_fail "verification: overlay options lack expected upperdir" ;;
+esac
+[ -n "$(pvr_mountinfo_field "$PVR_UPPER_BASE" fstype)" ] \
+	|| pvr_fail "verification: tmpfs upper backing mount missing at $PVR_UPPER_BASE"
+pvr_mountinfo_isro "$ROOTMNT" && pvr_fail "verification: expected the stacked overlay to be rw (ro reported)"
+# Both backing mounts remain separately visible under /run.
+[ "$(pvr_mountinfo_field "$PVR_LOWER_BASE" fstype)" = ext4 ] && pvr_mountinfo_isro "$PVR_LOWER_BASE"     || pvr_fail "verification: moved ext4 lower missing or writable"
+[ "$(pvr_mountinfo_field "$PVR_UPPER_BASE" fstype)" = tmpfs ]     || pvr_fail "verification: upper backing is not tmpfs"
+# systemd-remount-fs consumes the visible fstab after run-init. Its root row
+# must describe this writable overlay, not the read-only ext4 lower. This
+# copy-up happens only after overlay verification; the lower is unchanged.
+[ -d "$ROOTMNT/etc" ] && [ ! -L "$ROOTMNT/etc" ] \
+    && [ -f "$ROOTMNT/etc/fstab" ] && [ ! -L "$ROOTMNT/etc/fstab" ] \
+    || pvr_fail "unsafe or missing overlay-visible fstab"
+pvr_fstab_tmp=$(mktemp "$ROOTMNT/etc/.portable-fstab.XXXXXX") \
+    || pvr_fail "cannot create RAM fstab temporary file"
+awk '
+    /^[[:space:]]*#/ || /^[[:space:]]*$/ { print; next }
+    $2 == "/" { roots++; print "portable-volatile-root / overlay rw 0 0"; next }
+    { print }
+    END { if (roots != 1) exit 1 }
+' "$ROOTMNT/etc/fstab" > "$pvr_fstab_tmp" \
+    || pvr_fail "fstab transform/write failed or root row is not unique"
+chmod 0644 "$pvr_fstab_tmp" && mv -f "$pvr_fstab_tmp" "$ROOTMNT/etc/fstab" \
+    || pvr_fail "cannot publish overlay-visible fstab"
+
+pvr_log "volatile root ACTIVE: overlay at ${ROOTMNT}; ext4 lower ro at ${PVR_LOWER_BASE}; bounded tmpfs upper at ${PVR_UPPER_BASE}. Whole-boot persistence qualification is separate."
+exit 0

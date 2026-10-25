@@ -1,0 +1,10 @@
+{
+  "zkool": "/opt/zkool-graphql/zkool_graphql",
+  "coin": 0,
+  "lwd": "https://zec.rocks",
+  "port": 9077,
+  "db": "/run/portable-vault/ui/agent-wallet/zkool.db",
+  "source": { "db": "/run/portable-vault/ui/wallet/zkool.db", "account": "ZCon demo" },
+  "socket": "/run/portable-agent-wallet/wallet.sock",
+  "approval": { "mode": "approve", "perSpendZec": "0.001", "sessionZec": "0.005" }
+}

@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+case "${1:-}" in prereqs) echo; exit 0 ;; esac
+. /usr/share/initramfs-tools/hook-functions
+[ -s /etc/portable-persistent-api.conf ]
+mkdir -p "${DESTDIR}/lib" "${DESTDIR}/etc"
+cp /usr/lib/portable-persistent-api "${DESTDIR}/lib/portable-persistent-api"
+chmod 0755 "${DESTDIR}/lib/portable-persistent-api"
+cp /etc/portable-persistent-api.conf "${DESTDIR}/etc/portable-persistent-api.conf"
+chmod 0644 "${DESTDIR}/etc/portable-persistent-api.conf"
+# Busybox mount/awk/cat/wc/uname are already required in the supported archive;
+# the generated artifact audit verifies presence before any boot qualification.

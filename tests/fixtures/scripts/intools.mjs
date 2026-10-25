@@ -17,5 +17,5 @@ export default (msgs) => {
   if (last.startsWith("mixed")) return { text: `<abalone-tool>{"op": "list"}</abalone-tool>\n<abalone-tool>{"op": "browser"}</abalone-tool>` };
   if (last.startsWith("glm native")) return { text: "<tool_call>list\n<arg_key>path</arg_key>\n<arg_value>.</arg_value>\n</tool_call>" };
   if (last.startsWith("malformed")) return { text: "<abalone-tool>{op: list}</abalone-tool>" };
-  return { text: `system prompt: abalone=${sys.includes("You are abalone")} protocol=${sys.includes("<tool_call>OP")} usage=${sys.includes("Session usage, from abalone's accounting")} sentto=${sys.includes('"sent to" line from measured state')} pi=${/\bpi\b/i.test(sys.replace(/Never describe yourself as Pi/, ""))}` };
+  return { text: `system prompt: abalone=${sys.includes("You are abalone")} protocol=${sys.includes("<tool_call>OP")} usage=${sys.includes("Session usage, from abalone's accounting")} sentto=${sys.includes('"sent to" line from measured state')} pi=${/\bpi\b/i.test(sys.split(/\n\s*\n/, 1)[0])}` };
 };

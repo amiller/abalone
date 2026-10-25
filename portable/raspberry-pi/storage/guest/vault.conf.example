@@ -1,0 +1,42 @@
+# vault.conf — portable storage configuration (template).
+#
+# Installed by deploy.sh as /opt/portable/etc/vault.conf (root:root, mode 0600).
+# Parsed with a strict schema by every portable storage script and by the
+# broker; unknown or duplicate keys are refused. Only VAULT_LUKS_UUID needs
+# editing: provision a fresh vault disk with provision-vault.sh and pin the
+# UUID it prints. An empty UUID keeps every vault operation refused.
+
+# LUKS2 container UUID (lowercase canonical form) or empty until provisioned.
+VAULT_LUKS_UUID=
+
+# Device-mapper name for the opened vault. "control" is reserved.
+VAULT_MAPPER_NAME=portable-vault
+
+# Filesystem inside the container (ext4 only).
+VAULT_FSTYPE=ext4
+
+# Fixed late-unlock mountpoint. Must be under /run (tmpfs, cleared at boot):
+# there is deliberately no /etc/fstab or /etc/crypttab entry for the vault.
+VAULT_MOUNTPOINT=/run/portable-vault
+
+# Mandatory mount options (order-insensitive; "rw" may be added, nothing else).
+VAULT_MOUNT_OPTIONS=nodev,nosuid,noexec
+
+# Per-account subdirectories created (fresh) on the mounted vault. Each is
+# owned by its account with mode 0700: credit (journal owner portable-credit),
+# agent (portable-agent), ui (portable-ui).
+VAULT_MOUNT_SUBDIR_CREDIT=credit
+VAULT_MOUNT_SUBDIR_AGENT=agent
+VAULT_MOUNT_SUBDIR_UI=ui
+
+# Broker control socket. Must be outside the vault mountpoint: mounting the
+# vault over it would bury the socket. Directory is created 0750
+# root:portable-operators; the socket itself is 0660 root:portable-operators.
+BROKER_SOCKET_DIR=/run/portable-control
+BROKER_SOCKET_NAME=broker.sock
+
+# Group allowed to reach the broker socket (filesystem permission layer) and
+# the accounts allowed to speak to it (SO_PEERCRED layer). Both portable-agent
+# and portable-ui are forbidden: the public workspace UI has no vault authority.
+BROKER_GROUP=portable-operators
+BROKER_ALLOWED_UIDS=portable-credit

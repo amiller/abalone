@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: MIT
+[Unit]
+Description=Dsmack trusted funding operator on tty4
+ConditionPathExists=/dev/tty4
+After=systemd-tmpfiles-setup.service tor-guest.service getty@tty4.service
+Conflicts=getty@tty4.service
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/bin/python3 -I -B /opt/portable/portable/funding/operator-vt.py
+StandardInput=tty
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty4
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+UMask=0077
+LimitCORE=0
+NoNewPrivileges=yes
+CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH CAP_SETUID CAP_SETGID CAP_KILL CAP_SYS_PTRACE
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+KillMode=mixed
+TimeoutStopSec=15s
+Environment=TERM=linux
+# Same PID1 mount view; no private mounts. Opt-in integration, never autoenabled.

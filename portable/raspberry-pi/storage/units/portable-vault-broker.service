@@ -1,0 +1,73 @@
+[Unit]
+Description=Portable vault lifecycle broker (fixed commands only)
+Documentation=file:/opt/portable/README.md
+# The vault is deliberately NOT auto-unlocked at boot: no crypttab/fstab
+# activation exists. Unlock happens late, through this broker or a root shell.
+ConditionPathExists=/opt/portable/etc/vault.conf
+After=local-fs.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+# Credit-session composition (--credit-session) is an explicit ROOT CLI
+# opt-in and is DELIBERATELY ABSENT from this base unit's ExecStart: the
+# default broker performs the vault lifecycle only and never touches
+# portable-credit.service. Enabling the composition is reserved for an
+# explicit future separately reviewed trusted drop-in, never a default or a
+# request-driven behavior.
+ExecStart=/usr/bin/python3 /opt/portable/bin/vault-broker.py --config /opt/portable/etc/vault.conf --scripts-dir /opt/portable/bin
+Restart=on-failure
+RestartSec=5
+#
+# MOUNT AUTHORITY MODEL (explicit and functional — see portable/raspberry-pi/storage/README.md):
+# This service deliberately performs privileged vault lifecycle operations
+# (cryptsetup, mount/umount, chown of freshly created per-account directories)
+# in the HOST mount namespace, because the late vault mount at
+# /run/portable-vault must appear where every other unit can see it. Any
+# mount-namespace-inducing directive (PrivateTmp, PrivateDevices, ProtectSystem,
+# ProtectHome, ProtectKernelTunables, ProtectKernelModules, ProtectControlGroups,
+# PrivateMounts, MountFlags=slave/private, ...) would put later mounts into a
+# broker-private namespace whose propagation outward is disabled, hiding the
+# vault from the host and every other service; MountFlags=shared cannot repair
+# that transition. The verifier rejects all of those directives on this unit.
+# Authority here is bounded instead by: the fixed three-command protocol, the
+# root-owned trust-chain-verified config and script tree the broker enforces
+# itself, SO_PEERCRED, and the capability bounding set below.
+NoNewPrivileges=yes
+# CAP_SYS_ADMIN: device-mapper ioctls (cryptsetup) and mount/umount.
+# CAP_CHOWN: group ownership of the broker socket directory/socket and the
+# per-account chown of directories unlock-vault.sh freshly creates.
+# Nothing else: capability needs were enumerated against the actual operations.
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_CHOWN
+AmbientCapabilities=
+UMask=0077
+# Runtime paths are created by systemd BEFORE the process starts (the broker
+# only adjusts group ownership of this directory to BROKER_GROUP).
+RuntimeDirectory=portable-control
+RuntimeDirectoryMode=0750
+# Non-namespace hardening that holds for a host-namespace service:
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_UNIX
+ProtectClock=yes
+ProtectHostname=yes
+# No core dumps: the broker briefly holds passphrase bytes in memory and a
+# dump could persist them. (Same rule the operator and credit units carry.)
+LimitCORE=0
+#
+# DevicePolicy is deliberately NOT set to closed: the vault is a removable
+# block device whose node name is not known statically, and systemd device
+# allow lists have no wildcard for "all block devices" (a rule like
+# "DeviceAllow=block rw" is invalid syntax and matches nothing). Device
+# authority is bounded by the capability set and the fixed command/config
+# surface above instead.
+#
+# NOTE: no PrivateTmp, no ProtectSystem, no ProtectHome, no PrivateDevices,
+# no ProtectKernelTunables/Modules/ControlGroups, no PrivateMounts and no
+# MountFlags line — on purpose (see the authority model above).
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,31 @@
+[Unit]
+Description=Public read-only desktop Tor bootstrap projection
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/bin/python3 -I /opt/portable/portable/raspberry-pi/display/project-status.py
+RuntimeDirectory=portable-status
+RuntimeDirectoryMode=0755
+RuntimeDirectoryPreserve=yes
+UMask=0077
+TimeoutStartSec=15
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/run/portable-status
+PrivateTmp=yes
+PrivateDevices=yes
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_UNIX
+LockPersonality=yes
+MemoryMax=48M
+TasksMax=8
+StandardOutput=null
+StandardError=journal

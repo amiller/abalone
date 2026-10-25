@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: MIT
+[Unit]
+Description=Trusted vault-unlock operator on tty2 (PROPOSAL; manual root start only)
+Documentation=file:/opt/portable/portable/raspberry-pi/storage/README.md
+# PROPOSAL UNIT — source proposal only. It is NOT enabled, NOT installed into
+# any target, and excludes getty@tty2 while active. A trusted root
+# operator reviews and starts it explicitly (root keeps systemctl authority;
+# this unit grants no new privilege to anyone).
+ConditionPathExists=/dev/tty2
+# Type=simple broker ordering does not imply its socket has been created yet.
+# Start the console regardless; each request validates the socket and root peer.
+Wants=portable-vault-broker.service
+After=portable-vault-broker.service systemd-tmpfiles-setup.service getty@tty2.service
+Conflicts=getty@tty2.service
+
+[Service]
+Type=simple
+# Fixed financial operator identity: UID 972 / GID 972, supplementary
+# portable-operators(973) ONLY so the existing root-owned broker socket
+# (0660 root:portable-operators) is connectable; the broker's own
+# SO_PEERCRED allow-list (portable-credit) is the real authority.
+User=portable-credit
+Group=portable-credit
+SupplementaryGroups=portable-operators
+# PID1 itself opens the REAL /dev/tty2 (major 4 minor 2) and hands the fds to
+# the process; the operator then re-validates fd 0/1/2 device identity, rejects
+# PTYs, and checks the active VT via VT_GETSTATE before any passphrase entry.
+StandardInput=tty
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty2
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+UtmpIdentifier=tty2
+UtmpMode=user
+ExecStart=/usr/bin/python3 -I -B /opt/portable/portable/raspberry-pi/storage/operator-vt.py
+UMask=0077
+LimitCORE=0
+# No capabilities at all: the operator holds zero privileges; everything
+# privileged happens in the existing root broker.
+CapabilityBoundingSet=
+AmbientCapabilities=
+NoNewPrivileges=yes
+# The operator writes nothing to disk and needs no filesystem write access.
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+# Keyboard input reaches this unit through the tty fds PID1 opened; no GUI,
+# no agent, no graphical stack is involved or permitted to authorize unlocks.
+Environment=TERM=linux
+KillMode=control-group
+TimeoutStopSec=10s
+# Deliberately NO [Install] section: no enablement target exists. Not a
+# getty replacement; not auto-started at boot or by any other unit here.

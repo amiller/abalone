@@ -1,0 +1,41 @@
+# tor-guest.service — Tor for the disposable guest, loopback listeners only.
+#
+# __TOR_USER__ is substituted by guest-install.sh with the real account name
+# resolved at install time (the uid in the nft ruleset is resolved from the
+# same account; the loader re-verifies the mapping on every boot and refuses
+# on mismatch). Tor binds only loopback ports above 1024, so it needs no
+# capabilities at all: CapabilityBoundingSet= is empty and AF_PACKET is not
+# in RestrictAddressFamilies — this unit grants no raw-socket access.
+#
+# Requires=/After= the firewall unit (explicit; Before= alone is
+# insufficient). It deliberately does NOT wait for network-online.target or
+# any bootstrap state: Tor binds loopback immediately, and the local
+# workspace must not gate on Tor bootstrap.
+
+[Unit]
+Description=Tor guest client (loopback listeners, firewall-gated)
+Requires=tor-guest-firewall.service
+After=tor-guest-firewall.service
+
+[Service]
+Type=exec
+User=__TOR_USER__
+Group=__TOR_USER__
+ExecStart=/usr/bin/tor -f /etc/tor-guest/torrc
+StateDirectory=tor-guest
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+RestrictNamespaces=yes
+LockPersonality=yes
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

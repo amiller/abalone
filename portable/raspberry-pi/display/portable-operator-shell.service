@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: MIT
+[Unit]
+Description=Dsmack trusted operator shell
+After=systemd-user-sessions.service
+Wants=portable-workspace-ui.service
+Conflicts=getty@tty1.service portable-display.service
+Before=getty@tty1.service
+[Service]
+KillSignal=SIGHUP
+Type=simple
+User=root
+WorkingDirectory=/root
+Environment=HOME=/root TERM=linux PATH=/usr/bin:/bin
+ExecStartPre=/usr/bin/setfont -C /dev/tty1 FullGreek-TerminusBold32x16
+ExecStart=/bin/bash --noprofile --rcfile /root/.bashrc -i
+Restart=always
+RestartSec=1
+StandardInput=tty-force
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+KillMode=control-group
+TimeoutStopSec=5
+LimitCORE=0
+[Install]
+WantedBy=multi-user.target

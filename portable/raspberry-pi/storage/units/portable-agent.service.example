@@ -1,0 +1,49 @@
+# Hardened unit TEMPLATE for the agent service (owned by the workspace slice).
+# Copy to /etc/systemd/system/portable-agent.service and adapt ExecStart.
+# Storage-slice contract kept by this template:
+#   * NoNewPrivileges=yes, EMPTY capability sets, explicit writable dirs.
+#   * NO PrivateMounts and NO private MountFlags: the unit must see the late
+#     vault mount at /run/portable-vault (shared propagation from the broker).
+#   * portable-agent is in no privileged group; it cannot reach the broker
+#     socket (0660 root:portable-operators) and SO_PEERCRED would refuse it.
+[Unit]
+Description=Portable agent session worker (TEMPLATE - workspace slice owns it)
+Documentation=file:/opt/portable/README.md
+# The agent runs only while the vault is unlocked; starting it locked would
+# give it no writable state and confuse the lifecycle.
+ConditionPathIsMountPoint=/run/portable-vault
+After=portable-vault-broker.service
+
+[Service]
+Type=simple
+User=portable-agent
+Group=portable-agent
+# ExecStart=... (workspace slice provides the real command)
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET
+StateDirectory=portable/agent
+# Explicit writable directories and nothing else (vault subdir + state dir):
+ReadWritePaths=/run/portable-vault/agent
+# The unit's own private mount namespace (from PrivateTmp etc.) is a SLAVE of
+# the host namespace: the late vault mount made by the host-namespace broker
+# propagates IN, so the agent sees /run/portable-vault without either side
+# gaining propagation outward.
+# NO PrivateMounts / MountFlags here on purpose (see unit header).
+
+[Install]
+WantedBy=multi-user.target

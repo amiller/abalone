@@ -1,0 +1,16 @@
+# portable-volatile-root configuration (staged by portable/image).
+# Strict KEY=VALUE text parsed WITHOUT eval by the initramfs boot script and
+# by its hook: unknown or duplicate keys, unparsable lines and invalid values
+# are refusals (fail closed). See portable/raspberry-pi/image/README.md for semantics.
+#
+# VOLATILE_ROOT_MODE: overlay-tmpfs = volatile overlay root at boot (active);
+#                     off = mechanism explicitly disabled at config level
+#                     (loud non-volatile boot; staging deliberately disabled).
+VOLATILE_ROOT_MODE=overlay-tmpfs
+# UPPER_SIZE: size bound of the tmpfs holding overlay upperdir+workdir
+# (all root writes live inside it). Suffix K/M/G or % of RAM (max 90%).
+# Rehearsal guest: 4096 MiB RAM -> 2048M bound.
+UPPER_SIZE=2048M
+# JOURNAL_MAX_USE: systemd journal cap while volatile (Storage=volatile,
+# System/RuntimeMaxUse). Written by staging as a journald drop-in.
+JOURNAL_MAX_USE=64M

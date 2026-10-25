@@ -15,6 +15,8 @@ globalThis.fetch = (url) => { throw new Error(`network is cut in this test: ${ur
 const { anchor, checkEvidence, open, pick, seal, strip } = await import("../lib/chutes.mjs");
 const { verifications } = await import("../lib/status.mjs");
 const fx = JSON.parse(fs.readFileSync(path.join(ROOT, "tests/fixtures/chutes/attestation.json"), "utf8"));
+// Exact signed driver/VBIOS collateral, retrieved by public GET; fixture clock remains unchanged.
+fx.http.push(...JSON.parse(fs.readFileSync(new URL('./fixtures/chutes/local-rim.json',import.meta.url))).http);
 const realNow = Date.now;
 Date.now = () => Date.parse(fx.recorded);
 const replay = (edit = (r) => r) => async (url, init = {}) => {
@@ -23,23 +25,21 @@ const replay = (edit = (r) => r) => async (url, init = {}) => {
   const e = edit({ ...r, body: Buffer.from(r.body, "base64") });
   return new Response(e.body, { status: e.status, headers: e.headers });
 };
-const check = ({ ev = fx.evidence, nonce = fx.nonce, inst = fx.instance, policy = fx.policy, http = replay() } = {}) => checkEvidence(ev, nonce, inst, policy, http);
+const check = ({ ev = fx.evidence, nonce = fx.nonce, inst = fx.instance, policy = fx.policy, http = replay(), revocation = 'skip' } = {}) => {
+ const old=process.env.ABALONE_GPU_REVOCATION;
+ if(revocation==='required')delete process.env.ABALONE_GPU_REVOCATION;else process.env.ABALONE_GPU_REVOCATION=revocation;
+ return checkEvidence(ev,nonce,inst,policy,http).finally(()=>{if(old===undefined)delete process.env.ABALONE_GPU_REVOCATION;else process.env.ABALONE_GPU_REVOCATION=old;});
+};
 const b64flip = (s, i) => { const b = Buffer.from(s, "base64"); b[i] ^= 1; return b.toString("base64"); };
 const otherKey = Buffer.from(ml_kem768.keygen().publicKey).toString("base64");
 const jwksCert = () => JSON.parse(Buffer.from(fx.http.find((h) => h.url.endsWith("/jwks.json")).body, "base64")).keys[0].x5c[0];
-const nrasClaims = (edit) => (r) => {
-  if (!r.url.includes("/attest/gpu")) return r;
-  const j = JSON.parse(r.body), [h, p, s] = j[0][1].split(".");
-  j[0][1] = [h, Buffer.from(JSON.stringify(edit(JSON.parse(Buffer.from(p, "base64url"))))).toString("base64url"), s].join(".");
-  return { ...r, body: JSON.stringify(j) };
-};
-
-test("positive control: the recorded instance verifies offline", async () => {
+test("explicit revocation-skip control: recorded instance verifies locally offline", async () => {
   const p = await check();
   assert.equal(p.instance_id, fx.instance.instance_id);
   assert.deepEqual(p.model_tcb_statuses, ["UpToDate"]);
   assert.match(p.measurement, /^8x\S+ .* v\d+\.\d+\.\d+ \(anchor captured 2026-10-12\)$/);
-  assert.match(p.gpu, /^GPU: NVIDIA verdict \(signature checked\), 8× HOPPER$/);
+  assert.match(p.gpu, /^GPU: 8× verified locally/);
+  assert.match(p.gpu,/certificate revocation NOT checked/);
   assert.equal(p.gateway_tcb, null);
   const v = verifications([{ type: "custom", customType: "chutes-attestation", timestamp: fx.recorded, data: { ...p, provider: "chutes", model: fx.model } }]);
   assert.deepEqual([v[`chutes/${fx.model}`].flag, v[`chutes/${fx.model}`].brief], ["tcb:up-to-date", "tcb:ok"]);
@@ -54,10 +54,8 @@ for (const [name, args, why] of [
   ["another certificate in the evidence", { ev: { ...fx.evidence, certificate: jwksCert() } }, /does not bind the evidence certificate's key/],
   ["quote byte flipped", { ev: { ...fx.evidence, quote: b64flip(fx.evidence.quote, 200) } }, /signature is invalid|Invalid/i],
   ["no GPU evidence", { ev: { ...fx.evidence, gpu_evidence: [] } }, /no GPU evidence/],
+  ["GPU architecture absent", {ev:{...fx.evidence,gpu_evidence:fx.evidence.gpu_evidence.map(({arch,...g})=>g)}}, /architecture undefined/],
   ["GPUs of mixed architecture", { ev: { ...fx.evidence, gpu_evidence: fx.evidence.gpu_evidence.map((g, i) => (i ? { ...g, arch: "BLACKWELL" } : g)) } }, /mixed architecture/],
-  ["NRAS verdict false (a tampered token)", { http: replay(nrasClaims((c) => ({ ...c, "x-nvidia-overall-att-result": false }))) }, /Chutes attestation: NRAS token signature does not verify/],
-  ["NRAS JWKS unavailable while the signature is required", { http: replay((r) => (r.url.endsWith("/jwks.json") ? { ...r, status: 503 } : r)) }, /NVIDIA verdict signature is required/],
-  ["NRAS unavailable", { http: replay((r) => (r.url.includes("/attest/gpu") ? { ...r, status: 503 } : r)) }, /NVIDIA NRAS answered HTTP 503/],
 ]) test(`refused: ${name}`, async () => { await assert.rejects(check(args), why); });
 
 test("refused: measurements in no anchored row", async () => {
@@ -105,7 +103,7 @@ test("private-work describes a verified Chutes instance as checked, with its own
   assert.match(route("nearai/z-ai/glm-5.3-flash").text, /gatewayTcb "reported", modelTcb "reported"/);
   assert.equal(verification([], r), "remote, NOT verified (no verifier output in this session)");
   const p = await check(), e = { type: "custom", customType: "chutes-attestation", timestamp: fx.recorded, data: { ...p, provider: "chutes", model: fx.model, code: "c" } };
-  assert.equal(verification([e], r), `remote, checked by abalone ${fx.recorded} (instance TDX, GPU: NVIDIA verdict (signature checked), 8× HOPPER; instance ${p.instance_id.slice(0, 8)} is Chutes' label, not attested), tcb:up-to-date; code: c`);
+  assert.equal(verification([e], r), `remote, checked by abalone ${fx.recorded} (instance TDX, ${p.gpu}; instance ${p.instance_id.slice(0, 8)} is Chutes' label, not attested), tcb:up-to-date; code: c`);
 });
 
 test("the instance id is shown as Chutes' label, not as attested", async () => {
@@ -134,3 +132,11 @@ test("a failed verification is not kept: the next listed instance is tried once,
 });
 
 test.after(() => { Date.now = realNow; });
+
+test('default required refuses missing recorded Chutes OCSP instead of silently skipping',async()=>{
+ await assert.rejects(check({revocation:'required'}),/no recorded response for POST https:\/\/ocsp.ndis.nvidia.com/);
+});
+test('signed GPU report nonce tampering refuses even with explicit revocation skip',async()=>{
+ const ev=structuredClone(fx.evidence);ev.gpu_evidence[0].evidence=b64flip(ev.gpu_evidence[0].evidence,5);
+ await assert.rejects(check({ev}),/nonce|signature/);
+});

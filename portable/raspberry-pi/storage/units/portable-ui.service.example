@@ -1,0 +1,51 @@
+# Hardened unit TEMPLATE for the unprivileged workspace UI service (workspace slice owns the
+# real ExecStart). Storage-slice contract kept by this template:
+#   * NoNewPrivileges=yes, EMPTY capability sets, explicit writable dirs.
+#   * NO PrivateMounts / private MountFlags: the UI must see /run/portable-vault.
+#   * The UI is VOLATILE-STATE CAPABLE: it starts and serves its locked-state
+#     interface WITHOUT the vault being unlocked. It deliberately has NO
+#     ReadWritePaths under /run/portable-vault (that directory does not exist
+#     while the vault is locked and would prevent the unit's namespace setup),
+#     NO ConditionPathIsMountPoint on the vault, and keeps its working state
+#     under StateDirectory. Optional persistent state on the vault is exposed
+#     only after a successful unlock through the broker-driven lifecycle.
+#   * The UI and agent have NO access to the vault broker. A separate trusted
+#     portable-credit operator drives lifecycle; the public loopback API is
+#     reachable by local agent processes and cannot authorize financial actions.
+[Unit]
+Description=Portable unprivileged workspace UI (TEMPLATE - workspace slice owns it)
+Documentation=file:/opt/portable/README.md
+After=portable-vault-broker.service
+
+[Service]
+Type=simple
+User=portable-ui
+Group=portable-ui
+# ExecStart=... (workspace slice provides the real command)
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET
+StateDirectory=portable/ui
+# The unit's own private mount namespace is a SLAVE of the host namespace:
+# the late vault mount made by the host-namespace broker propagates in and
+# the UI can read it; nothing the UI could mount would propagate out.
+# Read-only view of the vault is granted by the workspace slice AFTER unlock
+# (e.g. BindReadOnlyPaths=), never as a unit start requirement.
+# NO PrivateMounts / MountFlags here on purpose (see unit header).
+
+[Install]
+WantedBy=multi-user.target

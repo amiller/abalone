@@ -1,0 +1,37 @@
+#!/bin/sh
+# Trusted early policy; generated ORDER must source param.conf after this script.
+case "${1:-}" in prereqs) echo; exit 0 ;; esac
+. "${PVR_FUNCTIONS:-/scripts/functions}"
+fail() {
+    # panic may call exit after failed reboot; contain that exit.
+    ( panic "portable-volatile-root: early policy refused: $*" )
+    # initramfs ORDER ignores exit status. Block forever if shutdown fails.
+    while :; do
+        poweroff -f 2>/dev/null || halt -f 2>/dev/null || true
+        sleep 1
+    done
+}
+cmdline=$(cat "${PVR_CMDLINE:-/proc/cmdline}") || fail 'cannot read cmdline'
+case " $cmdline " in *' portable-volatile-root=off '*) exit 0 ;; esac
+# Vendor firstboot uses a substring grep, not a token match.
+case "$cmdline" in *firstboot* | *systemd.run=* | *init=*) fail 'pending firstboot/init override' ;; esac
+for token in $cmdline; do
+    case "$token" in
+        rw|rootflags=*|rootfstype=*|fsck.mode=*|fsck.repair=*|forcefsck|fsckfix|boot=*|resume=*|ip=*|nfsroot=*)
+            case "$token" in rootflags=noload|rootfstype=ext4|fsck.mode=skip|fsck.repair=no|boot=local|resume=none) ;; *) fail "unsupported/conflicting boot argument: $token" ;; esac ;;
+    esac
+done
+# /init parses cmdline before init-top. ORDER reloads this file after each
+# script; exports reach local_mount_root/checkfs and resume scripts.
+cat >> "${PVR_PARAM_CONF:-/conf/param.conf}" <<'PARAMS' || fail 'cannot persist early mount policy'
+export readonly=y
+export ROOTFLAGS='-o noload'
+export ROOTFSTYPE=ext4
+export BOOT=local
+export fastboot=y
+export forcefsck=n
+export fsckfix=n
+export noresume=y
+export resume=
+export RESUME=none
+PARAMS

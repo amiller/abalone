@@ -1,0 +1,8 @@
+#!/bin/sh
+case "${1:-}" in prereqs) echo; exit 0 ;; esac
+. /scripts/functions
+if ! /lib/portable-persistent-api establish; then
+ echo 'portable-persistent-api: unsafe early persistent API; refusing boot' >&2
+ # Never return to ORDER, whose caller does not propagate script failure.
+ while :; do poweroff -f 2>/dev/null || halt -f 2>/dev/null || true; sleep 1; done
+fi

@@ -1,0 +1,3 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+exec /usr/bin/python3 -I /opt/portable/portable/raspberry-pi/display/home-command.py fund "$@"

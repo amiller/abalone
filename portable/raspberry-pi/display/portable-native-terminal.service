@@ -1,0 +1,35 @@
+[Unit]
+Description=Dsmack native terminal authority channel (prototype)
+Requires=tor-guest-firewall.service portable-workspace.service
+After=local-fs.target tor-guest-firewall.service portable-workspace.service
+
+[Service]
+Type=simple
+User=portable-agent
+Group=portable-agent
+SupplementaryGroups=
+RuntimeDirectory=portable-native-terminal
+RuntimeDirectoryMode=0755
+WorkingDirectory=/run/portable-workspace
+ExecStart=/usr/bin/python3 /opt/portable/portable/raspberry-pi/display/native-terminal-daemon.py --socket /run/portable-native-terminal/control.sock --workspace /run/portable-workspace --ui-uid 971
+Restart=no
+KillMode=control-group
+TasksMax=256
+TimeoutStopSec=3s
+SendSIGKILL=yes
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/run/portable-workspace /run/portable-native-terminal
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

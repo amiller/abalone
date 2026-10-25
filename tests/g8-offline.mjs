@@ -1,8 +1,10 @@
 // G8 offline: the NEAR verifier (lib/near.mjs checkReport) against one recorded live attestation
-// (tests/fixtures/near/attestation.json, from tools/record-near-fixture.mjs). Network is cut: the global fetch throws,
-// and the verifier's fetches (NRAS, Intel PCS) are served only from the recording. The untouched recording verifies;
+// (tests/fixtures/near/nvidia-local-attestation.json, from tools/record-near-fixture.mjs). Network is cut: the global fetch throws,
+// and the verifier's fetches (NVIDIA RIM/OCSP, Intel PCS) are served only from the recording. The untouched recording verifies;
 // each tampered copy is refused with an error naming the failed check, before any prompt could be encrypted to it.
 // Intel collateral expires about 30 days after recording; then the positive control fails and the fixture must be re-recorded.
+import crypto from "node:crypto";
+import { replayer, recordedOcspNonce } from "./lib/replay-nvidia.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -10,41 +12,45 @@ import { test } from "node:test";
 import { ROOT } from "../lib/config.mjs";
 
 globalThis.fetch = (url) => { throw new Error(`network is cut in this test: ${url}`); };
-const { checkReport } = await import("../lib/near.mjs");
+const { checkReport: realCheckReport } = await import("../lib/near.mjs");
 const { tcbFlag } = await import("../lib/status.mjs");
-const fx = JSON.parse(fs.readFileSync(path.join(ROOT, "tests/fixtures/near/attestation.json"), "utf8"));
-// The NRAS token lives an hour: the verifier's clock is the recording's (a test moves it to show expiry is refused).
+const fx = JSON.parse(fs.readFileSync(path.join(ROOT, "tests/fixtures/near/nvidia-local-attestation.json"), "utf8"));
+// Verify collateral at its recorded time; no live requests.
+const originalRevocation=process.env.ABALONE_GPU_REVOCATION;delete process.env.ABALONE_GPU_REVOCATION;
 const realNow = Date.now, at = (t) => (Date.now = () => t);
 at(Date.parse(fx.recorded));
-const replay = (edit = (r) => r) => async (url, init = {}) => {
-  const r = fx.http.find((h) => h.url === String(url) && h.method === (init.method ?? "GET") && (h.request ?? null) === (init.body ?? null));
-  if (!r) throw new Error(`no recorded response for ${init.method ?? "GET"} ${url}`);
-  const e = edit({ ...r, body: Buffer.from(r.body, "base64") });
-  return new Response(e.body, { status: e.status, headers: e.headers });
-};
+const replay = replayer(fx);
+// Inject only the recorded 32-byte OCSP challenges for this offline recording.
+// Responses are still matched byte-for-byte and signatures/nonces remain checked.
+async function checkReport(...args) {
+  const original = crypto.randomBytes, seen=new Set(), nonces=[], nonceFor=recordedOcspNonce(fx);
+  const add=certs=>{for(const cert of certs){if(!seen.has(cert.fingerprint256)){seen.add(cert.fingerprint256);nonces.push(nonceFor(cert));}}};
+  const devices=JSON.parse(fx.report.model_attestations[0].nvidia_payload).evidence_list.map(g=>Buffer.from(g.certificate,'base64').toString().match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g).map(p=>new crypto.X509Certificate(p)));
+  add(devices[0].slice(1,-1));
+  // The verifier starts driver and then VBIOS RIM validation, independent of recording fetch order.
+  const rims=fx.http.filter(h=>h.url.includes('/v1/rim/')).sort((a,b)=>a.url.localeCompare(b.url));
+  for(const r of rims){const xml=Buffer.from(JSON.parse(Buffer.from(r.body,'base64')).rim,'base64').toString();const certs=[...xml.matchAll(/<(?:\w+:)?X509Certificate[^>]*>([\s\S]*?)<\/(?:\w+:)?X509Certificate>/g)].map(m=>new crypto.X509Certificate(Buffer.from(m[1],'base64')));assert.ok(certs.length);add(certs.slice(0,-1));}
+  for(const certs of devices.slice(1))add(certs.slice(1,-1));
+  crypto.randomBytes = size => { assert.equal(size,32); assert.ok(nonces.length); return Buffer.from(nonces.shift()); };
+  try { return await realCheckReport(...args); } finally { crypto.randomBytes = original; }
+}
 const check = (rep, http = replay(), nonce = fx.nonce, policy = fx.policy) => checkReport(rep, nonce, fx.baseUrl, fx.model, policy, http);
 const copy = (f) => { const r = structuredClone(fx.report); f(r); return r; };
 const flipHex = (h, i) => h.slice(0, i) + (h[i] === "0" ? "1" : "0") + h.slice(i + 1);
-const nrasFalse = (r) => {
-  if (!r.url.includes("/attest/gpu")) return r;
-  const j = JSON.parse(r.body), [h, p, s] = j[0][1].split(".");
-  j[0][1] = [h, Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(p, "base64url")), "x-nvidia-overall-att-result": false })).toString("base64url"), s].join(".");
-  return { ...r, body: JSON.stringify(j) };
-};
-
-test("positive control: the recording verifies offline, the NRAS token's signature included", async () => {
-  const v = await check(fx.report);
-  assert.equal(v.profile.model_signing_address, fx.report.model_attestations[0].signing_address);
-  assert.equal(v.profile.gpu, "GPU: NVIDIA verdict (signature checked)");
-  assert.equal(tcbFlag(v.profile), "tcb:up-to-date, gw-tcb:out-of-date", "the recorded gateway is OutOfDate, its model TEE UpToDate");
+test("positive: local GPU signatures, RIMs and recorded OCSP verify without NRAS", async () => {
+  const v=await check(fx.report);
+  assert.match(v.profile.gpu,/verified locally/);assert.equal(v.profile.gpu_revocation,'checked');
+  assert.equal(v.profile.model_signing_address,fx.report.model_attestations[0].signing_address);
+  assert.equal(tcbFlag(v.profile),'tcb:up-to-date, gw-tcb:out-of-date');
+  await v.transport.close();
 });
-test("NVIDIA's JWKS unreachable: the verdict is shown as not checked, with the reason, never as checked", async () => {
-  const v = await check(fx.report, replay((r) => (r.url.endsWith("/jwks.json") ? { ...r, status: 503 } : r)));
-  assert.equal(v.profile.gpu, "GPU: NVIDIA verdict (signature not checked: https://nras.attestation.nvidia.com JWKS: HTTP 503)");
+test("default refuses unavailable revocation; no NRAS or implicit skip",async()=>{
+  await assert.rejects(check(fx.report,replay(r=>r.url.includes('ocsp.ndis')?{...r,status:503}:r)),/503/);
 });
-test("selected coupon profile requires NVIDIA signature even when the ordinary profile reports unavailable JWKS", async () => {
-  await assert.rejects(checkReport(fx.report, fx.nonce, fx.baseUrl, fx.model, { ...fx.policy, gpuSignature: "required" },
-    replay((r) => (r.url.endsWith("/jwks.json") ? { ...r, status: 503 } : r))), /NVIDIA verdict signature is required/);
+test("explicit skip retains signatures and separately reports unchecked revocation",async()=>{
+  const old=process.env.ABALONE_GPU_REVOCATION;process.env.ABALONE_GPU_REVOCATION='skip';
+  try { const v=await check(fx.report,replay(r=>{assert.ok(!r.url.includes('ocsp.ndis'));return r;}));assert.equal(v.profile.gpu_revocation,'not checked');assert.match(v.profile.gpu,/revocation NOT checked/);await v.transport.close(); }
+  finally { if(old===undefined)delete process.env.ABALONE_GPU_REVOCATION;else process.env.ABALONE_GPU_REVOCATION=old; }
 });
 test("an unknown gatewayTcb or modelTcb policy value is refused, not read as \"admit every status\"", async () => {
   await assert.rejects(check(fx.report, replay(), fx.nonce, { ...fx.policy, gatewayTcb: "reportd" }), /gateway TCB policy "reportd" is not UpToDate, reported or UpToDate-or-OutOfDate-with-warning/);
@@ -55,8 +61,6 @@ test("selected coupon profile refuses a gateway TCB the ordinary profile merely 
     { gatewayTcb: "UpToDate", modelTcb: "UpToDate", gpuSignature: "required", composeRegistry: { rpc: "https://mainnet.base.org", chainId: 8453 } },
     replay()), /gateway TCB status OutOfDate is not UpToDate/);
 });
-const nrasToken = (f) => (r) => { if (!r.url.includes("/attest/gpu")) return r; const j = JSON.parse(r.body); j[0][1] = f(j[0][1].split(".")).join("."); return { ...r, body: JSON.stringify(j) }; };
-const claims = (edit) => nrasToken(([h, p, s]) => [h, Buffer.from(JSON.stringify(edit(JSON.parse(Buffer.from(p, "base64url"))))).toString("base64url"), s]);
 for (const [name, run, why] of [
   ["a nonce that is not ours", () => check(fx.report, replay(), "00".repeat(32)), /report_data does not carry our nonce/],
   ["gateway without a TLS binding", () => check(copy((r) => delete r.gateway_attestation.tls_cert_fingerprint)), /gateway attestation has no TLS binding/],
@@ -64,13 +68,6 @@ for (const [name, run, why] of [
   ["model name changed", () => check(copy((r) => (r.model_attestations[0].model_name = "other/model"))), /model attestation is for other\/model/],
   ["model signing key swapped", () => check(copy((r) => (r.model_attestations[0].signing_public_key = flipHex(r.model_attestations[0].signing_public_key, 10)))), /signing_public_key does not hash to signing_address/],
   ["no model attestation", () => check(copy((r) => (r.model_attestations = []))), /no model attestation/],
-  ["NRAS verdict false (a tampered token)", () => check(fx.report, replay(nrasFalse)), /NRAS token signature does not verify/],
-  ["NRAS token signature byte flipped", () => check(fx.report, replay(nrasToken(([h, p, s]) => [h, p, Buffer.from(Buffer.from(s, "base64url").map((b, i) => (i === 5 ? b ^ 1 : b))).toString("base64url")]))), /NRAS token signature does not verify/],
-  ["NRAS token naming a key NVIDIA's JWKS lacks", () => check(fx.report, replay(nrasToken(([h, p, s]) => [Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(h, "base64url")), kid: "nv-eat-kid-forged" })).toString("base64url"), p, s]))), /key nv-eat-kid-forged is not in NVIDIA's JWKS/],
-  ["NRAS token with alg none", () => check(fx.report, replay(nrasToken(([h, p, s]) => [Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(h, "base64url")), alg: "none" })).toString("base64url"), p, s]))), /algorithm none is not ES384/],
-  ["NRAS token from another issuer", () => check(fx.report, replay(claims((c) => ({ ...c, iss: "https://evil.example" })))), /issuer https:\/\/evil.example/],
-  ["NRAS token expired", async () => { at(Date.parse(fx.recorded) + 2 * 3600e3); try { return await check(fx.report); } finally { at(Date.parse(fx.recorded)); } }, /NRAS token is not valid now/],
-  ["NRAS unavailable", () => check(fx.report, replay((r) => (r.url.includes("nras") ? { ...r, status: 503 } : r))), /NVIDIA NRAS answered HTTP 503/],
   ["model compose not allowed by its DstackApp on Base", () => check(fx.report, replay((r) => (r.request?.includes("eth_call") && JSON.parse(r.request).params[0].to === fx.report.model_attestations[0].info.app_id.replace(/^(?!0x)/, "0x") ? { ...r, body: Buffer.from(JSON.stringify({ jsonrpc: "2.0", id: JSON.parse(r.request).id, result: "0x" + "0".repeat(64) })) } : r))), /model compose .* is not allowed by its DstackApp/],
   ["compose registry unreachable", () => check(fx.report, replay((r) => { if (r.request?.includes("eth_chainId")) throw new Error("connect ECONNREFUSED"); return r; })), /compose registry RPC .* is unreachable/],
   ["gateway quote byte flipped", () => check(copy((r) => (r.gateway_attestation.intel_quote = flipHex(r.gateway_attestation.intel_quote, 1000)))), /signature is invalid/],
@@ -90,7 +87,11 @@ test("explicit firmware trial still verifies recorded cryptography and warns ver
     [fx.report, "00".repeat(32), replay(), /nonce/],
     [copy(r => r.gateway_attestation.intel_quote = flipHex(r.gateway_attestation.intel_quote, 1000)), fx.nonce, replay(), /signature is invalid/],
     [copy(r => r.model_attestations[0].signing_public_key = flipHex(r.model_attestations[0].signing_public_key, 10)), fx.nonce, replay(), /does not hash/],
-    [fx.report, fx.nonce, replay(nrasFalse), /NRAS token signature/],
-    [fx.report, fx.nonce, replay(r => r.url.endsWith("/jwks.json") ? { ...r, status: 503 } : r), /signature is required/],
   ]) await assert.rejects(checkReport(rep, nonce, fx.baseUrl, fx.model, policy, http), failure);
 });
+
+for (const [label,index,why] of [['nonce',5,/report does not carry our nonce/],['signature',-1,/signature/]]) test(`local signed GPU ${label} tampering refuses in full report admission`,async()=>{
+ const rep=copy(r=>{const p=JSON.parse(r.model_attestations[0].nvidia_payload);const b=Buffer.from(p.evidence_list[0].evidence,'base64');b[index<0?b.length+index:index]^=1;p.evidence_list[0].evidence=b.toString('base64');r.model_attestations[0].nvidia_payload=JSON.stringify(p);});
+ await assert.rejects(check(rep),why);
+});
+test.after(()=>{Date.now=realNow;if(originalRevocation===undefined)delete process.env.ABALONE_GPU_REVOCATION;else process.env.ABALONE_GPU_REVOCATION=originalRevocation;});

@@ -1,0 +1,28 @@
+This component adapts certificate-time verification from Tails'
+config/chroot_local-includes/usr/src/https-get-expired.go, inspected from
+https://repo.or.cz/tails.git/blob_plain/refs/heads/stable:/config/chroot_local-includes/usr/src/https-get-expired.go
+SHA256 29c50b557209fa0413abdf5e69fac4281d303126aebdb8ae9be78997e95d47f5.
+The retrieved mirror source is independently reviewed, not authenticated as the
+source of a signed Tails release. Tails repository COPYING provides GPL version3;
+the helper has no separate license header. Preserve COPYING and this provenance.
+The adapted observer package (clock.go, boottime_linux.go and clock_test.go)
+retains GPL-3.0-only licensing. The independently authored command sources
+cmd/portable-clock/main.go, transaction.go and transaction_test.go are MIT
+licensed; their license text is in cmd/portable-clock/LICENSE. This does not
+relicense any adapted observer code.
+
+Tails' helper attributes its modified verification code to Go1.24.0
+crypto/tls/handshake_client.go. Go-derived code retains the Go Authors' BSD license
+in GO-LICENSE. No Go-internal cache.go is copied or dynamically discovered here;
+certificate parsing uses the public crypto/x509 API.
+
+The Tails Perl htpdate poller (Eddy Vervest2005; Tails developers2010-2011,
+GPL-2.0-or-later) informed the multiple-observation/median strategy but is not
+copied or executed by this component. Its privileged date setter is not included.
+No external Go modules are required. Compiled runtime distribution must retain
+applicable Go/runtime and MIT notices. The linked portable-clock executable
+incorporates the GPL observer: redistribution must satisfy GPL-3.0 obligations,
+including corresponding source, as well as preserve the applicable MIT and
+Go BSD notices. MIT licensing of the command sources does not make the linked
+executable MIT-only. This source prototype does not itself establish a
+releasable binary closure.

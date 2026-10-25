@@ -1,0 +1,26 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {mkdtemp,mkdir,writeFile,rename,symlink,rm,chmod} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join} from 'node:path';import {execFile} from 'node:child_process';import {promisify} from 'node:util';
+import {createWorkspaceFiles} from './workspace-files.mjs';import {parseRequest} from './ipc.mjs';
+const exec=promisify(execFile);
+async function fixture(){const dir=await mkdtemp(join(tmpdir(),'workspace-files-'));await mkdir(dir+'/root');const files=createWorkspaceFiles(dir+'/root');await files.start();return {dir,files,async close(){await files.close();await rm(dir,{recursive:true,force:true});}};}
+test('actual workspace content, pinned root after rename, bounded listing',async()=>{const f=await fixture();try{await writeFile(f.dir+'/root/hello.txt','agent created\n');assert.equal((await f.files.request('read','hello.txt')).text,'agent created\n');await rename(f.dir+'/root',f.dir+'/old');await mkdir(f.dir+'/root');await writeFile(f.dir+'/root/hello.txt','replacement');assert.equal((await f.files.request('read','hello.txt')).text,'agent created\n');for(let n=0;n<205;n++)await writeFile(f.dir+'/old/'+n,'x');const list=await f.files.request('list','');assert.equal(list.entries.length,200);assert.equal(list.truncated,true);}finally{await f.close();}});
+test('traversal, intermediate/final symlinks, FIFO, hardlink, binary and bounds refused',async()=>{const f=await fixture();try{await writeFile(f.dir+'/secret','outside');await symlink(f.dir,f.dir+'/root/escape');await symlink('../secret',f.dir+'/root/link');await exec('mkfifo',[f.dir+'/root/pipe']);await exec('ln',[f.dir+'/secret',f.dir+'/root/hard']);await writeFile(f.dir+'/root/binary',Buffer.from([0,255]));await writeFile(f.dir+'/root/large',Buffer.alloc(128*1024+1,65));for(const path of ['../secret','/etc/passwd','escape/secret','link','pipe','hard','binary','large','a//b','.'])await assert.rejects(f.files.request('read',path),undefined,path);assert.equal((await f.files.request('list','')).entries.find(e=>e.name==='pipe').kind,'unsupported');}finally{await f.close();}});
+test('concurrent path swaps never traverse outside symlink and close drains helpers',async()=>{const f=await fixture();let running=true;try{await mkdir(f.dir+'/root/child');await writeFile(f.dir+'/root/child/value','inside');await mkdir(f.dir+'/outside');await writeFile(f.dir+'/outside/value','SECRET');const swapping=(async()=>{while(running){await rename(f.dir+'/root/child',f.dir+'/root/held');await symlink(f.dir+'/outside',f.dir+'/root/child');await rm(f.dir+'/root/child');await rename(f.dir+'/root/held',f.dir+'/root/child');}})();try{for(let n=0;n<30;n++){try{assert.equal((await f.files.request('read','child/value')).text,'inside');}catch(e){if(e.code!=='unavailable')throw e;}}}finally{running=false;await swapping;}const pending=f.files.request('read','child/value').catch(e=>e);await f.files.close();await pending;await assert.rejects(f.files.request('list',''),/closing/);}finally{running=false;await f.close();}});
+test('IPC field allowlist rejects caller authority injection',()=>{for(const op of ['files.list','files.read']){assert.equal(parseRequest(JSON.stringify({rid:1,op,path:'a'})).request.op,op);for(const field of ['workspace','uid','fd','cwd'])assert.equal(parseRequest(JSON.stringify({rid:1,op,path:'a',[field]:'/'})).error,'invalid_request');}});
+
+test('real service IPC and HTTP expose file snapshots while SDK probe is pending',async()=>{
+ const {createAgentService}=await import('./agent-service.mjs');const {createBackendClient}=await import('./backend-client.mjs');const {createWorkspaceServer}=await import('../workspace/server.mjs');
+ const dir=await mkdtemp(join(tmpdir(),'workspace-files-api-'));await mkdir(dir+'/root');let app,service,finishProbe;const probeGate=new Promise(r=>finishProbe=r);
+ try{
+  await writeFile(dir+'/root/result.txt','real workspace result');
+  service=createAgentService({workspace:dir+'/root',socketPath:dir+'/run/ipc.sock',allowedUids:[process.getuid()],testingAllowSameUid:true,workerPath:dir+'/absent-worker.mjs',managerOptions:{probeRunner:()=>probeGate}});await service.start();
+  const backend=createBackendClient({socketPath:dir+'/run/ipc.sock',expectedSocketUid:process.getuid()});
+  app=await createWorkspaceServer({workspace:dir+'/root',backend});
+  assert.equal((await backend.request('status')).agent.state,'warming');
+  const list=await fetch(app.origin+'/api/files');assert.equal(list.status,200);assert.equal((await list.json()).entries[0].name,'result.txt');
+  assert.equal((await (await fetch(app.origin+'/api/file?path=result.txt')).json()).text,'real workspace result');
+  assert.equal((await fetch(app.origin+'/api/file?path=../secret')).status,400);
+  await symlink('/etc/passwd',dir+'/root/escape');assert.notEqual((await fetch(app.origin+'/api/file?path=escape')).status,200);
+  await writeFile(dir+'/root/new.txt','terminal-created');assert.equal((await (await fetch(app.origin+'/api/files')).json()).entries.length,3);
+ }finally{finishProbe?.({available:false,kind:'missing'});await app?.close();await service?.stop();await rm(dir,{recursive:true,force:true});}
+});

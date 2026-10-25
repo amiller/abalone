@@ -1,0 +1,9 @@
+# Match the image identity graph owned by portable/raspberry-pi/storage deployment.
+# Refuse collisions during image preflight; never allocate dynamic identities.
+g portable-agent 970
+g portable-ui 971
+g portable-ipc 974
+u portable-agent 970 "Portable agent" /var/lib/portable/portable-agent /usr/sbin/nologin
+u portable-ui 971 "Portable workspace UI" /var/lib/portable/portable-ui /usr/sbin/nologin
+m portable-agent portable-ipc
+m portable-ui portable-ipc

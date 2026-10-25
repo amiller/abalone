@@ -1,0 +1,30 @@
+# tor-guest-firewall.service — early, fail-closed firewall load.
+#
+# Installed by guest-install.sh into the disposable guest's
+# /etc/systemd/system/. The consumers that must not bring up any networking
+# before this unit succeeded (systemd-networkd, systemd-resolved, tor-guest,
+# the workspace unit) each carry an explicit Requires=+After= drop-in or unit
+# dependency on this unit; Before= alone is insufficient because it orders
+# only, and a failed start would otherwise still let dependents start.
+#
+# DefaultDependencies=no + Before=network-pre.target is the documented hook
+# for rules that must exist before any interface is configured. There is
+# deliberately NO ExecStop: stopping (including at shutdown) must not delete
+# the tables — the guest is disposable and the next loader run replaces them
+# atomically anyway.
+
+[Unit]
+Description=Tor guest firewall: atomic load of owned nft tables
+DefaultDependencies=no
+Wants=network-pre.target
+After=systemd-sysusers.service systemd-modules-load.service
+Before=network-pre.target shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/tor-guest-load-nft
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

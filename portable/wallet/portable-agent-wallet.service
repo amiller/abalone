@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: MIT
+[Unit]
+Description=Dsmack agent wallet (Zkool for the agent; payments need the operator on tty8 or fit the cap)
+BindsTo=run-portable\x2dvault.mount
+Requires=tor-guest-firewall.service
+After=run-portable\x2dvault.mount tor-guest-firewall.service tor-guest.service
+[Service]
+Type=simple
+User=portable-ui
+Group=portable-ui
+SupplementaryGroups=portable-ipc
+ExecStartPre=+/usr/bin/setfont -C /dev/tty8 FullGreek-TerminusBold32x16
+ExecStart=/opt/portable/bin/node /opt/portable/portable/wallet/agent-wallet.mjs /opt/portable/portable/wallet/agent-wallet.json
+StandardInput=tty-force
+StandardOutput=tty
+StandardError=journal
+TTYPath=/dev/tty8
+TTYReset=yes
+TTYVHangup=yes
+RuntimeDirectory=portable-agent-wallet
+RuntimeDirectoryMode=0755
+UMask=0077
+Restart=no
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/run/portable-vault/ui
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+LimitCORE=0
+[Install]
+WantedBy=run-portable\x2dvault.mount

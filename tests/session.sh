@@ -113,7 +113,7 @@ tool='es.filter(e=>e.type==="entry_appended"&&e.entry.customType==="abalone-tool
 check "the system prompt is abalone's, carries the tool protocol for an in-content provider and the session's usage, and never calls the agent Pi" \
   '[[ $(ev ev-who "$answer.content[0].text") == "system prompt: abalone=true protocol=true usage=true sentto=true pi=false" ]]'
 check "in-content tools: \"what's in this folder\" runs list here and the answer has names and sizes; no inet, no runner" \
-  'ev ev-whats "$tool" | grep -q "^tenancy-renewal.txt  $(stat -c %s work/tenancy-renewal.txt) bytes$" && ev ev-whats "$answer.content[0].text" | grep -q "^tenancy-renewal.txt  " && [[ -z $(inet trace-whats) ]] && ! grep -q "execve(\".*stub-claude" trace-what'
+  'ev ev-whats "$tool" | grep -q "^tenancy-renewal.txt  $(stat -c %s work/tenancy-renewal.txt) bytes$" && ev ev-whats "$answer.content[0].text" | grep -q "^tenancy-renewal.txt  " && [[ -z $(inet trace-whats) ]] && ! grep -q "execve(\".*stub-claude" trace-whats'
 check "in-content tools: read returns the file as numbered lines" 'ev ev-summarize "$tool" | grep -q "^L19: To accept, sign and return the enclosed renewal form by 15 November 2026.$"'
 check "in-content tools: a path outside the workspace is refused in the result" 'ev ev-read "$tool" | grep -q "error: ../agents.jsonl is outside the workspace folder"'
 check "in-content tools: a model that keeps asking is stopped after the limit" '[[ $(ev ev-loop "es.filter(e=>e.type===\"entry_appended\"&&e.entry.customType===\"abalone-tool\").length") == 13 ]] && ev ev-loop "$tool" | grep -q "tool limit for this message (12 requests) is reached"'

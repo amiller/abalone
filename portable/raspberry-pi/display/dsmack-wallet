@@ -1,0 +1,30 @@
+#!/usr/bin/python3 -I
+# Zkool wallet for the desktop (Super+W). Its data lives only in the unlocked vault.
+# Sway starts it directly, so its output goes to the portable-display journal.
+import json, os, pwd, sqlite3, sys
+VAULT = '/run/portable-vault'
+W = VAULT + '/ui/wallet'
+PREFS = '/.local/share/cc.methyl.zkool'
+
+if os.getuid() != pwd.getpwnam('portable-ui').pw_uid:
+    sys.exit('dsmack-wallet: run as portable-ui from the desktop (Super+W)')
+if not os.path.ismount(VAULT):
+    msg = 'Vault locked: the wallet keeps its data only in the vault. Super+Shift+E, ~/unlock, ~/desktop, Super+W.'
+    print('dsmack-wallet: ' + msg, file=sys.stderr)
+    os.execv('/usr/bin/swaynag', ['swaynag', '-t', 'warning', '-m', msg])
+if not os.path.isdir(W):
+    # First run: preset Zkool's Proxy transport to Tor's SOCKS port; it reads transport from
+    # shared_preferences.json and the proxy URL from the props table of $HOME/zkool.db.
+    # The presenter has accepted Zkool's disclaimer (lib/pages/disclaimer.dart sets disclaimer_accepted).
+    new = W + '.new'
+    os.mkdir(new, 0o700)
+    os.makedirs(new + PREFS, 0o700)
+    with open(new + PREFS + '/shared_preferences.json', 'x') as f:
+        json.dump({'transport': 3, 'disclaimer_accepted': True}, f)
+    db = sqlite3.connect(new + '/zkool.db')
+    db.execute('CREATE TABLE props(key TEXT PRIMARY KEY, VALUE TEXT NOT NULL)')
+    db.execute("INSERT INTO props VALUES ('proxy', 'socks5h://127.0.0.1:9050')")
+    db.commit()
+    db.close()
+    os.rename(new, W)
+os.execve('/opt/zkool/zkool', ['zkool'], dict(os.environ, HOME=W, XDG_DATA_HOME=W + '/.local/share'))

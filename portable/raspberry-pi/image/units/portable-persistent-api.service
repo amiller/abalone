@@ -1,0 +1,18 @@
+[Unit]
+Description=Dsmack early persistent API policy verification
+DefaultDependencies=no
+Before=sysinit.target network-pre.target
+OnFailure=poweroff.target
+OnFailureJobMode=replace-irreversibly
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/portable-persistent-api check
+RemainAfterExit=yes
+User=root
+Group=root
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+# Must inspect the PID1 mount namespace: no PrivateMounts/ProtectSystem here.
+TimeoutStartSec=10s

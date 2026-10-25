@@ -1,0 +1,44 @@
+# Hardened unit TEMPLATE for the credit journal service (funding slice owns
+# the real ExecStart). Storage-slice contract kept by this template:
+#   * NoNewPrivileges=yes, EMPTY capability sets, explicit writable dirs.
+#   * portable-credit owns the journal directory on the unlocked vault
+#     (/run/portable-vault/credit, mode 0700) and nothing else on it.
+#   * NO PrivateMounts / private MountFlags (must see the late vault mount).
+[Unit]
+Description=Portable credit journal (TEMPLATE - funding slice owns it)
+Documentation=file:/opt/portable/README.md
+ConditionPathIsMountPoint=/run/portable-vault
+After=portable-vault-broker.service
+
+[Service]
+Type=simple
+User=portable-credit
+Group=portable-credit
+# ExecStart=... (funding slice provides the real command)
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# Journal I/O is local-only: no network family is granted at all.
+RestrictAddressFamilies=AF_UNIX
+StateDirectory=portable/credit
+ReadWritePaths=/run/portable-vault/credit
+# The unit's own private mount namespace (from PrivateTmp etc.) is a SLAVE of
+# the host namespace: the late vault mount made by the host-namespace broker
+# propagates IN (see portable/raspberry-pi/storage/README.md, mount authority model).
+# NO PrivateMounts / MountFlags here on purpose (see unit header).
+
+[Install]
+WantedBy=multi-user.target

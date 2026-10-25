@@ -57,8 +57,8 @@ tmux send-keys -t $t "/about" Enter; wait_for "abalone is built on Pi"
 screen > "$ABALONE_DIR/screen-about.txt"
 check "/about holds what the first screen left out: Pi, built-in Tor, the missing fd/rg tools and their effect, the curated components" 'grep -q "^ abalone is built on Pi" "$ABALONE_DIR/screen-about.txt" && grep -q "^ Tor: built in (Arti compiled to WebAssembly" "$ABALONE_DIR/screen-about.txt" && grep -q "^ fd: \(installed\|not installed, so @ autocomplete lists fewer files\)" "$ABALONE_DIR/screen-about.txt" && grep -q "tests/fixtures/scripts" "$ABALONE_DIR/screen-about.txt"'
 other=$(mktemp -d) && echo "synthetic" > "$other/notes.txt"   # outside ABALONE_DIR: /folder refuses abalone's own state
-tmux send-keys -t $t "/folder $ABALONE_DIR" Enter; wait_for "Switch to"; sleep 1; tmux send-keys -t $t Enter; wait_for "holds or is inside abalone's own code or"
-check "/folder refuses abalone's own state directory" 'screen | grep -q "Error: .* holds or is inside abalone.s own code or"'
+tmux send-keys -t $t "/folder $ABALONE_DIR" Enter; wait_for "Switch to"; sleep 1; tmux send-keys -t $t Enter; wait_for "choose a project folder"
+check "/folder refuses abalone's own state directory" 'screen | tr "\n" " " | sed "s/  */ /g" | grep -q "Error: .* holds or is inside abalone.s own code or state; choose a project folder"'
 tmux send-keys -t $t "/cost" Enter; wait_for "This session: "
 tmux send-keys -t $t "/privacy" Enter; wait_for "More: /privacy --details"
 screen > "$ABALONE_DIR/screen-privacy-plain.txt"

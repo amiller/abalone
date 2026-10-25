@@ -1,0 +1,29 @@
+[Unit]
+Description=Tor-only HTTPS provider Date clock correction
+Wants=tor-guest.service
+Requires=tor-guest-firewall.service
+After=tor-guest-firewall.service tor-guest.service fake-hwclock.service
+Before=portable-credit.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -I -B /opt/portable/portable/raspberry-pi/clock/tor-date.py
+RemainAfterExit=yes
+User=root
+Group=root
+UMask=0077
+NoNewPrivileges=yes
+CapabilityBoundingSet=CAP_SYS_TIME
+AmbientCapabilities=
+LimitCORE=0
+TimeoutStartSec=185
+TimeoutStopSec=3
+KillMode=control-group
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+LockPersonality=yes
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

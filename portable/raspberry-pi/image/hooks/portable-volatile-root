@@ -1,0 +1,61 @@
+#!/bin/sh
+# portable-volatile-root — initramfs-tools HOOK (build-time).
+#
+# Runs at update-initramfs/mkinitramfs time (as root, in the guest or chroot)
+# and installs into the initramfs everything the init-bottom script needs
+# that initramfs-tools does not copy automatically:
+#   * /etc/portable-volatile-root.conf -> ${DESTDIR}/etc/portable-volatile-root.conf
+#     (validated by the SAME strict parser the boot script uses, via the boot
+#     script's "selfcheck" mode — an invalid config FAILS the initramfs build
+#     instead of shipping a config the boot script would later refuse at
+#     every boot);
+#   * the overlay kernel module, when it is loadable (manual_add_modules is a
+#     no-op for built-in modules).
+# The boot script itself lives at /etc/initramfs-tools/scripts/init-bottom/
+# and is copied into the initramfs automatically by mkinitramfs (executables
+# only — the staging generator installs it mode 0755).
+#
+# License: MIT (see repository LICENSE).
+
+PREREQ=""
+
+prereqs() {
+	echo "$PREREQ"
+}
+
+case "${1:-}" in
+	prereqs)
+		prereqs
+		exit 0
+		;;
+esac
+
+# PVR_CFG / PVR_BOOT_SCRIPT are input-path overrides (offline tests / reuse
+# in foreign trees); they never relax validation.
+PVR_CFG="${PVR_CFG:-/etc/portable-volatile-root.conf}"
+PVR_BOOT_SCRIPT="${PVR_BOOT_SCRIPT:-/etc/initramfs-tools/scripts/init-bottom/portable-volatile-root}"
+
+[ -f "$PVR_CFG" ] || {
+	echo "E: portable-volatile-root hook: missing $PVR_CFG (stage it with portable/raspberry-pi/image/stage-volatile-root.sh; refusing to build an initramfs that would fail closed at every boot)" >&2
+	exit 1
+}
+[ -x "$PVR_BOOT_SCRIPT" ] || {
+	echo "E: portable-volatile-root hook: missing executable $PVR_BOOT_SCRIPT (staging incomplete)" >&2
+	exit 1
+}
+
+if ! "$PVR_BOOT_SCRIPT" selfcheck; then
+	echo "E: portable-volatile-root hook: $PVR_CFG is INVALID; fix it and re-run update-initramfs (fail closed at build time rather than at every boot)" >&2
+	exit 1
+fi
+
+mkdir -p "${DESTDIR}/etc"
+cp -p "$PVR_CFG" "${DESTDIR}/etc/portable-volatile-root.conf"
+chmod 0644 "${DESTDIR}/etc/portable-volatile-root.conf"
+
+# overlay module when loadable; harmless no-op when built into the kernel.
+. "${PVR_HOOK_FUNCTIONS:-/usr/share/initramfs-tools/hook-functions}"
+manual_add_modules overlay
+
+echo "I: portable-volatile-root: config + overlay module installed into initramfs; boot script included from /etc/initramfs-tools/scripts/init-bottom"
+exit 0

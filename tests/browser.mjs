@@ -74,6 +74,10 @@ const documentBlocks = () => fs.readFileSync(path.join(process.env.ABALONE_DIR, 
 assert.match(await no("click", { ref: link }), /^blocked: e\d+ links to localhost, outside the grant \(127\.0\.0\.1\); abalone did not click it and the tab is on 127\.0\.0\.1$/);
 assert.equal(documentBlocks(), 1, "the off-grant link click is in browser.jsonl as a blocked Document");
 assert.match(await no("click", { ref: button }), /then tried to load localhost, outside the grant .* stopped that load and the tab is on 127\.0\.0\.1/);
+// Script navigation/recovery replaces the document: old observation refs must refuse.
+const staleOlder = p.match(/\[(e\d+) link "Older notes"/)[1];
+assert.match(await no("click", { ref: staleOlder }), /is not on the page now; observe it again with page/);
+p = await ok("page");
 assert.match(await no("click", { ref: p.match(/\[(e\d+) link "Older notes"/)[1] }), /then tried to load localhost, outside the grant/);
 assert.equal(documentBlocks(), 3, "every off-grant click (link, script navigation, redirect) is in browser.jsonl as a blocked Document");
 assert.equal(site.hits.steal, 0);

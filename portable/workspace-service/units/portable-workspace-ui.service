@@ -1,0 +1,28 @@
+[Unit]
+Description=Dsmack unprivileged loopback workspace UI
+After=portable-agent.service
+Wants=portable-agent.service
+
+[Service]
+Type=simple
+User=portable-ui
+Group=portable-ui
+SupplementaryGroups=portable-ipc
+Environment=PATH=/opt/portable/bin:/usr/bin:/bin
+UMask=0077
+ExecStart=/opt/portable/bin/node /opt/portable/portable/workspace/server.mjs --workspace /run/portable-workspace --backend /run/portable-agent/agent.sock --backend-user portable-agent --port 8765
+Restart=on-failure
+KillMode=control-group
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

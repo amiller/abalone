@@ -1,0 +1,38 @@
+[Unit]
+Description=Optional vault-backed PPQ credit display (bounded session)
+Requires=tor-guest-firewall.service
+Wants=tor-guest.service
+After=tor-guest-firewall.service tor-guest.service systemd-tmpfiles-setup.service
+ConditionPathExists=/opt/portable/etc/vault.conf
+ConditionPathIsMountPoint=/run/portable-vault
+ConditionPathIsDirectory=/run/portable-credit
+
+[Service]
+Type=exec
+User=root
+Group=root
+ExecStart=/usr/bin/python3 -I -B /opt/portable/portable/raspberry-pi/storage/financial-lease-run.py
+UMask=0077
+NoNewPrivileges=yes
+# Root reads the UID972 private record, drops IDs, and terminates its children.
+# SYS_PTRACE permits stat of PID1's protected namespace link when PID1 has
+# more permitted capabilities than this bounded service.
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_SETUID CAP_SETGID CAP_KILL CAP_SYS_PTRACE
+AmbientCapabilities=
+# Preserve PID1's mount view: no filesystem namespace hardening directives.
+RestrictAddressFamilies=AF_UNIX AF_INET
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+LimitCORE=0
+# Terminate caller first: keeper survives to drain/reap. Forced cgroup kill
+# below has the explicitly documented keeper-SIGKILL custody limitation.
+KillMode=mixed
+TimeoutStopSec=20s
+SendSIGKILL=yes
+RuntimeMaxSec=330s
+# One explicit 300-second session; restart always means a fresh acquisition.
+Restart=no
+# No install target: trusted root starts this unit after unlock.

@@ -1,0 +1,28 @@
+[Unit]
+Description=Bounded post-Tor clock correction (candidate; not enabled)
+Requires=tor-guest-firewall.service tor-guest.service
+After=tor-guest-firewall.service tor-guest.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/opt/portable/bin/portable-clock
+UMask=0077
+UnsetEnvironment=SSL_CERT_FILE SSL_CERT_DIR HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY GODEBUG
+TimeoutStartSec=40
+TimeoutStopSec=2
+KillMode=control-group
+NoNewPrivileges=yes
+CapabilityBoundingSet=CAP_SYS_TIME
+AmbientCapabilities=
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=yes
+MemoryMax=96M
+TasksMax=16
+StandardOutput=null
+StandardError=journal
+# Intentionally no PrivateTmp/PrivateDevices/ProtectSystem/ReadWritePaths:
+# the lifecycle flock must be in the same host mount view as financial leases.
+# No Install section, timer, restart policy or desktop dependency.

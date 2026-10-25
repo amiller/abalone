@@ -15,6 +15,21 @@ const options = () => ({ baseUrl: "https://cloud-api.near.ai/v1", model: "select
 const request = (body) => ({ method: "POST", headers: { authorization: "Bearer coupon-session" }, body: JSON.stringify(body) });
 const body = () => ({ model: "selected/model", messages: [{ role: "user", content: "synthetic qualification content" }], stream: true, max_tokens: 128 });
 
+test("fixed compose RPC origins admit PublicNode and existing Base only", () => {
+  const withRPC = rpc => ({ ...options(), policy: { ...options().policy, composeRegistry: { rpc, chainId: 8453 } } });
+  for (const rpc of ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://base-rpc.publicnode.com/"]) {
+    assert.equal(validateCouponNearProfile(withRPC(rpc)).policy.composeRegistry.rpc, rpc);
+    // Exercise the actual constructor too: failures here otherwise bypass admission diagnostics.
+    assert.doesNotThrow(() => openCouponNearAdapter(withRPC(rpc)));
+  }
+  for (const rpc of ["https://evil.invalid", "https://base-rpc.publicnode.com.evil.invalid", "http://base-rpc.publicnode.com",
+    "https://user@base-rpc.publicnode.com", "https://base-rpc.publicnode.com:444", "https://base-rpc.publicnode.com/path",
+    "https://base-rpc.publicnode.com/?x=1", "https://base-rpc.publicnode.com/#x"]) {
+    assert.throws(() => validateCouponNearProfile(withRPC(rpc)), /provider_admission_refused/);
+    assert.throws(() => openCouponNearAdapter(withRPC(rpc)), /provider_admission_refused/);
+  }
+});
+
 test("selected NEAR profile is immutable and wrong model/auth/endpoint/pre-abort refuse before upstream", async () => {
   const originalFetch = globalThis.fetch; let calls = 0;
   globalThis.fetch = () => { calls++; throw new Error("unexpected upstream"); };
@@ -24,7 +39,7 @@ test("selected NEAR profile is immutable and wrong model/auth/endpoint/pre-abort
     supplied.policy.gatewayTcb = "reported";
     assert.ok(Object.isFrozen(adapter.profile.policy)); assert.equal(adapter.profile.policy.gatewayTcb, "UpToDate");
     for (const change of [{ baseUrl: "https://example.invalid/v1" }, { credential: "synthetic-only-not-a-real-provider" }, { policy: { ...options().policy, gatewayTcb: "reported" } }, { policy: { ...options().policy, gpuSignature: "optional" } }]) assert.throws(() => openCouponNearAdapter({ ...options(), ...change }), /provider_admission_refused/);
-    for (const maxTokens of [0, 4097, 512.5, undefined]) assert.throws(() => validateCouponNearProfile({ ...options(), maxTokens }));
+    for (const maxTokens of [0, 16385, 512.5, undefined]) assert.throws(() => validateCouponNearProfile({ ...options(), maxTokens }));
     for (const changed of [{ ...body(), stream_options: { include_usage: false } }, { ...body(), stream_options: { include_usage: true, extra: 1 } },
       { ...body(), chat_template_kwargs: { enable_thinking: "no" } }, { ...body(), chat_template_kwargs: { enable_thinking: false, preserve_thinking: true } }])
       await assert.rejects(adapter.fetch(`${options().baseUrl}/chat/completions`, request(changed)), /request_refused/);
@@ -135,7 +150,7 @@ test("admitted runtime encrypts prompts to the attested model key, decrypts and 
   const first = { chats: 0, closed: false, mode: "ok" };
   assert.throws(() => openCouponNearAdapterForTesting(), /provider_admission_refused/);
   // The testing factory accepts only explicitly synthetic verdicts; a genuine-shaped one is refused.
-  assert.throws(() => openCouponNearAdapterForTesting({ ...options(), verifiedForTesting: { ...verdict(first), profile: { gateway_tcb: "UpToDate", model_tcb: ["UpToDate"], gpu: "GPU: NVIDIA verdict (signature checked)" } } }), /provider_admission_refused/);
+  assert.throws(() => openCouponNearAdapterForTesting({ ...options(), verifiedForTesting: { ...verdict(first), profile: { gateway_tcb: "UpToDate", model_tcb: ["UpToDate"], gpu: "GPU: 8× verified locally (HOPPER driver 595.58.03 VBIOS 96.00.CF.00.02)", gpu_revocation: "checked" } } }), /provider_admission_refused/);
   assert.throws(() => openCouponNearAdapterForTesting({ ...options(), credential: "synthetic-only-not-a-real-provider", verifiedForTesting: verdict(first) }), /provider_admission_refused/);
   const adapter = openCouponNearAdapterForTesting({ ...options(), verifiedForTesting: verdict(first) });
   try {
@@ -231,10 +246,23 @@ test("credential broker hands the sandbox a placeholder-auth socket, explains ad
   assert.equal(fresh.closed, true, "broker close reaches the adapter and its pinned transport");
 });
 
+test("NEAR direct profile: an indexed instance base with the strict UpToDate policy only", async () => {
+  const { OUT_OF_DATE_TRIAL_POLICY, couponNearAdmissionAdvisories } = await import("../lib/coupon-near.mjs");
+  const direct = { ...options(), baseUrl: "https://glm-5-3-flash-i0.completions.near.ai/v1" };
+  assert.equal(validateCouponNearProfile(direct).baseUrl, direct.baseUrl);
+  assert.throws(() => validateCouponNearProfile({ ...direct, policy: { ...direct.policy, gatewayTcb: OUT_OF_DATE_TRIAL_POLICY, modelTcb: OUT_OF_DATE_TRIAL_POLICY } }), /provider_admission_refused/);
+  for (const baseUrl of ["https://glm-5-3-flash.completions.near.ai/v1", "https://completions.near.ai/v1", "https://glm-5-3-flash-i0.completions.near.ai:443/v1x", "https://glm-5-3-flash-i0.completions.near.ai/v1/", "https://glm-5-3-flash-i0.completions.near.ai.evil/v1", "https://glm-5-3-flash-i123.completions.near.ai/v1"])
+    assert.throws(() => validateCouponNearProfile({ ...direct, baseUrl }), /provider_admission_refused/, baseUrl);
+  const verified = { route: "direct", gpu: "GPU: 8× verified locally (HOPPER driver 595.58.03 VBIOS 96.00.CF.00.02); certificate revocation NOT checked (ABALONE_GPU_REVOCATION=skip)", gpu_revocation: "not checked", model_tcb_statuses: ["UpToDate"], model_tcb_advisory_ids: [[]] };
+  assert.deepEqual(couponNearAdmissionAdvisories(verified, direct.policy), ["NVIDIA-GPU-REVOCATION-NOT-CHECKED"]);
+  assert.throws(() => couponNearAdmissionAdvisories({ ...verified, model_tcb_statuses: ["OutOfDate"], model_tcb_advisory_ids: [["INTEL-SA-01313"]] }, direct.policy), /provider_admission_refused/);
+  assert.throws(() => couponNearAdmissionAdvisories({ ...verified, route: undefined }, direct.policy), /provider_admission_refused/, "a gateway result must carry its gateway status");
+});
+
 test("explicit paired OutOfDate trial adds only that verified status and collects its advisories without weakening signatures", async () => {
   const { OUT_OF_DATE_TRIAL_POLICY, couponNearAdmissionAdvisories, couponNearFirmwareWarning } = await import("../lib/coupon-near.mjs");
   const trialPolicy = { ...options().policy, gatewayTcb: OUT_OF_DATE_TRIAL_POLICY, modelTcb: OUT_OF_DATE_TRIAL_POLICY };
-  const verified = { gpu: "GPU: NVIDIA verdict (signature checked)", gateway_tcb_status: "OutOfDate", gateway_tcb_advisory_ids: ["INTEL-SA-01192"], model_tcb_statuses: ["OutOfDate", "UpToDate"], model_tcb_advisory_ids: [["INTEL-SA-01313"], []] };
+  const verified = { gpu: "GPU: 8× verified locally (HOPPER driver 595.58.03 VBIOS 96.00.CF.00.02)", gpu_revocation: "checked", gateway_tcb_status: "OutOfDate", gateway_tcb_advisory_ids: ["INTEL-SA-01192"], model_tcb_statuses: ["OutOfDate", "UpToDate"], model_tcb_advisory_ids: [["INTEL-SA-01313"], []] };
   assert.equal(validateCouponNearProfile({ ...options(), policy: trialPolicy }).policy.modelTcb, OUT_OF_DATE_TRIAL_POLICY);
   assert.deepEqual(couponNearAdmissionAdvisories({ ...verified, model_tcb_statuses: ["OutOfDate", "OutOfDate"], model_tcb_advisory_ids: [["INTEL-SA-01313"], ["INTEL-SA-01192"]] }, trialPolicy), ["INTEL-SA-01192", "INTEL-SA-01313"]);
   assert.equal(couponNearFirmwareWarning(couponNearAdmissionAdvisories(verified, trialPolicy)), "⚠ NEAR firmware out of date (2 Intel advisories); synthetic input only");
@@ -247,8 +275,8 @@ test("explicit paired OutOfDate trial adds only that verified status and collect
   assert.throws(() => couponNearAdmissionAdvisories({ ...verified, gpu: "GPU: NVIDIA verdict (signature not checked)" }, trialPolicy));
   assert.throws(() => couponNearAdmissionAdvisories({ ...verified, gateway_tcb_advisory_ids: ["INTEL-SA-01192\nSECRET"] }, trialPolicy));
   for (const policy of [{ ...trialPolicy, modelTcb: "UpToDate" }, { ...trialPolicy, gatewayTcb: "reported" }, { ...trialPolicy, modelTcb: "reported" }]) assert.throws(() => validateCouponNearProfile({ ...options(), policy }));
-  assert.equal(validateCouponNearProfile({ ...options(), maxTokens: 4096, policy: trialPolicy }).maxTokens, 4096);
-  assert.throws(() => validateCouponNearProfile({ ...options(), maxTokens: 4097, policy: trialPolicy }));
+  assert.equal(validateCouponNearProfile({ ...options(), maxTokens: 16384, policy: trialPolicy }).maxTokens, 16384);
+  assert.throws(() => validateCouponNearProfile({ ...options(), maxTokens: 16385, policy: trialPolicy }));
   const upToDate = { ...verified, gateway_tcb_status: "UpToDate", model_tcb_statuses: ["UpToDate"], model_tcb_advisory_ids: [[]] };
   assert.equal(couponNearAdmissionAdvisories(upToDate, options().policy), null);
 });
@@ -260,7 +288,7 @@ test("the firmware warning is one short line per process, not one per admission 
   const source = `export {encrypt,decrypt,OUT_OF_DATE_TRIAL_POLICY} from ${JSON.stringify(realNear)};
     export async function verifyNearModel(base,model,getReport,policy,http,onStage) {
       await getReport('/v1/attestation/report?model='+encodeURIComponent(model)+'&nonce=n');
-      return {signingPublicKey:'test-only',profile:{gateway_tcb_status:'OutOfDate',gateway_tcb_advisory_ids:['INTEL-SA-01192','INTEL-SA-01245'],model_tcb_statuses:['OutOfDate'],model_tcb_advisory_ids:[['INTEL-SA-01192','INTEL-SA-01313']],gpu:'GPU: NVIDIA verdict (signature checked)'},transport:{close:async()=>{}}};
+      return {signingPublicKey:'test-only',profile:{gateway_tcb_status:'OutOfDate',gateway_tcb_advisory_ids:['INTEL-SA-01192','INTEL-SA-01245'],model_tcb_statuses:['OutOfDate'],model_tcb_advisory_ids:[['INTEL-SA-01192','INTEL-SA-01313']],gpu:'GPU: 8× verified locally (HOPPER driver 595.58.03 VBIOS 96.00.CF.00.02)',gpu_revocation:'checked'},transport:{close:async()=>{}}};
     }`;
   const hook = registerHooks({ resolve(specifier, context, next) {
     if (specifier === "./near.mjs" && context.parentURL?.endsWith("?firmware-unit")) return { url: "data:text/javascript," + encodeURIComponent(source), shortCircuit: true };
@@ -431,7 +459,7 @@ test("activation report 401 then 200 reaches verification; a substituted report 
       if(response.status!==200) throw Error('report refused');
       const report=await response.json(); onStage('gateway-binding');
       if(report.nonce!==nonce || report.model!==model) throw Error('binding refused');
-      return {signingPublicKey:'test-only',profile:{gateway_tcb_status:'UpToDate',gateway_tcb_advisory_ids:[],model_tcb_statuses:['UpToDate'],model_tcb_advisory_ids:[[]],gpu:'GPU: NVIDIA verdict (signature checked)'},transport:{close:async()=>{}}};
+      return {signingPublicKey:'test-only',profile:{gateway_tcb_status:'UpToDate',gateway_tcb_advisory_ids:[],model_tcb_statuses:['UpToDate'],model_tcb_advisory_ids:[[]],gpu:'GPU: 8× verified locally (HOPPER driver 595.58.03 VBIOS 96.00.CF.00.02)',gpu_revocation:'checked'},transport:{close:async()=>{}}};
     }`;
   const mockUrl='data:text/javascript,'+encodeURIComponent(source);
   const hook=registerHooks({resolve(specifier,context,next) {
@@ -518,4 +546,26 @@ test("ordinary genuine factory still refuses an invalid 200 report after activat
   const adapter=openCouponNearAdapter(options());
   try {await assert.rejects(adapter.admit(),e=>e.code==='provider_admission_refused' && couponNearAdmissionDiagnostic(e).stage==='gateway-binding');assert.equal(calls,2);}
   finally {await adapter.close();globalThis.fetch=original;}
+});
+
+test("GPU verdict gate: only the local verifier's exact pass or revocation-skip verdict, agreeing with gpu_revocation; a skip is its own advisory", async () => {
+  const { couponNearAdmissionAdvisories, couponNearFirmwareWarning, GPU_REVOCATION_ADVISORY } = await import("../lib/coupon-near.mjs");
+  const policy = options().policy, base = { gateway_tcb_status: "UpToDate", gateway_tcb_advisory_ids: [], model_tcb_statuses: ["UpToDate"], model_tcb_advisory_ids: [[]] };
+  const pass = { ...base, gpu: "GPU: 8× verified locally (HOPPER driver 595.58.03 VBIOS 96.00.CF.00.02)", gpu_revocation: "checked" };
+  const skip = { ...base, gpu: `${pass.gpu}; certificate revocation NOT checked (ABALONE_GPU_REVOCATION=skip)`, gpu_revocation: "not checked" };
+  assert.equal(couponNearAdmissionAdvisories(pass, policy), null);
+  assert.deepEqual(couponNearAdmissionAdvisories(skip, policy), [GPU_REVOCATION_ADVISORY]);
+  assert.equal(couponNearFirmwareWarning([GPU_REVOCATION_ADVISORY]), "⚠ NVIDIA GPU certificate revocation NOT checked (ABALONE_GPU_REVOCATION=skip): a revoked GPU or RIM signing key would still be admitted");
+  assert.deepEqual(couponNearFirmwareWarning(["INTEL-SA-01192", GPU_REVOCATION_ADVISORY]).split("\n"), ["⚠ NEAR firmware out of date (1 Intel advisory); synthetic input only", couponNearFirmwareWarning([GPU_REVOCATION_ADVISORY])]);
+  for (const bad of [
+    { ...pass, gpu: `${pass.gpu} extra` },                    // the pass verdict is a full match, not a prefix
+    { ...pass, gpu_revocation: undefined },                    // the field is required on a pass
+    { ...pass, gpu_revocation: "not checked" },                // pass text with a skipped field
+    { ...skip, gpu_revocation: "checked" },                    // skip text judged by the field, not the string
+    { ...pass, gpu: "GPU: NVIDIA verdict (signature checked)" }, // the old NRAS verdict
+  ]) assert.throws(() => couponNearAdmissionAdvisories(bad, policy), /provider_admission_refused/);
+});
+test("per-request deadline accepts up to 2460 s and refuses beyond it", () => {
+  openCouponNearAdapter({ ...options(), timeoutMs: 2_460_000 }).close();
+  assert.throws(() => openCouponNearAdapter({ ...options(), timeoutMs: 2_460_001 }), /provider_admission_refused/);
 });

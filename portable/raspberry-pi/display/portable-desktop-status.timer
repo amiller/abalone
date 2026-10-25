@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh public desktop status without waiting for Tor
+
+[Timer]
+OnBootSec=1
+OnUnitInactiveSec=2
+AccuracySec=1
+Unit=portable-desktop-status.service
+
+[Install]
+WantedBy=timers.target
