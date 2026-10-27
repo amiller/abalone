@@ -69,8 +69,8 @@ export function wallet({ gql, id, policy, approve }) {
         ({ ...t, memos: (await gql('query($id:Int!,$tx:Int!){memosByTransaction(idAccount:$id,idTransaction:$tx)}', { id, tx })).memosByTransaction }))) };
     },
     async address() {
-      const { addressByAccount } = await gql('query($id:Int!){addressByAccount(idAccount:$id){ua}}', { id });
-      return { address: addressByAccount.ua };
+      const { addressByAccount } = await gql('query($id:Int!){addressByAccount(idAccount:$id){ua orchard}}', { id });
+      return { address: addressByAccount.ua, orchard: addressByAccount.orchard };
     },
     async send({ address, amount, memo }) {
       if (typeof address !== 'string' || typeof amount !== 'string' || !(memo === undefined || typeof memo === 'string')) throw Error('send needs address and amount (ZEC, decimal string) and an optional memo');
