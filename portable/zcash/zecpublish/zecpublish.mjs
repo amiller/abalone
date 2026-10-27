@@ -2,6 +2,8 @@
 // ZECpublish (zecpublish.com) for the agent: zecpublish feed [PAGE] | post TEXT | reply TXID TEXT | like TXID
 // A post is a shielded payment to the board with the post as its memo, sent by the agent wallet (the operator approves it).
 // The feed has no API: it is a Next.js server action whose ID changes with each site deploy, so it is read from the site's JS.
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { pathToFileURL } from 'node:url';
 import { walletCall } from '../../workspace/pi-wallet.mjs';
 
@@ -9,11 +11,13 @@ export const SITE = 'https://zecpublish.com';
 // The Sapling receiver of the board's UA: Orchard sends go out as Ironwood, which the board's scanner predates.
 export const BOARD = 'zs14zjwshdjrscw08rnynpwntrhu27ee0x5ema7z23sdvnmakmlhjpuv776enqetcjyz4eazjrt5gu';
 export const AMOUNT = '0.00005';
+const run = promisify(execFile);
 
-async function text(url, init) {
-  const r = await fetch(url, init);
-  if (!r.ok) throw Error(`${url}: HTTP ${r.status}: ${(await r.text()).slice(0, 300)}`);
-  return r.text();
+// curl, not fetch: fetch's fixed 10 s connect timeout is too short for some Tor circuits.
+async function text(url, { method = 'GET', body, headers = {} } = {}) {
+  const args = ['-sS', '--fail-with-body', '--max-time', '120', '-X', method, ...Object.entries(headers).flatMap(([k, v]) => ['-H', `${k}: ${v}`]), url];
+  const { stdout } = await run('curl', body === undefined ? args : [...args, '--data-binary', body], { maxBuffer: 1 << 24 });
+  return stdout;
 }
 
 // The feed action is the actions module's default export: `.ZP=(0,x.$)("<id>")` in one of the board page's chunks.
