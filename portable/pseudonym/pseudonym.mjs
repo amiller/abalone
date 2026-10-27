@@ -2,7 +2,7 @@
 // Zcash transparent pseudonyms, each its own Free2Z account: pseudonym new|exit|login|whoami NAME, pseudonym list
 // Pseudonym n's key is m/44'/133'/(1000+n)'/0/0 of the wallet seed (the t-address a ZIP-32 wallet shows for account 1000+n),
 // so the seed is the backup. Each pseudonym talks to Free2Z through its own Nym client and recorded exit.
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -64,8 +64,10 @@ export function curl(proxy, url, { body, token } = {}) {
   const q = s => JSON.stringify(s);
   const config = [`url = ${q(url)}`, ...(token ? [`header = ${q('Authorization: Token ' + token)}`] : []),
     ...(body ? [`header = "Content-Type: application/json"`, `data-binary = ${q(JSON.stringify(body))}`] : [])].join('\n');
-  const out = execFileSync('/usr/bin/curl', ['-q', '--silent', '--show-error', '--proto', '=https', '--proxy', proxy, '--noproxy', '',
-    '--connect-timeout', '60', '--max-time', '120', '--write-out', '\n%{http_code}', '--config', '-'], { input: config, maxBuffer: 64 << 20 }).toString();
+  const r = spawnSync('/usr/bin/curl', ['-q', '--silent', '--show-error', '--proto', '=https', '--proxy', proxy, '--noproxy', '',
+    '--connect-timeout', '60', '--max-time', '120', '--write-out', '\n%{http_code}', '--config', '-'], { input: config, maxBuffer: 64 << 20 });
+  if (r.status !== 0) throw Error(`${url}: ${r.stderr.toString().trim() || 'curl exit ' + r.status}`);
+  const out = r.stdout.toString();
   const i = out.lastIndexOf('\n');
   return { status: Number(out.slice(i + 1)), text: out.slice(0, i) };
 }
@@ -98,7 +100,12 @@ function nymRun(name, r) {
   let log = '';
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => { child.kill(); reject(Error(`nym client for ${name} not ready in 120 s: ${log.slice(-500)}`)); }, 120000);
-    const on = d => { log += d; if (log.includes('Client startup finished!')) { clearTimeout(timer); console.error(`${name}: Nym client up in ${seconds(t)} s`); resolve(child); } };
+    const on = d => {
+      log += d;
+      if (!log.includes('Client startup finished!')) return;
+      clearTimeout(timer); child.stdout.off('data', on); child.stderr.off('data', on); child.stdout.resume(); child.stderr.resume();
+      console.error(`${name}: Nym client up in ${seconds(t)} s`); resolve(child);
+    };
     child.stdout.on('data', on); child.stderr.on('data', on);
     child.on('exit', code => { clearTimeout(timer); reject(Error(`nym client for ${name} exited with ${code}: ${log.slice(-500)}`)); });
   });
@@ -119,7 +126,7 @@ async function pickExit(name, r) {
       return { provider, child };
     } catch (e) {
       child?.kill();
-      console.error(`${name}: exit ${provider.slice(0, 12)}... unusable: ${e.message.split('\n')[0]}`);
+      console.error(`${name}: exit ${provider.slice(0, 12)}... unusable: ${e.message}`);
     }
   }
   throw Error(`no usable Nym exit for ${name} in 3 tries; run pseudonym exit ${name} again`);
