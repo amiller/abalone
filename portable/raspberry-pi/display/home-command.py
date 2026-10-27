@@ -4,7 +4,7 @@
 import ctypes, importlib.util, json, os, re, resource, stat, sys, tempfile, time, socket
 from pathlib import Path
 BASE=Path(__file__).resolve().parent
-COMMANDS=('unlock','lock','status','agent','fund','credit','desktop')
+COMMANDS=('unlock','lock','status','agent','fund','credit','desktop','pseudonym')
 def require(value):
     if not value:raise ValueError('Operator command refused')
 def load(name,path):
@@ -56,11 +56,14 @@ def exchange_home(vault,command,secret=None):
         if vault.peer_uid(channel)!=0:return ('error','broker peer refused before send')
         return vault.exchange_on_connected(channel,request,deadline)
 def main(args):
-    require((len(args)==1 and args[0] in COMMANDS or args in (['fund','--new'],['agent','save'],['agent','resume']) or len(args)==3 and args[:2]==['fund','--amount']) and os.getresuid()==(0,0,0))
+    require((len(args)==1 and args[0] in COMMANDS or args in (['fund','--new'],['agent','save'],['agent','resume']) or len(args)==3 and args[:2]==['fund','--amount'] or 2<=len(args)<=3 and args[0]=='pseudonym') and os.getresuid()==(0,0,0))
     command=args[0];resource.setrlimit(resource.RLIMIT_CORE,(0,0));require(ctypes.CDLL(None).prctl(4,0,0,0,0)==0)
     if command=='fund':
         os.execve('/usr/bin/python3',['python3','-I',str(BASE.parents[1]/'funding/operator.py'),'new-demo' if args==['fund','--new'] else 'fund']+args[2:],{'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
     if command=='agent':return launch_pi(args[1] if len(args)==2 else None)
+    if command=='pseudonym':
+        # Root: it starts each pseudonym's Nym client as portable-nym, the one account allowed to reach the mixnet directly.
+        os.execve('/opt/portable/bin/node',['node',str(BASE.parents[1]/'zcash/pseudonym/pseudonym.mjs'),*args[1:]],{'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
     if command=='desktop':os.execv('/usr/bin/systemctl',['systemctl','--no-block','start','portable-display.service'])
     if command=='credit':
         drop(971,[974])

@@ -14,5 +14,6 @@ printf '%s\n' 'Dsmack operator shell: the top two lines update by themselves.' \
   '  ~/agent    AI agent, not saved      ~/desktop  graphical desktop (Super+Shift+E comes back)' \
   '  ~/agent save  AI agent, session saved to the vault   ~/agent resume  pick a saved session' \
   '  ~/unlock   open the vault           ~/lock     close the vault       ~/status  vault state' \
-  '  ~/credit   inference credit         ~/fund     add credit with ZEC   ~/fund --new  fresh demo' ''
+  '  ~/credit   inference credit         ~/fund     add credit with ZEC   ~/fund --new  fresh demo' \
+  '  ~/pseudonym new|exit|login|whoami NAME, ~/pseudonym list   Zcash t-address identities on Free2Z, via Nym' ''
 (/usr/bin/python3 -I /opt/portable/portable/raspberry-pi/display/console-status.py watch $$ </dev/null &)
