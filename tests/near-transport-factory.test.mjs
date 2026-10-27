@@ -77,9 +77,9 @@ test('direct instance: its own quote binds the TLS key that is pinned; one quote
  assert.equal(r.profile.gateway_tcb_status,undefined);assert.deepEqual(r.profile.model_tcb_statuses,['UpToDate']);assert.equal(r.profile.tls_spki,pin);
  await r.transport.close();
 });
-test('direct instance with an unreviewed boot image (RTMR1) is refused at boot-measurement, before any transport',async()=>{
- const f=directFixture({boot:{...DIRECT_BOOT_IMAGES[0],rtMr1:'4ae609807c765916a31d724786ed74bcb97e168a9d937b04936aeef2015c907eba5ac352c6bcd749c246fd62ffb659ec'}});let called=false;
- await assert.rejects(verifyNearModel(directBase,model,f.getReport,{...policy,gatewayTcb:'UpToDate',modelTcb:'UpToDate'},f.http,f.onStage,()=>{called=true}),/boot measurements are not a reviewed dstack image \(RTMR1 4ae609807c765916/);
+test('direct instance with unreviewed firmware (MRTD) is refused at boot-measurement, before any transport',async()=>{
+ const f=directFixture({boot:{...DIRECT_BOOT_IMAGES[0],mrTd:'00'.repeat(48)}});let called=false;
+ await assert.rejects(verifyNearModel(directBase,model,f.getReport,{...policy,gatewayTcb:'UpToDate',modelTcb:'UpToDate'},f.http,f.onStage,()=>{called=true}),/firmware is not a reviewed dstack image \(MRTD 0000000000000000/);
  assert.equal(f.stages.at(-1),'boot-measurement');assert.equal(called,false);
 });
 test('direct instance refuses OutOfDate under the default strict policy and a report without a TLS binding',async()=>{
