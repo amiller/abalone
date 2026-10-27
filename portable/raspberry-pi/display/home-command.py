@@ -62,7 +62,8 @@ def main(args):
         os.execve('/usr/bin/python3',['python3','-I',str(BASE.parents[1]/'funding/operator.py'),'new-demo' if args==['fund','--new'] else 'fund']+args[2:],{'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
     if command=='agent':return launch_pi(args[1] if len(args)==2 else None)
     if command=='pseudonym':
-        drop(971,[974]);os.execve('/opt/portable/bin/node',['node',str(BASE.parents[1]/'pseudonym/pseudonym.mjs'),*args[1:]],{'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
+        # Root: it starts each pseudonym's Nym client as portable-nym, the one account allowed to reach the mixnet directly.
+        os.execve('/opt/portable/bin/node',['node',str(BASE.parents[1]/'pseudonym/pseudonym.mjs'),*args[1:]],{'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
     if command=='desktop':os.execv('/usr/bin/systemctl',['systemctl','--no-block','start','portable-display.service'])
     if command=='credit':
         drop(971,[974])
