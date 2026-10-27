@@ -5,6 +5,7 @@
 import { execFileSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 
@@ -82,18 +83,19 @@ export async function walletSeed(source) {
 const file = name => `${DIR}/${name}.json`;
 const read = name => JSON.parse(fs.readFileSync(file(name), 'utf8'));
 const write = (name, record) => fs.writeFileSync(file(name), JSON.stringify(record, null, 1) + '\n', { mode: 0o600 });
-const names = () => fs.existsSync(DIR) ? fs.readdirSync(DIR).filter(f => f.endsWith('.json')).map(f => f.slice(0, -5)).sort() : [];
+const names = () => fs.readdirSync(DIR).filter(f => f.endsWith('.json')).map(f => f.slice(0, -5)).sort();
 
 export async function main([op, name], seed) {
   if (!(op === 'list' && name === undefined || ['new', 'login', 'whoami'].includes(op) && /^[a-z0-9][a-z0-9-]{0,31}$/.test(name ?? '')))
     throw Error('usage: pseudonym new|login|whoami NAME (lowercase letters, digits, -) | pseudonym list');
+  if (!fs.existsSync(path.dirname(DIR))) throw Error('the vault is locked: ~/unlock first');
+  fs.mkdirSync(DIR, { recursive: true, mode: 0o700 });
   if (op === 'list') {
     for (const n of names()) { const r = read(n); console.log(`${n}\t#${r.index}\t${r.address}\t${r.username ?? '(not logged in)'}`); }
     return;
   }
   if (op === 'new') {
     if (fs.existsSync(file(name))) throw Error(`pseudonym ${name} already exists`);
-    fs.mkdirSync(DIR, { recursive: true, mode: 0o700 });
     const index = Math.max(-1, ...names().map(n => read(n).index)) + 1;
     const address = tAddress(pseudonymKey(await seed(), index));
     write(name, { index, address });
@@ -102,7 +104,9 @@ export async function main([op, name], seed) {
   }
   const r = read(name);
   if (op === 'whoami') {
-    console.log(JSON.stringify({ pseudonym: name, user: tor(name, `${API}/auth/user/`, { token: r.token }) }));
+    if (!r.token) throw Error(`${name} is not logged in: pseudonym login ${name}`);
+    const u = tor(name, `${API}/auth/user/`, { token: r.token });
+    console.log(`${name}: Free2Z ${u.username}, ${u.tuzis} 2Z, token expires ${r.expiry}`);
     return;
   }
   const sk = pseudonymKey(await seed(), r.index);
