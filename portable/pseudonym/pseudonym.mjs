@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Zcash transparent pseudonyms, each its own Free2Z account: pseudonym new|exit|login|whoami NAME, pseudonym list
-// Pseudonym n's key is m/44'/133'/(1000+n)'/0/0 of the wallet seed (the t-address a ZIP-32 wallet shows for account 1000+n),
-// so the seed is the backup. Each pseudonym talks to Free2Z through its own Nym client and recorded exit.
+// Pseudonym n's key is m/44'/133'/(1000+n)'/0/0 of the wallet seed, so the seed is the backup. Zkool restoring account 1000+n
+// stores this address (diversifier index 0) but displays the one at the account's default diversifier index. Each pseudonym talks to Free2Z through its own Nym client and recorded exit.
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
