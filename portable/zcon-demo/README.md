@@ -82,6 +82,15 @@ times. A response that fails validation is refused and never retried.
 A $2 top-up costs about $2.28 of ZEC with the swap's slippage allowance, and
 takes a few minutes. One agent answer costs about half a cent.
 
+## Posting with ZEC
+
+The agent can use ZECpublish, a message board whose posts are shielded Zcash
+payments with the post as the memo. It reads zecpublish.com over Tor, and it
+posts, replies and likes by sending 0.00005 ZEC with a memo through the agent
+wallet. Each send waits for the operator to approve it on the console.
+Free2Z pseudonyms ([`zcash/pseudonym`](../zcash/pseudonym/pseudonym.mjs)) are
+included as code but are not in the image yet.
+
 ## Where the code is
 
 - [`raspberry-pi/`](../raspberry-pi/README.md): boot image, console and
@@ -94,3 +103,8 @@ takes a few minutes. One agent answer costs about half a cent.
   talks to NEAR.
 - [`funding/`](../funding/README.md): the Zcash-to-credit flow.
 - [`workspace/`](../workspace/README.md): the agent's workspace and tools.
+- [`zcash/`](../zcash/zecpublish/zecpublish.mjs): ZECpublish and pseudonyms.
+
+[BUILD.md](BUILD.md) lists the steps and parts for building a stick, and
+[`raspberry-pi/tools/`](../raspberry-pi/tools/README.md) has the laptop tools
+for reaching, updating and recording the Pi.
