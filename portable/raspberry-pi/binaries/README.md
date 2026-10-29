@@ -21,7 +21,8 @@ teep is AGPL-3.0. Ship its `LICENSE` and the commit beside the binary.
 
 zkool_graphql has no upstream binary for this target. The script cross-builds
 it in a `debian:bookworm` container (not pinned by digest) with the Rust
-toolchain the source selects (1.99.0). A rebuild has not been compared with the
+toolchain the source selects (1.99.0), installed by the rustup installer
+fetched from sh.rustup.rs (not pinned). A rebuild has not been compared with the
 binary on the demo stick (sha256 `8610f8dc4ff19f6e10a5196e5ca61684a1595e92dbe0dbee72564fec4ef99ced`,
 the stripped output of this build), and Rust builds are not reproducible by
 default, so check its hash against your own record.

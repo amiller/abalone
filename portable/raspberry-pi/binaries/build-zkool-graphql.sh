@@ -6,7 +6,7 @@ set -euo pipefail
 W=$(mkdir -p "$1" && cd "$1" && pwd); TAG=zkool-v6.34.0; COMMIT=51df4f0b356a886d5d2308811f215366ab648d65
 mkdir -p "$W/cargo" "$W/rustup"
 [ -d "$W/src" ] || git clone -q --depth 1 --branch $TAG https://github.com/hhanh00/zkool2.git "$W/src"
-[ "$(git -C "$W/src" rev-parse HEAD)" = "$COMMIT" ]
+[ "$(git -C "$W/src" rev-parse HEAD)" = "$COMMIT" ] || { echo "$W/src is not $TAG at $COMMIT" >&2; exit 1; }
 docker run --rm -v "$W:/w" -e CARGO_HOME=/w/cargo -e RUSTUP_HOME=/w/rustup debian:bookworm bash -euo pipefail -c '
 dpkg --add-architecture arm64; apt-get -qq update
 apt-get -qq install -y --no-install-recommends ca-certificates curl git build-essential pkg-config protobuf-compiler perl make \
