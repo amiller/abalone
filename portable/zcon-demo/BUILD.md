@@ -46,7 +46,7 @@ stage-runtime.py stages the terminal workspace, vault broker, clock, credit
 service and display. Its source map does not yet cover the NEAR funding route
 (`portable/funding/near-fund.py`, `operator.py` and `near_fund/`), the agent
 wallet (`portable/wallet/`), the wallet launcher, the operator's home commands
-or ZECpublish. On the demo stick those came from pi-deploy payloads.
+or ZECpublish. On the demo stick those were installed by the private scripts.
 
 ## Steps
 
