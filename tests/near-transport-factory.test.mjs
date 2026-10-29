@@ -82,6 +82,12 @@ test('direct instance with unreviewed firmware (MRTD) is refused at boot-measure
  await assert.rejects(verifyNearModel(directBase,model,f.getReport,{...policy,gatewayTcb:'UpToDate',modelTcb:'UpToDate'},f.http,f.onStage,()=>{called=true}),/firmware is not a reviewed dstack image \(MRTD 0000000000000000/);
  assert.equal(f.stages.at(-1),'boot-measurement');assert.equal(called,false);
 });
+test('direct instance with reviewed firmware and an unreviewed kernel is admitted and labelled by RTMR1/RTMR2, without os_image_hash',async()=>{
+ const f=directFixture({boot:{...DIRECT_BOOT_IMAGES[0],rtMr1:'11'.repeat(48),rtMr2:'22'.repeat(48)}});const get=f.getReport;
+ f.getReport=async p=>{const v=await (await get(p)).json();delete v.info.os_image_hash;return Response.json(v)};
+ const r=await verifyNearModel(directBase,model,f.getReport,{...policy,gatewayTcb:'UpToDate',modelTcb:'UpToDate'},f.http,f.onStage,()=>({close:async()=>{},fetch:async()=>new Response('x')}));
+ assert.equal(r.profile.boot_image,`unreviewed kernel (RTMR1 ${'11'.repeat(8)}…, RTMR2 ${'22'.repeat(8)}…)`);await r.transport.close();
+});
 test('direct instance refuses OutOfDate under the default strict policy and a report without a TLS binding',async()=>{
  for(const [options,reason] of [[{status:'OutOfDate'},/model TCB status OutOfDate is not UpToDate/],[{tls:null},/direct instance attestation has no TLS binding/]]){
   const f=directFixture(options);let called=false;
