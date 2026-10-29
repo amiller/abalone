@@ -1,0 +1,20 @@
+#!/bin/sh
+# Root shell or command on the Pi over the administrator SSH that admin/personalize.py enables.
+# usage: pi-ssh [ADDRESS] [COMMAND...]   empty or missing ADDRESS: find the Pi by PI_MAC on this /24
+#   PI_KEY          private key matching a key given to personalize.py --authorized-keys
+#   PI_KNOWN_HOSTS  known_hosts holding the stick's administrator host key under the name "pi"
+#   PI_MAC          the Pi's MAC address (a prefix matches); needed only without ADDRESS
+set -e
+: "${PI_KEY:?}" "${PI_KNOWN_HOSTS:?}"
+ip=$1; [ $# -gt 0 ] && shift
+if [ -z "$ip" ]; then
+  : "${PI_MAC:?set PI_MAC or pass ADDRESS}"
+  net=$(ip -4 route get 1.1.1.1 | sed -n 's/.* src \([0-9]*\.[0-9]*\.[0-9]*\)\..*/\1/p')
+  echo "scanning $net.0/24 for the Pi..." >&2
+  for i in $(seq 254); do ping -c1 -W1 "$net.$i" >/dev/null 2>&1 & done; wait
+  ip=$(ip neigh | awk -v m="$PI_MAC" 'index(tolower($0), tolower(m)) {print $1; exit}')
+  [ -n "$ip" ] || { echo "Pi not found on $net.0/24" >&2; exit 1; }
+  echo "Pi at $ip" >&2
+fi
+exec ssh -i "$PI_KEY" -o IdentitiesOnly=yes -o UserKnownHostsFile="$PI_KNOWN_HOSTS" -o HostKeyAlias=pi \
+  -o StrictHostKeyChecking=yes -o ConnectTimeout=5 root@"$ip" "$@"

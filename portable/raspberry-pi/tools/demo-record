@@ -1,0 +1,50 @@
+#!/bin/bash
+# Record the console-and-desktop demo from a capture device while a virtual keyboard (vkbd.py) types it on the Pi.
+# usage: demo-record OUT.mp4 [--boot] < passphrase    the first stdin line is the vault passphrase
+#   DRY=1 skips the camera and checks the journey from console text only
+#   PI_CAPTURE as for pi-view; pi-ssh's PI_* variables to find and reach the Pi
+set -euo pipefail
+T=$(cd "$(dirname "$0")" && pwd); OUT=$1; BOOT=${2:-}
+IFS= read -rs pw; [ -n "$pw" ]
+find_pi() { "$T/pi-ssh" "" true 2>&1 | sed -n 's/^Pi at //p' | tail -1; }
+IP=$(find_pi); [ -n "$IP" ]
+pi() { "$T/pi-ssh" "$IP" "$@"; }
+LOG=${OUT%.mp4}.log; : > "$LOG"; T0=$(date +%s.%N)
+log() { printf '%6.1f %s\n' "$(echo "$(date +%s.%N) - $T0" | bc)" "$*" | tee -a "$LOG"; }
+if [ -z "${DRY:-}" ]; then
+  dev=${PI_CAPTURE:?}
+  ffmpeg -loglevel error -f v4l2 -input_format nv12 -video_size 1920x1080 -i "$dev" -vf setpts=PTS-STARTPTS -c:v libx264 -preset veryfast -crf 23 -movflags +frag_keyframe+empty_moov -y "$OUT" </dev/null & FF=$!
+  trap 'kill -INT $FF 2>/dev/null; wait $FF' EXIT
+fi
+screen() { pi 'fold -w 120 /dev/vcs1 | tr -c "\\40-\\176\\n" "?" | sed "s/ *$//" | grep -v "^$"' 2>/dev/null || true; }
+wait_for() { # regex seconds [marker: only look below its last occurrence] [failure regex]
+  for i in $(seq "$2"); do s=$(screen); [ -n "${3:-}" ] && s=$(awk -v m="$3" 'index($0,m){b=""} {b=b $0 "\n"} END{printf "%s",b}' <<<"$s")
+    [ -n "${4:-}" ] && grep -qE "$4" <<<"$s" && { log "FAILED: $(grep -E "$4" <<<"$s" | tail -1)"; exit 1; }
+    grep -qE "$1" <<<"$s" && { log "saw: $(grep -E "$1" <<<"$s" | tail -1)"; return; }; sleep 1; done
+  log "TIMEOUT '$1'"; tail -5 <<<"$s" | tee -a "$LOG"; exit 1
+}
+sleep 3; log recording
+if [ "$BOOT" = --boot ]; then
+  pi 'systemctl reboot' || true; log "reboot"; sleep 20
+  until IP=$(find_pi); [ -n "$IP" ] && pi true 2>/dev/null; do sleep 3; done; log "back at $IP"
+fi
+wait_for 'Tor . [A-Z]{2} [0-9]' 180; sleep 6
+pi 'cat > /run/vkbd.py' < "$T/vkbd.py"
+F=$(mktemp -u); mkfifo "$F"
+pi 'python3 -I -u /run/vkbd.py' <"$F" >/dev/null 2>&1 & KB=$!; exec 3>"$F"; rm "$F"; sleep 3
+k() { printf '%s\n' "$*" >&3; }
+cmd() { k "type $1"; k "sleep 0.4"; k "key enter"; log "typed $1"; }
+cmd '~/unlock'; wait_for 'passphrase:' 30 '~/unlock'; sleep 1; k "type $pw"; k "key enter"; log "typed password"
+wait_for '^Vault: ok' 90 'passphrase:'; wait_for 'Credit \$' 120; sleep 4
+cmd '~/credit'; wait_for 'Provider account USD' 60 '~/credit'; sleep 5
+cmd '~/agent'; wait_for 'NEAR encrypted inference' 60 '~/agent'; sleep 3
+cmd 'Run uname -m with bash, then tell me in two sentences what machine you are on and why private inference over Tor matters.'
+wait_for 'aarch64' 180 'uname -m with bash' '^Error'; wait_for 'ARM|Raspberry|Tor' 120 'Took ' '^Error'; sleep 20; k "key ctrl+d"; sleep 2; k "key ctrl+d"; wait_for 'dsmack:~# *$' 30 'uname -m with bash'; sleep 2
+cmd '~/fund'; wait_for 'Pending funding' 240 '~/fund' 'Funding stopped'; sleep 12; k "key ctrl+c"; wait_for 'Funding stopped' 30 '~/fund'; sleep 4
+cmd '~/desktop'; sleep 18; log desktop
+k "key meta+w"; log "Super+W wallet"; sleep 45
+k "key meta+a"; log "Super+A agent"; sleep 15
+k "key meta+enter"; log "Super+Enter shell"; sleep 6; k "type uname -m"; k "key enter"; sleep 5
+k "key meta+shift+e"; log "Super+Shift+E"; wait_for 'dsmack:~#' 60 '~/desktop'; sleep 4
+cmd '~/lock'; wait_for '^Vault: ok' 60 '~/lock'; wait_for 'Vault locked' 60; sleep 6; log end
+exec 3>&-; wait $KB || true

@@ -1,0 +1,58 @@
+#!/bin/sh
+# Install files onto the Pi. DIR mirrors the Pi's filesystem (DIR/opt/portable/... -> /opt/portable/...).
+# usage: pi-deploy try|persist DIR
+#   try      copy into the running RAM overlay; gone after reboot
+#   persist  write to the stick through a recovery boot (two reboots, vault must be locked)
+#   PI_STICK_SERIAL  serial of the USB stick the Pi boots from (lsblk -o SERIAL); required for persist
+# Uses pi-ssh (and its PI_* variables) to find and reach the Pi.
+# If persist stops between the reboots, the original kernel command line is in
+# /boot/firmware/portable-deploy/cmdline.original; copy it back over /boot/firmware/cmdline.txt.
+set -e
+mode=$1; dir=$2
+[ -d "$dir" ] && { [ "$mode" = try ] || [ "$mode" = persist ]; } || { echo "usage: pi-deploy try|persist DIR" >&2; exit 2; }
+S=/boot/firmware/portable-deploy
+T=$(dirname "$0")
+payload() { tar -C "$dir" --owner=0 --group=0 -cf - .; }
+sums=$(cd "$dir" && find . -type f -exec sha256sum {} + | sed 's# \./# /#')
+pi() { "$T/pi-ssh" "" "$@"; }
+boot_id() { pi cat /proc/sys/kernel/random/boot_id; }
+wait_reboot() {
+  old=$1; echo "waiting for reboot..." >&2
+  for i in $(seq 40); do sleep 10; new=$(boot_id 2>/dev/null) && [ "$new" != "$old" ] && return; done
+  echo "Pi did not come back" >&2; exit 1
+}
+check() { echo "$sums" | pi 'sha256sum -c --quiet' && echo "$(echo "$sums" | wc -l) files verified" >&2; }
+
+if [ "$mode" = try ]; then
+  payload | pi 'tar -C / -xpf -'; check; exit
+fi
+
+: "${PI_STICK_SERIAL:?}"
+dev=$(pi lsblk -dn -o NAME,SERIAL | awk -v s="$PI_STICK_SERIAL" '$2 == s {print "/dev/" $1}')
+[ "$(echo "$dev" | grep -c .)" = 1 ] || { echo "no single disk with serial $PI_STICK_SERIAL on the Pi" >&2; exit 1; }
+payload | pi "set -e
+test ! -e /dev/mapper/portable-vault
+test \"\$(findmnt -no SOURCE /boot/firmware)\" = ${dev}1
+! grep -q portable-volatile-root=off /proc/cmdline
+mount -o remount,rw /boot/firmware
+rm -rf $S; mkdir -m700 $S
+cat > $S/payload.tar
+cp /boot/firmware/cmdline.txt $S/cmdline.original
+sed -i 's/\$/ portable-volatile-root=off/' /boot/firmware/cmdline.txt
+sync; mount -o remount,ro /boot/firmware"
+id=$(boot_id); pi 'systemctl reboot' || true; wait_reboot "$id"
+
+pi "set -e
+grep -q portable-volatile-root=off /proc/cmdline
+test \"\$(findmnt -no SOURCE /)\" = ${dev}2
+mount -o remount,rw /
+tar -C / -xpf $S/payload.tar
+sync
+mount -o remount,rw /boot/firmware
+cp $S/cmdline.original /boot/firmware/cmdline.txt
+rm -rf $S
+sync; mount -o remount,ro /boot/firmware"
+echo "installed in recovery mode" >&2
+id=$(boot_id); pi 'systemctl reboot' || true; wait_reboot "$id"
+pi '! grep -q portable-volatile-root=off /proc/cmdline && findmnt -no FSTYPE / | grep -qx overlay'
+check

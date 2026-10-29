@@ -1,0 +1,18 @@
+#!/bin/sh
+# Show the Pi's HDMI output from a USB capture device on this machine.
+# usage: pi-view [record FILE.mp4]   q in the window quits (and stops the recording)
+#   PI_CAPTURE  the capture device, e.g. /dev/v4l/by-id/usb-...-video-index0
+set -e
+dev=${PI_CAPTURE:?}
+view="mpv --profile=low-latency --untimed --title=Pi-screen"
+case "$1" in
+  "") exec $view "av://v4l2:$dev" ;;
+  record)
+    out=${2:?usage: pi-view record FILE.mp4}
+    echo "recording to $out"
+    ffmpeg -loglevel error -f v4l2 -input_format nv12 -video_size 1920x1080 -i "$dev" \
+      -map 0 -vf setpts=PTS-STARTPTS -c:v libx264 -preset veryfast -crf 23 "$out" \
+      -map 0 -c:v rawvideo -f nut - | $view -
+    echo "saved $out" ;;
+  *) echo "usage: pi-view [record FILE.mp4]" >&2; exit 2 ;;
+esac
