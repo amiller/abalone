@@ -198,6 +198,6 @@ export async function main([op, name], seed) {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const source = JSON.parse(fs.readFileSync(new URL('../wallet/agent-wallet.json', import.meta.url), 'utf8')).source;
+  const source = JSON.parse(fs.readFileSync(new URL('../../wallet/agent-wallet.json', import.meta.url), 'utf8')).source;
   main(process.argv.slice(2), () => walletSeed(source)).catch(e => { console.error(`pseudonym: ${e.message}`); process.exit(1); });
 }
