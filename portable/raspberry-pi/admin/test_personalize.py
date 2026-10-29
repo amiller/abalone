@@ -11,7 +11,7 @@ spec.loader.exec_module(p)
 
 class PersonalizationTests(unittest.TestCase):
     def wifi(self, **kwargs):
-        value = dict(version=1, keyManagement='wpa-psk', ssid='demo-network', psk='practice123')
+        value = dict(version=1, keyManagement='wpa-psk', country='US', ssid='demo-network', psk='practice123')
         value.update(kwargs)
         return json.dumps(value).encode()
 
@@ -23,10 +23,12 @@ class PersonalizationTests(unittest.TestCase):
         self.assertNotIn('practice123', config)
 
     def test_wifi_schema_and_bounds(self):
-        for raw in (self.wifi(version=True), self.wifi(ssid='a'*33), self.wifi(psk='short'), self.wifi(keyManagement='open'), self.wifi(extra='x'), b'{"version":1,"version":1}'):
+        for raw in (self.wifi(version=True), self.wifi(ssid='a'*33), self.wifi(psk='short'), self.wifi(keyManagement='open'), self.wifi(country='us'), self.wifi(country='USA'), self.wifi(extra='x'), b'{"version":1,"version":1}'):
             with self.assertRaises((ValueError, KeyError)):
                 p.wifi_config(raw)
         self.assertIn('psk=' + 'a'*64, p.wifi_config(self.wifi(psk='a'*64)))
+        self.assertTrue(p.wifi_config(self.wifi(country='DE')).startswith('country=DE\n'))
+        with self.assertRaises(ValueError): p.wifi_config(json.dumps(dict(version=1, keyManagement='wpa-psk', ssid='x', psk='practice123')).encode())
 
     def test_keys_canonical_no_injected_options(self):
         blob = struct.pack('>I',11)+b'ssh-ed25519'+struct.pack('>I',32)+b'a'*32
@@ -60,7 +62,7 @@ class PayloadBuilderTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             root.chmod(0o700)
-            wf = root/'wifi'; wf.write_bytes(json.dumps(dict(version=1,keyManagement='wpa-psk',ssid='SYNTHETIC',psk='synthetic123')).encode()); wf.chmod(0o600)
+            wf = root/'wifi'; wf.write_bytes(json.dumps(dict(version=1,keyManagement='wpa-psk',country='US',ssid='SYNTHETIC',psk='synthetic123')).encode()); wf.chmod(0o600)
             blob = struct.pack('>I',11)+b'ssh-ed25519'+struct.pack('>I',32)+b'a'*32
             kf = root/'keys'; kf.write_text('ssh-ed25519 '+base64.b64encode(blob).decode()); kf.chmod(0o600)
             nf=root/'policy'; nf.write_text(text);nf.chmod(0o644)

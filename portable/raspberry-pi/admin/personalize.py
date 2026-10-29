@@ -111,9 +111,11 @@ def unique_object(pairs):
 
 def wifi_config(raw):
     value = json.loads(raw.decode('utf-8'), object_pairs_hook=unique_object)
-    if set(value) != {'version', 'keyManagement', 'ssid', 'psk'} or type(value['version']) is not int or value['version'] != 1 or value['keyManagement'] != 'wpa-psk':
+    if set(value) != {'version', 'keyManagement', 'country', 'ssid', 'psk'} or type(value['version']) is not int or value['version'] != 1 or value['keyManagement'] != 'wpa-psk':
         raise ValueError('Wi-Fi schema refused')
-    ssid, password = value['ssid'], value['psk']
+    ssid, password, country = value['ssid'], value['psk'], value['country']
+    if not isinstance(country, str) or not re.fullmatch('[A-Z]{2}', country):
+        raise ValueError('Wi-Fi country refused')
     if not isinstance(ssid, str) or not 1 <= len(ssid.encode('utf-8')) <= 32 or not isinstance(password, str):
         raise ValueError('Wi-Fi fields refused')
     if re.fullmatch('[0-9a-fA-F]{64}', password):
@@ -122,7 +124,7 @@ def wifi_config(raw):
         key = hashlib.pbkdf2_hmac('sha1', password.encode('ascii'), ssid.encode('utf-8'), 4096, 32).hex()
     else:
         raise ValueError('Wi-Fi password refused')
-    return f'country=US\nnetwork={{\n    ssid={ssid.encode("utf-8").hex()}\n    psk={key}\n}}\n'
+    return f'country={country}\nnetwork={{\n    ssid={ssid.encode("utf-8").hex()}\n    psk={key}\n}}\n'
 
 
 def public_keys(raw):

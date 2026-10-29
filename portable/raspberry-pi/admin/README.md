@@ -29,7 +29,8 @@ without writing; `--apply` writes and enables the two services. The caller must
 first bind the USB identity and preserve its boot partition and encrypted vault.
 This script does not select or mount any device, start services, or touch EEPROM.
 
-Wi-Fi JSON has exactly `version:1`, `keyManagement:"wpa-psk"`, `ssid`, and `psk`.
+Wi-Fi JSON has exactly `version:1`, `keyManagement:"wpa-psk"`, `country` (ISO
+3166 alpha-2 code for the regulatory domain, e.g. `"US"`), `ssid`, and `psk`.
 Private input files and their immediate directory must belong to the invoking
 root user and have no group/other access. Authorized keys are Ed25519 public
 keys only; comments are discarded and arbitrary key options are refused.
