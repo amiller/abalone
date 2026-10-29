@@ -1,5 +1,6 @@
 #!/usr/bin/python3
-"""Supervisor-only fresh namespace fixture; synthetic credentials, no network."""
+"""Supervisor-only fresh namespace fixture; synthetic credentials, no network.
+NODE names the node binary to copy into the namespace."""
 import fcntl
 import json
 import os
@@ -23,7 +24,7 @@ source=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(source/'raspberry-pi/storage'))
 import financial_lease as m
 root=Path('/run/credit-consumer-proof');root.mkdir(mode=0o755)
-node=root/'node';shutil.copyfile('/home/rehearsal/.local/opt/node-v24.22.0-linux-arm64/bin/node',node);node.chmod(0o755)
+node=root/'node';shutil.copyfile(os.environ['NODE'],node);node.chmod(0o755)
 for relative in [*(('portable/funding/'+n) for n in ('credit-lease-entry.mjs','inherited-lease.mjs','ppq-record.mjs','ppq-balance-curl.mjs','credit-service.mjs')), 'lib/provider-balance.mjs','lib/provider-credit-projection.mjs','portable/workspace-service/syscred.mjs','portable/workspace/credit-client.mjs']:
     target=root/relative;target.parent.mkdir(parents=True,exist_ok=True,mode=0o755)
     shutil.copyfile(source.parent/relative,target);target.chmod(0o644)

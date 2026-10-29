@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """Actual mount/FD/UID tests only, in a supervisor-admitted private namespace.
 No LUKS or provider claim. This file is not installed or called by production.
+NODE names the node binary to copy into the namespace.
 """
 import atexit
 import fcntl
@@ -31,7 +32,7 @@ assert sum(line.split()[4]=='/run' for line in Path('/proc/self/mountinfo').read
 sys.path.insert(0,str(source/'raspberry-pi/storage'))
 import financial_lease as m
 root=Path('/run/financial-lease-proof');root.mkdir(mode=0o755)
-node=root/'node';shutil.copyfile('/home/rehearsal/.local/opt/node-v24.22.0-linux-arm64/bin/node',node);node.chmod(0o755)
+node=root/'node';shutil.copyfile(os.environ['NODE'],node);node.chmod(0o755)
 for origin, target in ((source/'funding/inherited-lease.mjs',root/'inherited-lease.mjs'),(source.parent/'lib/provider-credit-projection.mjs',root/'lib/provider-credit-projection.mjs')):
  target.parent.mkdir(parents=True,exist_ok=True,mode=0o755);shutil.copyfile(origin,target);target.chmod(0o644)
 results=root/'results';results.mkdir(mode=0o700);os.chown(results,972,972)
