@@ -15,12 +15,11 @@ if not os.path.ismount(VAULT):
 if not os.path.isdir(W):
     # First run: preset Zkool's Proxy transport to Tor's SOCKS port; it reads transport from
     # shared_preferences.json and the proxy URL from the props table of $HOME/zkool.db.
-    # The presenter has accepted Zkool's disclaimer (lib/pages/disclaimer.dart sets disclaimer_accepted).
     new = W + '.new'
     os.mkdir(new, 0o700)
     os.makedirs(new + PREFS, 0o700)
     with open(new + PREFS + '/shared_preferences.json', 'x') as f:
-        json.dump({'transport': 3, 'disclaimer_accepted': True}, f)
+        json.dump({'transport': 3}, f)
     db = sqlite3.connect(new + '/zkool.db')
     db.execute('CREATE TABLE props(key TEXT PRIMARY KEY, VALUE TEXT NOT NULL)')
     db.execute("INSERT INTO props VALUES ('proxy', 'socks5h://127.0.0.1:9050')")
