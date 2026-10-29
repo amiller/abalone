@@ -1,8 +1,9 @@
 # Dsmack operator funding CLI
 
 This opt-in source CLI reuses the qualified host demo route: ZEC → owned Base
-USDC → a $2 NEAR invoice. It is separate from the inference API key. It is not
-staged into the image, exposed to the agent, or qualified on the Pi yet.
+USDC → a $2 NEAR invoice. It is separate from the inference API key and is not
+exposed to the agent. On the Pi it runs behind `~/fund` (below); the runtime
+stager does not stage it yet.
 
 Run with Python 3 and the existing `base58`, `eth-account`, `eth-abi`, and
 `eth-utils` dependencies. No installation is performed by the CLI. Curl and a

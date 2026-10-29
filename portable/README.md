@@ -1,7 +1,7 @@
 # Dsmack portable workspace
 
-Experimental components for a portable agent computer. The Raspberry Pi USB
-prototype uses ordinary Bash and the native Pi terminal interface. Develop the
+Components for a portable agent computer. The Raspberry Pi USB stick shown in
+the ZCon demo uses ordinary Bash and the native Pi terminal interface. Develop the
 next terminal and wallet interactions as ordinary desktop processes; restart the
 changed process rather than rebuild an OS image for each edit.
 
@@ -20,8 +20,8 @@ changed process rather than rebuild an OS image for each edit.
   prototypes; neither defines the native terminal experience.
 - `workspace-service/` and `credit-journal/`: shared service integration and
   credit-observation components.
-- [Development workflow](DEVELOPMENT.md): topic worktrees and PRs targeting the
-  `portable-pi` feature branch.
+- `wallet/` and `zcash/`: the agent wallet, ZECpublish and pseudonyms.
+- Changes follow the repository's [development workflow](../docs/development.md).
 
 A platform must explicitly integrate and verify the shared components. Their
 presence does not establish Tor enforcement, secret custody, persistence or
@@ -36,9 +36,7 @@ that reaches its token limit is shown as incomplete. A provider, transport or
 admission failure before an answer is retried up to three times; a refused
 response is not, and a retry may be charged as a second completion.
 
-Use QEMU for changes to boot, storage or network isolation, and hardware checks
-at feature milestones for ARM compatibility and performance. This is a feature
-checkpoint, not an installable release. Full offline integration, independent review and
-release qualification remain separate. Use disposable state and follow the
-component instructions. [Supported-system scope](../docs/getting-started.md#supported-system)
+This is a feature checkpoint, not an installable release. Full offline
+integration, independent review and release qualification remain separate. Use
+disposable state and follow the component instructions. [Supported-system scope](../docs/getting-started.md#supported-system)
 applies.

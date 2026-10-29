@@ -1,9 +1,11 @@
 # Portable development workflow
 
+> Historical: the workflow for the `portable-pi` feature branch, which is no longer the integration target; see [development workflow](../development.md).
+
 `portable-pi` is the portable feature integration branch. Keep bounded changes
 on separate topic branches and worktrees; target their PRs at `portable-pi` rather
-than `main`. Follow the repository's [development workflow](../docs/development.md)
-and [contribution instructions](../CONTRIBUTING.md).
+than `main`. Follow the repository's [development workflow](../development.md)
+and [contribution instructions](../../CONTRIBUTING.md).
 
 ## Start a topic
 
