@@ -24,7 +24,7 @@ wait_reboot() {
 check() { echo "$sums" | pi 'sha256sum -c --quiet' && echo "$(echo "$sums" | wc -l) files verified" >&2; }
 
 if [ "$mode" = try ]; then
-  payload | pi 'tar -C / -xpf -'; check; exit
+  payload | pi 'tar -C / --no-overwrite-dir -xpf -'; check; exit
 fi
 
 : "${PI_STICK_SERIAL:?}"
@@ -46,7 +46,7 @@ pi "set -e
 grep -q portable-volatile-root=off /proc/cmdline
 test \"\$(findmnt -no SOURCE /)\" = ${dev}2
 mount -o remount,rw /
-tar -C / -xpf $S/payload.tar
+tar -C / --no-overwrite-dir -xpf $S/payload.tar
 sync
 mount -o remount,rw /boot/firmware
 cp $S/cmdline.original /boot/firmware/cmdline.txt

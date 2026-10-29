@@ -35,3 +35,6 @@ copying it back over `/boot/firmware/cmdline.txt` restores the volatile boot.
 `demo-record` reads the vault passphrase from the first line of stdin
 (`demo-record out.mp4 < passphrase-file`) and types it on the Pi's keyboard.
 `DRY=1` skips the camera and only checks the console text.
+
+`bash test-pi-deploy.sh` runs `pi-deploy try` against a fake pi-ssh and a
+temporary root, and checks that existing directory modes are left alone.
