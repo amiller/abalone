@@ -56,7 +56,7 @@ def exchange_home(vault,command,secret=None):
         if vault.peer_uid(channel)!=0:return ('error','broker peer refused before send')
         return vault.exchange_on_connected(channel,request,deadline)
 def main(args):
-    require((len(args)==1 and args[0] in COMMANDS or args in (['fund','--new'],['agent','save'],['agent','resume']) or len(args)==3 and args[:2]==['fund','--amount'] or 2<=len(args)<=3 and args[0]=='pseudonym') and os.getresuid()==(0,0,0))
+    require((len(args)==1 and args[0] in COMMANDS and args[0]!='pseudonym' or args in (['fund','--new'],['agent','save'],['agent','resume']) or len(args)==3 and args[:2]==['fund','--amount'] or args==['pseudonym','list'] or len(args)==3 and args[:2] in (['pseudonym',op] for op in ('new','exit','login','whoami'))) and os.getresuid()==(0,0,0))
     command=args[0];resource.setrlimit(resource.RLIMIT_CORE,(0,0));require(ctypes.CDLL(None).prctl(4,0,0,0,0)==0)
     if command=='fund':
         os.execve('/usr/bin/python3',['python3','-I',str(BASE.parents[1]/'funding/operator.py'),'new-demo' if args==['fund','--new'] else 'fund']+args[2:],{'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})

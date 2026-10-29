@@ -44,6 +44,13 @@ class Home(unittest.TestCase):
    with self.assertRaises(SystemExit):m.main(['fund','--new'])
    self.assertEqual(execute.call_args.args[1][-1],'new-demo')
   with self.assertRaises(ValueError):m.main(['unlock','--new'])
+ def test_pseudonym_exact_forms(self):
+  with patch.object(m.os,'getresuid',return_value=(0,0,0)),patch.object(m.resource,'setrlimit'),patch.object(m.ctypes,'CDLL',return_value=Mock(prctl=Mock(return_value=0))),patch.object(m.os,'execve',side_effect=SystemExit) as execute:
+   for args in (['pseudonym','list'],['pseudonym','new','alice']):
+    with self.assertRaises(SystemExit):m.main(args)
+    self.assertEqual(execute.call_args.args[1][2:],args[1:])
+   for bad in (['pseudonym'],['pseudonym','new'],['pseudonym','list','x'],['pseudonym','new','alice','x'],['pseudonym','delete','alice']):
+    with self.assertRaises(ValueError):m.main(bad)
  def test_desktop_starts_display_unit_without_waiting(self):
   with patch.object(m.os,'getresuid',return_value=(0,0,0)),patch.object(m.resource,'setrlimit'),patch.object(m.ctypes,'CDLL',return_value=Mock(prctl=Mock(return_value=0))),patch.object(m.os,'execv',side_effect=SystemExit) as execute:
    with self.assertRaises(SystemExit):m.main(['desktop'])
