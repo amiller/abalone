@@ -67,7 +67,9 @@ or ZECpublish. On the demo stick those were installed by the private scripts.
 2. **Personalize.** [admin/personalize.py](../raspberry-pi/admin/README.md)
    writes the Wi-Fi network (SSID, password and country) and the SSH keys that
    may log in as root, and generates the stick's SSH host key. Keep the host
-   public key; [pi-ssh](../raspberry-pi/tools/README.md) needs it.
+   public key; [pi-ssh](../raspberry-pi/tools/README.md) needs it. The Wi-Fi
+   JSON now requires a `country` key (for example `"US"`); add it to Wi-Fi
+   files written for earlier versions, which are refused without it.
 3. **Flash.** Write the image to the stick. The stick has three partitions:
    boot, root and a 2 GiB vault partition left as zeros, matching the topology
    manifest from step 1. Boot the Pi from it.
@@ -84,17 +86,21 @@ or ZECpublish. On the demo stick those were installed by the private scripts.
    the wallet with Super+W. Zkool shows its disclaimer on first use. Create or
    restore an account named `agent`; the agent wallet copies that account's
    seed into its own database. The name is `source.account` in
-   [agent-wallet.json](../wallet/agent-wallet.json).
+   [agent-wallet.json](../wallet/agent-wallet.json). Earlier versions used a
+   different name; on a stick whose Zkool account has another name, rename it
+   to `agent` in Zkool before deploying this version, or the agent wallet
+   will not start.
 7. **Set up the NEAR account.** Funding pays through a Base wallet that the
    stick holds. Write its record to
    `/run/portable-vault/funding/transit-private.json` (owner UID 972, mode
-   0600) with the fields shown in the
-   [funding CLI README](../funding/near_fund/README.md): Base address and
-   private key, a Zcash refund address, and `refundBackupVerified: true`. The
-   repository has no command that creates this record. Fund the Base address
-   with a little ETH for gas. The first `~/fund` then creates the stick's NEAR
-   account, activates it with 0.01 NEAR bought from that Base wallet through
-   NEAR Intents, and signs in to NEAR AI Cloud with it.
+   0600) with exactly these keys: `baseAddress`, `basePrivateKey` (0x-prefixed),
+   `refundAddress` (a Zcash transparent address you control, for refunds of
+   failed swaps) and `refundBackupVerified: true`. The repository has no
+   command that creates this record. Send a little ETH on Base to
+   `baseAddress`: it pays gas, and the first `~/fund` uses it to buy 0.01 NEAR
+   through NEAR Intents 1Click to activate the stick's NEAR account. That run
+   creates the account's key, activates it, and signs in to NEAR AI Cloud with
+   it.
 8. **Fund.** `~/fund` shows a ZEC quote as a QR code. Pay it from any Zcash
    wallet and leave `~/fund` running. After the first funding it creates the
    agent's inference key and installs it in the vault; later fundings raise the

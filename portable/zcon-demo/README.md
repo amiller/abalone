@@ -56,12 +56,24 @@ and the funding wallet, so each job runs as its own Unix user:
 
 ## Private inference
 
-The agent talks to GLM running on NEAR AI's TEE hosts. Before the first prompt,
-the broker fetches the host's attestation: signed Intel TDX and NVIDIA evidence
-that ties the running program to a public key. It checks the measurements
-against pinned values, then encrypts each request to that key. NEAR's operator
-sees encrypted traffic and the paying account, not the conversation. If the
-check fails, no prompt is sent.
+The agent talks to GLM on one of NEAR AI's TEE instances. Before the first
+prompt, the broker fetches the instance's attestation: an Intel TDX quote and
+NVIDIA GPU evidence that bind a public key and the instance's TLS key to the
+measured software. The broker requires:
+
+- TDX status UpToDate, and firmware measurements (MRTD and RTMR0) equal to a
+  pinned dstack image. The kernel and initrd measurements (RTMR1 and RTMR2)
+  are reported, not enforced.
+- GPU evidence that verifies locally. Certificate revocation is not checked.
+- An application compose that replays into RTMR3 and that the instance's
+  DstackApp contract on Base lists in `allowedComposeHashes`, read through a
+  public Base RPC at one block. This is NEAR's own on-chain admission, so the
+  contract's owner decides which code may run; there is no local list.
+
+The broker then encrypts the message contents to the attested key, and the
+replies come back encrypted to a key it makes for that request. NEAR sees the
+paying account, the model, sizes and timing, but not the message contents.
+Tor hides the stick's IP address. If any check fails, no prompt is sent.
 
 Failures that happen before an answer comes back (an HTTP error from the
 endpoint, a Tor hiccup, a failed attestation fetch) are retried up to three
