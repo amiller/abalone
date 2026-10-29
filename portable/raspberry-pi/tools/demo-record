@@ -9,14 +9,14 @@ IFS= read -rs pw; [ -n "$pw" ]
 find_pi() { "$T/pi-ssh" "" true 2>&1 | sed -n 's/^Pi at //p' | tail -1; }
 IP=$(find_pi); [ -n "$IP" ]
 pi() { "$T/pi-ssh" "$IP" "$@"; }
-LOG=${OUT%.mp4}.log; : > "$LOG"; T0=$(date +%s.%N)
-log() { printf '%6.1f %s\n' "$(echo "$(date +%s.%N) - $T0" | bc)" "$*" | tee -a "$LOG"; }
+LOG=${OUT%.mp4}.log; : > "$LOG"; T0=$(date +%s%N)
+log() { local t=$((($(date +%s%N) - T0) / 100000000)); printf '%4d.%d %s\n' $((t / 10)) $((t % 10)) "$*" | tee -a "$LOG"; }
 if [ -z "${DRY:-}" ]; then
   dev=${PI_CAPTURE:?}
   ffmpeg -loglevel error -f v4l2 -input_format nv12 -video_size 1920x1080 -i "$dev" -vf setpts=PTS-STARTPTS -c:v libx264 -preset veryfast -crf 23 -movflags +frag_keyframe+empty_moov -y "$OUT" </dev/null & FF=$!
   trap 'kill -INT $FF 2>/dev/null; wait $FF' EXIT
 fi
-screen() { pi 'fold -w 120 /dev/vcs1 | tr -c "\\40-\\176\\n" "?" | sed "s/ *$//" | grep -v "^$"' 2>/dev/null || true; }
+screen() { pi 'fold -w 120 /dev/vcs1 | tr -c "\\40-\\176\\n" "?" | sed "s/ *$//" | sed "/^$/d"'; }
 wait_for() { # regex seconds [marker: only look below its last occurrence] [failure regex]
   for i in $(seq "$2"); do s=$(screen); [ -n "${3:-}" ] && s=$(awk -v m="$3" 'index($0,m){b=""} {b=b $0 "\n"} END{printf "%s",b}' <<<"$s")
     [ -n "${4:-}" ] && grep -qE "$4" <<<"$s" && { log "FAILED: $(grep -E "$4" <<<"$s" | tail -1)"; exit 1; }

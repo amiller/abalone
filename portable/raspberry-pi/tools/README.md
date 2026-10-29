@@ -20,7 +20,9 @@ Environment:
   `/etc/ssh/portable-admin-host-ed25519-key.pub` on the stick (build_payload.py
   writes it as `host-ed25519.pub`); the file holds one line,
   `pi ssh-ed25519 AAAA...`.
-- `PI_MAC`: the Pi's MAC address or a prefix of it, used when no address is given.
+- `PI_MAC`: the Pi's MAC address or a prefix of it, used when no address is
+  given. pi-deploy and demo-record always find the Pi this way, because its
+  address can change across the reboots they cause.
 - `PI_STICK_SERIAL`: the USB stick's serial as `lsblk -o SERIAL` prints it on
   the Pi. `pi-deploy persist` refuses unless exactly one disk has this serial
   and the running boot partition is on it.

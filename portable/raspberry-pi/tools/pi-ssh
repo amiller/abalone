@@ -12,7 +12,7 @@ if [ -z "$ip" ]; then
   net=$(ip -4 route get 1.1.1.1 | sed -n 's/.* src \([0-9]*\.[0-9]*\.[0-9]*\)\..*/\1/p')
   echo "scanning $net.0/24 for the Pi..." >&2
   for i in $(seq 254); do ping -c1 -W1 "$net.$i" >/dev/null 2>&1 & done; wait
-  ip=$(ip neigh | awk -v m="$PI_MAC" 'index(tolower($0), tolower(m)) {print $1; exit}')
+  ip=$(ip neigh | awk -v m="$PI_MAC" '{for (i = 1; i < NF; i++) if ($i == "lladdr" && index(tolower($(i + 1)), tolower(m)) == 1) {print $1; exit}}')
   [ -n "$ip" ] || { echo "Pi not found on $net.0/24" >&2; exit 1; }
   echo "Pi at $ip" >&2
 fi
