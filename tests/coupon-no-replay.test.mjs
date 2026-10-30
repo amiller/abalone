@@ -53,7 +53,7 @@ test("Pi's thinking level sets enable_thinking on coupon requests; the trial's c
 
 test("the coupon model's cap is the trial's; a missing or out-of-range cap refuses", async () => {
   assert.equal(model.maxTokens, 4096);
-  for (const value of [undefined, "0", "4097", "512.5"]) {
+  for (const value of [undefined, "0", "16385", "512.5"]) {
     if (value === undefined) delete process.env.ABALONE_COUPON_MAX_TOKENS; else process.env.ABALONE_COUPON_MAX_TOKENS = value;
     await assert.rejects(couponProvider({ registerProvider: () => assert.fail("registered") }), { code: "model_not_admitted" });
   }
