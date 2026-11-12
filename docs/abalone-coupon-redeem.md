@@ -8,12 +8,14 @@ is protected and what is not. The coupon is one way to get access; see
 [acquiring private inference](../guides/acquiring-private-inference/README.md)
 for the others and what each links to you.
 
-<!-- Release step: point the links, the install.sh SHA256, the claim deadline, and the URLs, line numbers and archive SHA256 in "How to confirm it" and "Without the script" below at the new release. -->
-**Current release:** [v0.1.0-preview.8.1](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.8.1)
-provides `install.sh --credit` and the `abalone credit` commands. Download
-[install.sh](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8.1/install.sh) and
-[FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8.1/FRIEND-SHA256SUMS) from that release.
-Its `install.sh` SHA256 is
+<!-- Release step: point the links, the archive and install.sh SHA256s, the claim deadline, and the URLs, line numbers and archive SHA256 in "Run it, portably" and "How to confirm it" below at the new release. -->
+**Current release:** [v0.1.0-preview.8.1](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.8.1).
+Its client archive is the one published with v0.1.0-preview.8; the public trial
+files and [FRIEND-SHA256SUMS](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8.1/FRIEND-SHA256SUMS)
+are in v0.1.0-preview.8.1. [Run it, portably](#run-it-portably) lists the
+downloads. The optional
+[install.sh](https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8.1/install.sh)
+puts a launcher on your `PATH`; its SHA256 is
 `f8597b32efe27e7e8a123a14aae5e6c5e032e97a1e6f4eb19d655b0a580e9e03`.
 The signed issuer approval expires 2026-11-12T03:00:00Z;
 each gift's own claim-by time is earlier, and `abalone credit inspect` shows it.
@@ -47,10 +49,52 @@ each gift's own claim-by time is earlier, and `abalone credit inspect` shows it.
 - `install.sh`, which pins the SHA256 of the archive and of each of the four
   files, and `FRIEND-SHA256SUMS`, which lists the installer and those files.
 
-## Check and run the installer
+## Run it, portably
 
-Download
-`install.sh` and `FRIEND-SHA256SUMS` into a new private directory, then:
+The archive and the public files are separate downloads. In a directory you
+choose:
+
+```sh
+mkdir -m 700 ~/abalone-portable && cd ~/abalone-portable
+curl -fLO https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8/abalone-ca6a250.tar.gz
+for f in FRIEND-SHA256SUMS trial.json issuer-pin.json staging-approval.json; do
+  curl -fLO "https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8.1/$f"
+done
+echo "f4ff14b6ebba56f891ca7547fc5e6c51676438850661cfa4fcabb36bedf85043  abalone-ca6a250.tar.gz" | sha256sum -c
+sha256sum -c --ignore-missing FRIEND-SHA256SUMS
+tar -xzf abalone-ca6a250.tar.gz
+mkdir public-credit/gift
+mv trial.json issuer-pin.json staging-approval.json public-credit/gift/
+~/abalone-portable/abalone/bin/abalone
+```
+
+`FRIEND-SHA256SUMS` does not list the archive; its SHA256 is in the
+[release notes](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.8.1).
+A matching checksum shows the bytes are the published ones; it does not make
+them safe.
+
+The gift route needs three of the four public files: `trial.json` names
+`issuer-pin.json` and `staging-approval.json`, and they must sit in the same
+directory as it. `readiness.json` is an unsigned availability observation that
+`abalone` does not read. Plain `abalone` uses the `trial.json` in
+`public-credit/<any name>/` beside the unpacked `abalone/` directory when there
+is exactly one. Instead of moving the files, you can pass an absolute path:
+`~/abalone-portable/abalone/bin/abalone --trial ~/abalone-portable/trial.json`.
+
+In the commands below, use `~/abalone-portable/abalone/bin/abalone` wherever
+they say `abalone`. Nothing is put on your `PATH`.
+
+Saved access does not stay in this directory. `abalone` keeps its state,
+including saved credit, in `~/.abalone/` unless `ABALONE_DIR` names another
+directory, for example `ABALONE_DIR=~/abalone-portable/state`; set it for every
+`abalone` command, or the credit saved there is not found.
+
+## Optional: a launcher on your PATH
+
+`install.sh --credit` does the same downloads and checks, keeps the result under
+`~/.abalone-app`, and links `~/.local/bin/abalone` to it so plain `abalone`
+works. Download `install.sh` and `FRIEND-SHA256SUMS` into a new private
+directory, then:
 
 ```sh
 sha256sum -c --ignore-missing FRIEND-SHA256SUMS
@@ -58,10 +102,8 @@ less install.sh
 sh install.sh --credit
 ```
 
-A matching checksum shows the bytes are the published ones; it does not make
-them safe. The next two sections say what the script does and how to confirm
-that without trusting this page. If you would rather not run a script, follow
-[Without the script](#without-the-script).
+The next two sections say what the script does and how to confirm that without
+trusting this page.
 
 ## What install.sh does
 
@@ -136,40 +178,6 @@ None of these checks relies on this page.
 An agent setting this up for you runs the same three checks and tells you what
 the script will do before running it.
 
-## Without the script
-
-Do by hand what the script does. In a directory you choose:
-
-```sh
-mkdir -m 700 ~/abalone-manual && cd ~/abalone-manual
-curl -fLO https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8/abalone-ca6a250.tar.gz
-for f in FRIEND-SHA256SUMS trial.json issuer-pin.json staging-approval.json; do
-  curl -fLO "https://github.com/amiller/abalone/releases/download/v0.1.0-preview.8.1/$f"
-done
-echo "f4ff14b6ebba56f891ca7547fc5e6c51676438850661cfa4fcabb36bedf85043  abalone-ca6a250.tar.gz" | sha256sum -c
-sha256sum -c --ignore-missing FRIEND-SHA256SUMS
-tar -xzf abalone-ca6a250.tar.gz
-```
-
-`FRIEND-SHA256SUMS` does not list the archive; its SHA256 is in the
-[release notes](https://github.com/amiller/abalone/releases/tag/v0.1.0-preview.8.1).
-
-The gift route needs three of the four public files: `trial.json` names
-`issuer-pin.json` and `staging-approval.json`, and they must sit in the same
-directory as it. `readiness.json` is an unsigned availability observation that
-`abalone` does not read. Then run:
-
-```sh
-~/abalone-manual/abalone/bin/abalone --trial ~/abalone-manual/trial.json
-```
-
-`--trial` takes an absolute path. To run plain `abalone` instead, move the
-three files into one directory under `public-credit/` beside the runtime, for
-example `~/abalone-manual/public-credit/manual/`; `abalone` uses the
-`trial.json` there when there is exactly one. Nothing is put on your `PATH`;
-link `~/abalone-manual/abalone/bin/abalone` into it yourself if you want.
-In the commands below, use this path wherever they say `abalone`.
-
 ## Inspect, redeem and save access
 
 Check for access you already have first:
@@ -192,12 +200,12 @@ are discarded, so they answer no prompt. An interrupted redemption ends with the
 recover message below and the exact `abalone credit recover --credit CREDIT_ID`
 command. Without a terminal, plain `abalone` prints the two ways in, with the
 step-by-step commands below, and exits with status 2. It uses the `trial.json`
-installed with it; `abalone --trial /ABS/trial.json` selects another.
+under `public-credit/`, as above; `abalone --trial /ABS/trial.json` selects another.
 
 The steps one at a time: put the gift link or code in a 0600 file in a private directory, or
 pass it on standard input with `--stdin`. Never put it in a command argument,
-URL query, environment variable or public log. Use the `trial.json` path the
-installer printed:
+URL query, environment variable or public log. Use the absolute path of your `trial.json`
+(the installer prints it):
 
 ```sh
 abalone credit inspect --trial /ABS/trial.json --input-file /private/gift.txt
