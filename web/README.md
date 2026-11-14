@@ -86,6 +86,13 @@ PingPay, Agent402, Base.
 - The Base RPC reads are unverified; a lying RPC can misreport balances but cannot move funds.
 - The browser cannot see the TLS key it connected to, so the gateway's attested TLS fingerprint is checked as quoted,
   not against the live connection. Message contents are protected by the encryption to the model key either way.
-- Agent402's sandbox is not attested. A TEE sandbox paid the same way (an x402 TDX VM, or a
-  [dsmack](https://github.com/amiller/dsmack) Mac) is the next step.
+- Agent402's sandbox is not attested.
 - Conversations live only in the open tab.
+
+## Next
+
+- An attested code sandbox paid from the page's wallet: a [dsmack](https://github.com/amiller/dsmack) Mac guest, or
+  an x402 TDX VM ([#84](https://github.com/amiller/abalone/issues/84)).
+- More attested model providers. Venice first: its encrypted models run in the same NEAR AI enclaves and it takes an
+  x402 top-up with no account, but it has its own encryption headers. RedPill and Phala Cloud later
+  ([#83](https://github.com/amiller/abalone/issues/83)).
