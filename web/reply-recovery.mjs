@@ -61,9 +61,8 @@ export function replyFailure(error, { partial = false, online = globalThis.navig
     retryable = false;
   } else if (/attest|verif|quote|(?:broker|signing|encryption) key|code hash|deployment pin|challenge mismatch|escrow code|measured|\bTDX\b|\bNRAS\b|\bMR(?:TD|SEAM|CONFIGID)\b/i.test(original)) {
     category = "verification";
-    message = /model|NEAR/i.test(original)
-      ? "Couldn't verify the model, so nothing was sent. Retry, or reload the page."
-      : "Couldn't verify the sandbox, so nothing was sent. Retry, or reload the page.";
+    // This page has no sandbox to verify: every verification failure is the model's attestation.
+    message = "Couldn't verify the model, so nothing was sent. Retry, or reload the page.";
   } else if (online === false) {
     category = "offline";
     message = "Your browser is offline. Reconnect to the internet, then Retry.";
