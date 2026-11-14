@@ -65,7 +65,9 @@ chat.session = agent;
 agent.subscribe((event) => {
   // Pi's message list observes array references; the agent appends in place.
   if (event.type === "message_end" || event.type === "agent_end") { agent.state.messages = [...agent.state.messages]; chat.requestUpdate(); }
-  if (event.type === "message_end" && event.message.failure) say(event.message.failure.message);
+  if (event.type === "message_end" && event.message.role === "assistant") say(event.message.failure?.message ?? "");
+  // Core 1.4 becomes idle only after its listeners return, so re-render once it has, or the composer stays busy.
+  if (event.type === "agent_end") setTimeout(() => chat.requestUpdate());
 });
 $("chat-host").append(chat);
 

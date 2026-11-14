@@ -37,6 +37,15 @@ The pieces:
 
 **Wallet → Export wallet** and **Import a wallet** move the wallet and its NEAR AI account between browsers and origins.
 
+## Seen working
+
+On 2026-11-14 a fresh page wallet (`0xbDD5…cbf5` on Base) received 0.00188 ETH and, with no further input, activated
+its NEAR account, signed in to NEAR AI, swapped to USDC and paid a $2 PingPay invoice; NEAR AI showed $2.00 of credit.
+The first reply came from `deepseek-ai/DeepSeek-V4.1-Flash-1017` with the gateway and model quotes UpToDate, verified
+in the browser. `run_code` then paid 0.02 USDC over x402
+([tx](https://basescan.org/tx/0x32bb475f0989e775286c59bb06cfd79fcd7aef188bec1592fc3c56bf856a550e)) and returned
+F(50) = 12586269025.
+
 ## Run it
 
 Node 24 and Deno 2.
