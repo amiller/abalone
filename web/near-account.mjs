@@ -165,11 +165,10 @@ export class NearAccount {
     need(this.session, "Sign in to NEAR AI first.");
     const exp = JSON.parse(atob(this.session.access_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).exp;
     if (exp * 1000 - Date.now() > 120000) return;
-    const reply = await this.cloud("POST", "/v1/users/me/access-tokens", { token: this.session.refresh_token });
-    const ids = await this.me(reply.access_token);
-    need(ids.organizationId === this.session.organizationId, "NEAR AI refresh returned another organization");
-    await store("near.session", this.session = { ...this.session, access_token: reply.access_token, refresh_token: reply.refresh_token,
-      refresh_token_expiration: reply.refresh_token_expiration });
+    // Sign in again with the account key rather than rotate refresh tokens, which break once the wallet is in two places.
+    const org = this.session.organizationId;
+    await this.signIn();
+    need(this.session.organizationId === org, "NEAR AI sign-in returned another organization");
   }
   async credit() {
     await this.fresh();

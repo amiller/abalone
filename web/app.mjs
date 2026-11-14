@@ -45,8 +45,8 @@ async function evidence(e) {
 
 const agent = new Agent({
   initialState: { systemPrompt: PROMPT, messages: [], thinkingLevel: "off", model: await storage.settings.get("model") || NO_MODEL,
-    tools: [runCodeTool({ wallet: ensureWallet, cfg, paid: (p) => say(`Paid ${Number(p.amount) / 1e6} USDC for run_code` +
-      (p.settlement?.transaction ? ` (tx ${p.settlement.transaction})` : "")) })] },
+    tools: [runCodeTool({ wallet: ensureWallet, cfg, paid: (p) => { spend.code += Number(p.amount); spend.calls++; showSpend(); say(`Paid ${Number(p.amount) / 1e6} USDC for run_code` +
+      (p.settlement?.transaction ? ` (tx ${p.settlement.transaction})` : "")); } })] },
   toolExecution: "sequential",
   getApiKey: (provider) => storage.providerKeys.get(provider),
   streamFn: nearDirectStream({ apiKey: () => storage.providerKeys.get("near-own"), evidence, status: say,
@@ -65,13 +65,41 @@ chat.session = agent;
 agent.subscribe((event) => {
   // Pi's message list observes array references; the agent appends in place.
   if (event.type === "message_end" || event.type === "agent_end") { agent.state.messages = [...agent.state.messages]; chat.requestUpdate(); }
-  if (event.type === "message_end" && event.message.role === "assistant") say(event.message.failure?.message ?? "");
+  if (event.type === "message_end" && event.message.role === "assistant") {
+    say(event.message.failure?.message ?? "");
+    if (!event.message.failure) chargedReply().catch((e) => say(e.message));
+  }
   // Core 1.4 becomes idle only after its listeners return, so re-render once it has, or the composer stays busy.
   if (event.type === "agent_end") setTimeout(() => chat.requestUpdate());
 });
 $("chat-host").append(chat);
 
-nearOwnAccount({ $, cfg, ensureWallet, needsModel: () => agent.state.model.id === "none", use: async (model, key) => {
+// What this session spends from the page's own accounts: NEAR AI credit per model call, read back from NEAR AI's
+// ledger (nano-USD), and USDC per run_code call over x402.
+const spend = { start: undefined, last: undefined, reply: undefined, left: undefined, code: 0, calls: 0 };
+const dollars = (nano) => "$" + (nano / 1e9).toFixed(5);
+function showSpend() {
+  if (spend.left === undefined) return;
+  $("spend").textContent = "NEAR AI credit: " + (spend.reply === undefined ? "" : `last model call ${dollars(spend.reply)} · `) +
+    `this session ${dollars(spend.last - spend.start)} · ${dollars(spend.left)} left` +
+    (spend.calls ? ` | run_code: ${spend.calls} call${spend.calls > 1 ? "s" : ""}, $${(spend.code / 1e6).toFixed(2)} USDC` : "");
+}
+async function readCredit() {
+  const c = await near.credit();
+  spend.start ??= c.total_spent; spend.last ??= c.total_spent; spend.left = c.remaining;
+  return c;
+}
+// NEAR AI records usage a few seconds after a reply, so wait for its total to move.
+async function chargedReply() {
+  const before = spend.last;
+  for (let i = 0; i < 12; i++) {
+    const c = await readCredit();
+    if (c.total_spent !== before) { spend.reply = c.total_spent - before; spend.last = c.total_spent; break; }
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  showSpend();
+}
+const near = nearOwnAccount({ $, cfg, ensureWallet, needsModel: () => agent.state.model.id === "none", use: async (model, key) => {
   await storage.providerKeys.set("near-own", key);
   await storage.settings.set("model", model);
   agent.state.model = model;
@@ -101,5 +129,6 @@ action("import-wallet", async () => {
   location.reload();
 });
 render();
+if (agent.state.model.id !== "none") readCredit().then(showSpend, (e) => say(e.message));
 // A new visitor starts at the payment; a returning one resumes a pending payment.
 if (agent.state.model.id === "none" || await store("near.funding")) $("near-account").open = true;

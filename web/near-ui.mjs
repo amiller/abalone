@@ -77,4 +77,8 @@ export function nearOwnAccount({ $, cfg, ensureWallet, use, needsModel }) {
   };
   $("near-account").addEventListener("toggle", () => { if ($("near-account").open) open().catch((e) => say(setupError = e.message)); });
   $("near-copy").onclick = () => navigator.clipboard.writeText($("near-address").textContent);
+  return { credit: async () => {
+    account ||= await new NearAccount({ privateKey: await store("burner"), relay: new URL(cfg.nearPay, location.href).href }).load();
+    return account.credit();
+  } };
 }
