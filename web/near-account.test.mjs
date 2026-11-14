@@ -63,7 +63,7 @@ test("the run after the one payment activates, signs in, swaps only the USDC sho
     paymentCredited: async () => credited,
     apiKey: async () => "sk-test" });
   assert.equal(await a.run(2, () => {}, async () => {}), "sk-test");
-  assert.deepEqual(log, ["activate", "signIn", "invoice", "swap 1530000", "pay"]);
+  assert.deepEqual(log, ["activate", "signIn", "invoice", "swap 1780000", "pay"]);
   log.length = 0;
   assert.equal(await a.run(2, () => {}, async () => {}), "sk-test");
   assert.deepEqual(log, []);
@@ -72,5 +72,5 @@ test("the run after the one payment activates, signs in, swaps only the USDC sho
 test("the one payment covers the credit, the activation and gas", async () => {
   const { fundingWei } = await import("./near-account.mjs");
   const wei = fundingWei(2, 3000);
-  assert.equal(wei, 740000000000001n + 3n * 10n ** 13n + 4n * 10n ** 13n);
+  assert.equal(wei, 823333333333334n + 3n * 10n ** 13n + 4n * 10n ** 13n);
 });

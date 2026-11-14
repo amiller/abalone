@@ -11,6 +11,8 @@ export const BASE_RPC = "https://mainnet.base.org";
 export const BASE_ETH = "nep141:base.omft.near";
 export const NEAR_USDC = "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1";
 export const TREASURY = "jasnah-treasury.sputnik-dao.near";
+// USDC kept after paying NEAR AI, for x402 tool calls such as run_code.
+export const TOOL_USDC = 250000n;
 const ACTIVATION_YOCTO = 10n ** 22n, MAX_ACTIVATION_WEI = 3n * 10n ** 13n, GAS_RESERVE_WEI = 2n * 10n ** 13n;
 const need = (ok, message) => { if (!ok) throw new Error(message); };
 const hex = (bytes) => Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
@@ -230,7 +232,7 @@ export class NearAccount {
     if (!this.payment) {
       const inv = await this.invoice(usd);
       for (;;) {
-        const short = inv.amountIn - (await this.balances()).usdcUnits;
+        const short = inv.amountIn + TOOL_USDC - (await this.balances()).usdcUnits;
         if (short <= 0n) break;
         const status = this.usdcSwap && (await swapStatus(this.usdcSwap.depositAddress, this.fetch)).status;
         if (!this.usdcSwap || ["SUCCESS", "REFUNDED", "FAILED"].includes(status)) {
@@ -248,7 +250,7 @@ export class NearAccount {
   }
 }
 // Base ETH the one payment should deliver for `usd` of NEAR AI credit: the invoice with 6% for swap fees and price
-// moves, the 0.01 NEAR activation, and gas for three Base sends.
+// moves, $0.25 of USDC left for x402 tool calls, the 0.01 NEAR activation, and gas for three Base sends.
 export function fundingWei(usd, ethUsd) {
-  return BigInt(Math.ceil((usd * 1.06 + 0.1) / ethUsd * 1e18)) + MAX_ACTIVATION_WEI + 2n * GAS_RESERVE_WEI;
+  return BigInt(Math.ceil((usd * 1.06 + 0.1 + Number(TOOL_USDC) / 1e6) / ethUsd * 1e18)) + MAX_ACTIVATION_WEI + 2n * GAS_RESERVE_WEI;
 }

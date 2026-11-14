@@ -26,7 +26,7 @@ The pieces:
 
 1. Run it (below) and open the page. **Pay once with any token** is open and shows the page's wallet.
 2. Pick a token (ETH on Base pays the wallet directly; anything else goes through 1Click), keep $2 of credit, give a
-   refund address on that chain and press **Get QR code**. Pay it. A $2 credit is one payment of about $2.40.
+   refund address on that chain and press **Get QR code**. Pay it. A $2 credit is one payment of about $2.65, which leaves $0.25 of USDC for paid tools.
 3. Watch the status line: it waits for the payment, then activates the NEAR account, signs in to NEAR AI, swaps to
    USDC, pays the invoice and ends with `Ready: chat now uses this page's own NEAR AI account ($2.00 credit)`.
    The line above the chat names the model, "encrypted to the attested model".
