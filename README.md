@@ -24,6 +24,12 @@ session clean. Need a model? Start with the
 [acquiring guide](guides/acquiring-private-inference/README.md) to choose a
 provider and find how to buy access.
 
+## In the browser
+
+[web/](web/README.md) is Abalone as one web page that pays for itself. Pay it once with any token through NEAR
+Intents; it buys its own NEAR AI account and credit, encrypts every message to an attested model, and pays per call
+over x402 for cloud code runs. Built for NEAR HACKATHON, November 2026.
+
 ## Run it
 
 There are three ways to bring a model.
