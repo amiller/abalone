@@ -1,4 +1,4 @@
-// Agent tools the page pays for itself over x402, from its own wallet. run_code: Agent402's code runner,
+// Agent tools paid per call over x402 from the page's wallet. run_code: Agent402's code runner,
 // a fresh cloud sandbox per call (Python or JavaScript, 30 s, no network).
 import { x402Fetch } from "./x402.mjs";
 

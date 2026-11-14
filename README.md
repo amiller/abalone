@@ -26,8 +26,8 @@ provider and find how to buy access.
 
 ## In the browser
 
-[web/](web/README.md) is Abalone as one web page that pays for itself. Pay it once with any token through NEAR
-Intents; it buys its own NEAR AI account and credit, encrypts every message to an attested model, and pays per call
+[web/](web/README.md) is Abalone as one web page you fund once, with any token through NEAR Intents. From that
+payment it buys its own NEAR AI account and credit, encrypts every message to an attested model, and pays per call
 over x402 for cloud code runs. Built for NEAR HACKATHON, November 2026.
 
 ## Run it

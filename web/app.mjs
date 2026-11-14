@@ -1,4 +1,4 @@
-// Abalone web agent: a chat agent in one static page that pays for everything from its own wallet. Fund the wallet
+// Abalone web agent: a chat agent in one static page with its own wallet. Fund the wallet
 // with any token through NEAR Intents; it buys its own NEAR AI account and credit, talks to an attested model with
 // end-to-end encryption, and pays per call over x402 for cloud code execution. No accounts, no server of ours.
 import "@mariozechner/mini-lit/dist/MarkdownBlock.js";

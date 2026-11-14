@@ -1,7 +1,7 @@
 # Abalone web agent
 
-A chat agent in one static web page that pays for everything from its own wallet. You pay the page once, in any
-token NEAR Intents accepts. From that one payment the page buys its own NEAR AI account and credit, sends every message
+A chat agent in one static web page that you fund once, with any token NEAR Intents accepts, into a wallet that
+lives in the page. From that one payment the page buys its own NEAR AI account and credit, sends every message
 encrypted to a NEAR AI model whose TEE attestation the browser has checked, and pays per call over x402 when the agent
 runs code in the cloud. There is no account to create, no API key to paste and no KYC anywhere in the path.
 
