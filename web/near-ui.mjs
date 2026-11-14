@@ -8,7 +8,7 @@ import { nearOwnModel } from "./model.mjs";
 import { store } from "./wallet-store.mjs";
 
 export function nearOwnAccount({ $, cfg, ensureWallet, use }) {
-  let account, list, running;
+  let account, list, running, setupError;
   const say = (text) => { $("near-status").textContent = text; };
   const finish = async (usd) => {
     if (running) return;
@@ -56,6 +56,7 @@ export function nearOwnAccount({ $, cfg, ensureWallet, use }) {
   $("near-quote").onclick = async () => {
     $("near-quote").disabled = true;
     try {
+      if (!list) throw new Error("This page could not set up its wallet or load the token list: " + (setupError ?? "close and reopen this panel to retry."));
       const t = list[$("near-token").value], usd = Number($("near-usd").value);
       if (!(usd >= 1 && usd <= 10)) throw new Error("Buy between $1 and $10 of NEAR AI credit.");
       const wei = fundingWei(usd, list.find((x) => x.assetId === BASE_ETH).price);
@@ -72,6 +73,6 @@ export function nearOwnAccount({ $, cfg, ensureWallet, use }) {
       watch().catch((e) => say(e.message));
     } catch (e) { say(e.message); } finally { $("near-quote").disabled = false; }
   };
-  $("near-account").addEventListener("toggle", () => { if ($("near-account").open) open().catch((e) => say(e.message)); });
+  $("near-account").addEventListener("toggle", () => { if ($("near-account").open) open().catch((e) => say(setupError = e.message)); });
   $("near-copy").onclick = () => navigator.clipboard.writeText($("near-address").textContent);
 }
