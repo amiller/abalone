@@ -55,8 +55,9 @@ gateway, build with `NEAR_PAY=https://<a host running server.ts>/near-pay`.
 
 ## Hackathon scope
 
-Built for NEAR HACKATHON (November 2026). Everything in `web/` is new on the `near-hackathon` branch; compare the
-`pre-hackathon` tag with `hackathon-submission`.
+Built for NEAR HACKATHON (November 2026). Everything in `web/` is new on the `near-hackathon` branch. The
+`pre-hackathon` tag marks where the branch starts; compare it with `hackathon-submission`. Nothing outside `web/` and
+a short pointer in the top-level README is claimed as hackathon work.
 
 It grows out of two things:
 
