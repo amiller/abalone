@@ -7,7 +7,7 @@ import { tokens, swapStatus } from "./intents-funding.mjs";
 import { nearOwnModel } from "./model.mjs";
 import { store } from "./wallet-store.mjs";
 
-export function nearOwnAccount({ $, cfg, ensureWallet, use }) {
+export function nearOwnAccount({ $, cfg, ensureWallet, use, needsModel }) {
   let account, list, running, setupError;
   const say = (text) => { $("near-status").textContent = text; };
   const finish = async (usd) => {
@@ -50,6 +50,8 @@ export function nearOwnAccount({ $, cfg, ensureWallet, use }) {
     list ||= await tokens();
     const pick = $("near-token");
     if (pick.options.length < 2) pick.replaceChildren(...list.map((t, i) => new Option(`${t.symbol} (${t.blockchain})`, i, false, t.assetId === BASE_ETH)));
+    // An imported wallet brings its NEAR AI account: select its model again without buying anything.
+    if (await store("near.key") && needsModel() && !await store("near.funding")) return finish(Number($("near-usd").value));
     if (await store("near.key")) say("This page already has its own NEAR AI account. Pay again to add credit.");
     await watch();
   };

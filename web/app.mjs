@@ -71,7 +71,7 @@ agent.subscribe((event) => {
 });
 $("chat-host").append(chat);
 
-nearOwnAccount({ $, cfg, ensureWallet, use: async (model, key) => {
+nearOwnAccount({ $, cfg, ensureWallet, needsModel: () => agent.state.model.id === "none", use: async (model, key) => {
   await storage.providerKeys.set("near-own", key);
   await storage.settings.set("model", model);
   agent.state.model = model;
