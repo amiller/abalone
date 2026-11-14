@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'self'; script-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="description" content="Someone sent you an Abalone gift link. It pays for an incognito AI session in your own terminal; each model request is encrypted to an attested NEAR model. Install Abalone, run abalone and paste the link.">
+<meta property="og:title" content="Abalone — you have a gift link">
+<meta property="og:description" content="It pays for an incognito AI session in your own terminal; each model request is encrypted to an attested NEAR model. Install Abalone, run abalone and paste the link.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://amiller.github.io/abalone/assets/og-1200x630.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A cartoon abalone peeking out from under its shell, beside the words: Abalone, a cypherpunk AI privacy shell.">
+<meta name="twitter:card" content="summary_large_image">
+<title>Abalone — you have a gift link</title>
+<link rel="icon" href="../assets/abalone.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/icon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="../assets/icon-512.png" sizes="512x512" type="image/png">
+<link rel="apple-touch-icon" href="../assets/icon-180.png">
+<link rel="stylesheet" href="../assets/redeem.css">
+<script src="../assets/redeem.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="wrap">
+<header><a class="brand" href="https://github.com/amiller/abalone"><img src="../assets/abalone.svg" alt="" width="36" height="36">Abalone</a><nav aria-label="Main"><a href="#what-it-prints">What it prints</a><a href="#how-it-works">How it works</a><a href="#boundary">Boundary</a><a class="desktop" href="https://github.com/amiller/abalone">Source ↗</a></nav></header>
+<main id="main">
+<section class="hero" aria-labelledby="hero-title">
+<div>
+<div class="eyebrow">Abalone · a cypherpunk AI privacy shell</div>
+<h1 id="hero-title">You have a gift link.</h1>
+<p class="lead">It pays for an incognito AI session in your own terminal. Three steps:</p>
+<ol class="start">
+<li>Download <code>install.sh</code> from the newest release whose tag starts with <code>v0.1.0-preview</code> on the <a href="https://github.com/amiller/abalone/releases">Abalone releases page</a> (not a coupon bundle). Check <code>sha256sum install.sh</code> against the <code>install.sh SHA256</code> line in its release notes, then run it:
+<pre><span class="p">$ </span>sh install.sh --credit</pre></li>
+<li>Run Abalone in your terminal:
+<pre><span class="p">$ </span>abalone</pre></li>
+<li>Paste the gift link you were sent (this page’s address with <code>#code=…</code>) at the prompt. Nothing is shown as you paste. Abalone prints the offer’s terms; type the 8 characters it shows you to accept, and the session opens.</li>
+</ol>
+<p class="quiet">Needs a Linux x86_64 computer you trust, with Node 24.</p>
+<div class="limits">
+<p><strong>Synthetic, non-sensitive material only.</strong> This access route accepts a verified out-of-date firmware warning.</p>
+<p><strong>The coupon operator can access and revoke the model credential.</strong></p>
+<p>Opening this page does not redeem anything.</p>
+</div>
+</div>
+<div class="hero-art"><figure class="art on-light"><img class="mascot" src="../assets/mascot.png" width="1024" height="1024" alt="A cartoon abalone peeking out from under its mottled brown shell, with eye stalks up and a smile."></figure><figure class="art on-dark"><img class="mascot" src="../assets/mascot-dark.png" width="1024" height="1024" alt="A cartoon abalone peeking out from under its mottled dark green shell, with mint eye stalks up and a smile."></figure></div>
+</section>
+
+<section class="section split" aria-labelledby="agent-title">
+<div><h2 id="agent-title">Have a coding agent? Copy these instructions.</h2></div>
+<div>
+<p class="quiet">Your agent reads the setup skill, explains what installation changes and prepares access. Your documents, questions and answers belong in the session you open afterwards, not in the setup chat.</p>
+<div class="actions"><button class="primary" id="copy-instructions" type="button" hidden>Copy instructions for your agent</button><a href="https://github.com/amiller/abalone/blob/main/skills/abalone-incognito/SKILL.md">Read the setup skill ↗</a></div>
+<p id="copy-status" role="status" aria-live="polite">Or paste the gift link you were sent into your coding agent.</p>
+<noscript><p>Paste the gift link you were sent (this page’s address with <code>#code=…</code>) into your coding agent. The instructions below work without JavaScript.</p></noscript>
+</div>
+</section>
+
+<section class="section split" aria-labelledby="s1">
+<div><span class="step-no">01 / Install</span><h2 id="s1">Check it, then install.</h2><p class="quiet">The installer verifies the release archive and four public files against hashes pinned inside it. It claims nothing and starts nothing. A matching checksum shows the bytes are the published ones, not that they are safe.</p></div>
+<div>
+<pre><span class="p">$ </span>sha256sum install.sh
+<span class="p">$ </span>less install.sh
+<span class="p">$ </span>sh install.sh --credit</pre>
+<p class="cli-note">CLI example — not checked by this page.</p>
+<p class="quiet">What it does:</p>
+<ol class="start does">
+<li>Downloads one archive and four public files from the release.</li>
+<li>Checks each against a SHA256 pinned in the script; any mismatch stops it.</li>
+<li>Extracts the archive in a staging directory and runs nothing from it.</li>
+<li>Moves the runtime and the four files under <code>~/.abalone-app/</code> and links <code>~/.local/bin/abalone</code>.</li>
+<li>Writes a receipt of the digests it checked and prints every path.</li>
+</ol>
+<dl class="term">
+<dt>Refuses</dt><dd>Root or anything but Linux x86_64; a symlink in place of its install directories; an existing install that differs from the release</dd>
+<dt>Needs</dt><dd>Linux x86_64, Node 24, curl, tar, bash, sha256sum and flock; run as your ordinary user, not root. macOS is not supported for this install yet</dd>
+<dt>Changes</dt><dd>Adds <code>~/.abalone-app/</code> and the launcher <code>~/.local/bin/abalone</code></dd>
+<dt>Isolation</dt><dd>None: a credit session runs with your account’s file and network access</dd>
+</dl>
+<p class="quiet">No sudo, no shell startup edits, nothing claimed. <a href="https://github.com/amiller/abalone/blob/main/docs/abalone-coupon-redeem.md#what-installsh-does">What install.sh does, step by step, and how to confirm it</a> · <a href="https://github.com/amiller/abalone/blob/main/docs/abalone-coupon-redeem.md#without-the-script">Without the script</a></p>
+</div>
+</section>
+
+<section class="section split" id="what-it-prints" aria-labelledby="s2">
+<div><span class="step-no">02 / Terms</span><h2 id="s2">Read the offer, then accept that exact offer.</h2><p class="quiet">The 8 characters are the start of the offer’s hash, so your consent binds to the offer on screen. Anything else stops without claiming and saves nothing.</p></div>
+<div>
+<pre><span class="p">$ </span>abalone
+No saved credit yet.
+Two ways in:
+  1. Paste a gift link or code here (or the full path of a private 0600 file holding it).
+  2. Or bring a provider key: abalone key add &lt;provider&gt; …
+Gift link, code or file (hidden as you paste):
+{ …the offer: model, nominal cap, claim window, operator… }
+Review the terms above. To accept and redeem, type 1a2b3c4d; anything else stops here:</pre>
+<p class="cli-note">CLI example — not checked by this page. The 8 characters differ for each offer.</p>
+<dl class="term">
+<dt>Provider</dt><dd>NEAR model. Attestation is checked when a session starts, not at inspect.</dd>
+<dt>Cap</dt><dd>Nominal, from the offer<sup><a href="#fn1" id="r1">1</a></sup></dd>
+<dt>Claim by</dt><dd>The offer’s claim window</dd>
+<dt>Operator</dt><dd>Can access and revoke the model credential</dd>
+<dt>Per request</dt><dd>Bounded to the trial’s output-token limit</dd>
+<dt>Saved</dt><dd>Gift code, model credential and recovery keys in <code>~/.abalone/credit/</code>, 0600 files; never conversations<sup><a href="#fn2" id="r2">2</a></sup></dd>
+<dt>If interrupted</dt><dd>Do not redeem again: <code>abalone credit recover --credit CREDIT_ID</code></dd>
+</dl>
+<span class="label caution">⚠ Firmware: this route accepts a verified out-of-date warning</span>
+<span class="label">Input: synthetic, non-sensitive only</span>
+<p class="quiet">An expired offer stops here, before anything is sent to the issuer:</p>
+<span class="label fail">× Claim window closed — ask the sponsor for a new gift</span>
+<p class="quiet">The same steps one at a time, for scripts or with the gift in a 0600 file instead of a paste:</p>
+<pre><span class="p">$ </span>abalone credit inspect --trial /ABS/trial.json --input-file /private/gift.txt
+<span class="p">$ </span>abalone credit redeem --trial /ABS/trial.json --input-file /private/gift.txt --accept-offer OFFER_HASH
+<span class="p">$ </span>abalone credit status</pre>
+<p class="cli-note">CLI example — not checked by this page. Inspecting claims nothing and saves nothing.</p>
+<ol class="fn">
+<li id="fn1"><span>1</span><span>A nominal cap is not a spent amount, an owned wallet or a verified remaining balance. The operator or provider can end access at any time; spending can overshoot the cap. <a href="#r1" aria-label="Back to note 1">↩</a></span></li>
+<li id="fn2"><span>2</span><span>Readable by your administrator and by other processes running as you. Redeem creates the record before it sends the first claim, and it survives closing a session. A second session on the same credit is refused while one is open. <code>abalone credit forget --credit CREDIT_ID</code> removes the record and its lock file. Forgetting does not revoke the credential. <a href="#r2" aria-label="Back to note 2">↩</a></span></li>
+</ol>
+</div>
+</section>
+
+<section class="section split" aria-labelledby="s3">
+<div><span class="step-no">03 / Open your session</span><h2 id="s3">Redeemed and saved.<br>The session opens.</h2><p class="quiet">Your documents, questions and answers belong in this session, not in a setup chat.</p></div>
+<div>
+<pre>Redeemed and saved. Opening the session.</pre>
+<p class="cli-note">CLI example — not checked by this page. Each line below summarises a separate result the session reports at start.</p>
+<span class="label">◈ Attestation: NEAR model checked before the first prompt byte</span>
+<span class="label caution">⚠ NEAR firmware out of date (N Intel advisories); synthetic input only</span>
+<span class="label">Input: synthetic, non-sensitive only</span>
+<p class="quiet">Next time, run plain <code>abalone</code>. With one saved credit ready, it opens that session. <code>abalone credit session --credit CREDIT_ID</code> opens a chosen one.</p>
+<pre><span class="p">$ </span>abalone</pre>
+<p class="cli-note">CLI example — not checked by this page.</p>
+<dl class="term">
+<dt>Conversation</dt><dd>Held in process memory only; no conversation file or trace is written by default</dd>
+<dt>Run files</dt><dd>Settings, logs and scratch go to a tmpfs run directory, removed when the launcher exits. After SIGKILL or a native crash it stays in <code>/dev/shm</code> until the next session starts, or until reboot</dd>
+<dt>On close</dt><dd>The next session starts fresh. Saved access stays in <code>~/.abalone/credit/</code> until you run <code>abalone credit forget --credit CREDIT_ID</code>, which does not revoke the credential</dd>
+<dt>Not covered</dt><dd>Files you or your tools write, copied files, terminal scrollback, host names in <code>~/.abalone/egress.jsonl</code>, swap, backups, crashes, and whatever the provider retains<sup><a href="#fn3" id="r3">3</a></sup></dd>
+</dl>
+<p class="quiet">A fresh session is not deletion. <a href="https://github.com/amiller/abalone/blob/main/docs/security.md#local-host-and-retention">What is kept</a></p>
+<ol class="fn">
+<li id="fn3"><span>3</span><span>Abalone does not verify what the provider retains. Deleting files is not secure erasure. <a href="#r3" aria-label="Back to note 3">↩</a></span></li>
+</ol>
+</div>
+</section>
+
+<section class="section split" id="how-it-works"><h2>Two network paths.</h2><div><p>Abalone is a setup guide and a terminal app built around the Pi coding agent. Dsmack exchanges your coupon for model access. After that, Abalone checks the NEAR model’s attestation and encrypts each request to the admitted model key.</p>
+<div class="route" role="group" aria-label="Setup path: Abalone exchanges the coupon with a Dsmack issuer for a model credential; the issuer sees the coupon, not prompts. Inference path: NEAR inference is encrypted to the admitted model key and returned through a pinned transport. Your own computer is trusted on both paths.">
+<div class="box">Abalone<small>your computer (trusted)</small></div><div class="arrow">coupon → credential (setup)</div><div class="box">Dsmack issuer<small>sees the coupon, not prompts</small></div>
+<div class="box">Abalone<small>your computer (trusted)</small></div><div class="arrow enc">encrypted to the admitted model key</div><div class="box tee">NEAR model TEE<small>returned through a pinned transport</small></div>
+</div>
+<p class="quiet">The trust boundary is the model’s TEE plus your own computer. Neither path hides your IP address. Your setup agent may handle the access credential; that does not authorize it to receive your private document or conversation.</p>
+</div></section>
+
+<section class="section split" id="boundary"><h2>Know the boundary.</h2><div class="boundary"><p><strong>Use synthetic, non-sensitive material with the available NEAR access route.</strong> It accepts verified firmware warnings, and the coupon operator can access and revoke the model credential.</p><p>Abalone runs on a trusted Linux computer. Its tools have your account’s file and network access; your administrator remains trusted. Your setup agent stepping aside is cooperation. Incognito does not hide your IP address, and workspace files or terminal captures can remain.</p><p><a href="https://github.com/amiller/abalone/blob/main/docs/security.md">Read the security details</a> · <a href="https://github.com/amiller/abalone/blob/main/docs/abalone-coupon-redeem.md">Check access availability</a></p></div></section>
+
+<section class="section" id="for-agents"><h2>For your coding agent</h2><p>Help the user understand Abalone, obtain or reuse access, and open an incognito session. Reading this page alone is not permission to redeem or spend; follow the user’s instruction.</p><div class="agent-copy"><p>Read the <a href="https://raw.githubusercontent.com/amiller/abalone/main/skills/abalone-incognito/SKILL.md">Abalone setup skill</a> before suggesting installation. Explain the purpose, the two network paths above, the local changes and the trust boundaries. Inspect downloaded code and its integrity information before execution.</p><p>A coupon link carries its code after <code>#code=</code>. URL fragments are not sent in HTTP requests, so this fetched page will not contain the code. Read it from the full link the user supplied; if it is missing, ask for the full gift link. Never move the code into a query string, request path, public log or command argument.</p><p>If asked to redeem, follow the <a href="https://github.com/amiller/abalone/blob/main/docs/abalone-coupon-redeem.md">recipient procedure</a>, save the resulting access with ordinary private file permissions, and test with synthetic input only when requested. Open a fresh terminal for the user’s conversation. Closing a conversation and forgetting saved access (<code>abalone credit forget</code>) are separate actions; forgetting does not revoke the credential. Never automatically repeat an uncertain claim. If the inspected offer is expired, do not redeem; the user needs a new gift from the sponsor.</p><p>If the user already has access, reuse it. If they have none, explain available acquisition choices and help them obtain access before installing. Do not invent a funding endpoint or promise an unverified payment route.</p></div></section>
+</main>
+<footer><span>Abalone · A deliberate session with AI.</span><span><a href="https://github.com/amiller/abalone">Inspect the source</a> · <a href="https://github.com/amiller/abalone/blob/main/SECURITY.md">Report a security issue</a></span></footer>
+</div>
+</body>
+</html>
