@@ -1,0 +1,15 @@
+:root { --bg: #f4f1ea; --fg: #1d1d1b; --muted: #6b675e; --accent: #2b5d4f; --line: #d8d2c4; }
+@media (prefers-color-scheme: dark) { :root { --bg: #161614; --fg: #ece8df; --muted: #a29d91; --accent: #8fc7b4; --line: #3a3732; } }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+header { display: flex; align-items: center; gap: 10px; }
+h1 { font-size: 1.3rem; margin: 0; } h2 { font-size: 1rem; margin: 0.6rem 0 0.3rem; display: inline; }
+.muted { color: var(--muted); } .small { font-size: 0.875rem; } .mono, code { font-family: ui-monospace, monospace; word-break: break-all; }
+#chat-host { height: 60vh; display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+#chat-host > * { flex: 1; }
+details { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+section { margin: 8px 0; } label { display: block; margin-top: 8px; font-size: 0.875rem; }
+input, select, textarea { width: 100%; box-sizing: border-box; padding: 6px 8px; background: transparent; color: inherit; border: 1px solid var(--line); border-radius: 6px; }
+button.secondary { margin-top: 8px; padding: 6px 12px; border: 1px solid var(--accent); color: var(--accent); background: transparent; border-radius: 6px; cursor: pointer; }
+button.link { border: 0; background: none; color: var(--accent); font-weight: 600; cursor: pointer; padding: 0; }
+pre { white-space: pre-wrap; word-break: break-all; font-size: 0.75rem; max-height: 50vh; overflow: auto; }

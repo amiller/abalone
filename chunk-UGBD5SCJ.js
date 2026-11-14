@@ -1,0 +1,1 @@
+function a(i){let t=3735928559,h=1103547991;for(let e=0;e<i.length;e++){let l=i.charCodeAt(e);t=Math.imul(t^l,2654435761),h=Math.imul(h^l,1597334677)}return t=Math.imul(t^t>>>16,2246822507)^Math.imul(h^h>>>13,3266489909),h=Math.imul(h^h>>>16,2246822507)^Math.imul(t^t>>>13,3266489909),(h>>>0).toString(36)+(t>>>0).toString(36)}export{a};
