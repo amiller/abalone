@@ -24,7 +24,7 @@ The pieces:
 
 ## Try it
 
-1. Run it (below) and open the page. **Pay once with any token** is open and shows the page's wallet.
+1. Open https://amiller.github.io/abalone/app/ or run it (below). **Pay once with any token** is open and shows the page's wallet.
 2. Pick a token (ETH on Base pays the wallet directly; anything else goes through 1Click), keep $2 of credit, give a
    refund address on that chain and press **Get QR code**. Pay it. A $2 credit is one payment of about $2.65, which leaves $0.25 of USDC for paid tools.
 3. Watch the status line: it waits for the payment, then activates the NEAR account, signs in to NEAR AI, swaps to
@@ -60,22 +60,22 @@ npm test
 
 `dist/` is static. `server.ts` adds one thing: `/near-pay/`, a pass-through for three PingPay calls that do not
 accept browser origins (`near-pay.mjs`). It stores nothing. To host `dist/` elsewhere, such as an IPFS subdomain
-gateway, build with `NEAR_PAY=https://<a host running server.ts>/near-pay`.
+gateway, build with `NEAR_PAY=https://<a host running server.ts>/near-pay`. The hosted copy at amiller.github.io/abalone/app/
+is built that way, with the pass-through on the dsmack staging page server.
 
 ## Hackathon scope
 
-Built for NEAR HACKATHON (November 2026). Everything in `web/` is new on the `near-hackathon` branch. The
-`pre-hackathon` tag marks where the branch starts; compare it with `hackathon-submission`. Nothing outside `web/` and
-a short pointer in the top-level README is claimed as hackathon work.
+Built for NEAR HACKATHON (2026-11-01 to 11-14). What is new since the announcement on 2026-10-19:
 
-It grows out of two things:
+| New during the hackathon | Where |
+|---|---|
+| This whole directory: the static page, the one-payment flow, the page's own NEAR AI account, direct attested and encrypted NEAR chat with no broker, x402 `run_code` | [`pre-hackathon...hackathon-submission`](https://github.com/amiller/abalone/compare/pre-hackathon...hackathon-submission) (`web/`, plus a pointer in the top-level README) |
+| The private agent page this grew from: in-browser NEAR AI attestation (TDX, GPU, image provenance) and end-to-end encryption, model picker, faster verification | dsmack `applications/private-agent-web`, first commit 2026-10-29 ([c5785ef](https://github.com/amiller/dsmack/commit/c5785ef)); PRs [#150](https://github.com/amiller/dsmack/pull/150), [#164](https://github.com/amiller/dsmack/pull/164), [#177](https://github.com/amiller/dsmack/pull/177) |
+| The same one-payment flow and own NEAR AI account in the hosted dsmack page | dsmack PRs [#184](https://github.com/amiller/dsmack/pull/184), [#185](https://github.com/amiller/dsmack/pull/185) |
 
-- The private agent page in [dsmack](https://github.com/amiller/dsmack) (`applications/private-agent-web`), started on
-  2026-10-29, during the hackathon. That page reaches NEAR AI through a broker that holds the key and meters credit.
-  The attestation, encryption and chat code here are copied from it. This directory drops the broker, the Mac
-  sandboxes and the testnet escrow.
-- The ZCON portable stick (Abalone, October 2026, before the hackathon), which first bought NEAR AI credit with Base
-  USDC from a Python CLI. `near-account.mjs` is that route rewritten for the browser.
+Older, not claimed: the rest of Abalone (the terminal privacy shell, before `pre-hackathon`), and the ZCON USB stick's
+Python CLI that first bought NEAR AI credit with Base USDC (October 2026). `near-account.mjs` rewrites that route for
+the browser; the sign-in, checkout and payment checks changed during the live run here.
 
 Libraries: pi-agent-core, pi-ai and pi-web-ui (the agent loop and chat UI), `@nearai/inference-sdk` (E2EE and
 attestation primitives), `@phala/dcap-qvl` (TDX quote verification), ethers, qrcode. Services: 1Click, NEAR AI Cloud,
